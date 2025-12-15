@@ -23,6 +23,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      # CRITICAL FIX: Bypass permission error 126 and use bash
       - name: Build APK (Bypass Permissions)
         run: |
           cd android
