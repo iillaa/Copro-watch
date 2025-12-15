@@ -20,7 +20,7 @@ jobs:
 
       - uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       # CRITICAL FIX: Bypass permission error 126 and use bash
