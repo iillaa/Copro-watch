@@ -1,0 +1,16 @@
+{
+  "name": "Gestionnaire de Visites Médicales",
+  "short_name": "MedVisit",
+  "description": "Offline SPA to manage medical visits",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "app-icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}
