@@ -49,7 +49,7 @@ Cette approche multi-outils a permis de créer une application robuste et compl�
 5.  Pour recréer la version "Fichier Unique" (`dist/index.html`) :
     ```bash
     npm run build
-    ```
+    ``
 
 ## Utilisation Quotidienne
 
