@@ -65,12 +65,16 @@ export default function Settings({ currentPin, onPinChange }) {
     setTimeout(() => setMsg(''), 3000);
   };
 
+
+
   useEffect(() => {
     // load backup settings
     (async () => {
       try {
         await backupService.init();
-        setBackupThreshold(backupService.getThreshold());
+        // Initialize threshold from service (get the current threshold value, not the counter)
+        const currentThreshold = await backupService.getCurrentThreshold?.() || 10;
+        setBackupThreshold(currentThreshold);
         setAutoImportEnabled(await backupService.getAutoImport());
         setBackupDir(backupService.getBackupDirName());
       } catch (e) {
@@ -79,15 +83,35 @@ export default function Settings({ currentPin, onPinChange }) {
     })();
   }, []);
 
+  useEffect(() => {
+    // Check storage info and update UI
+    updateStorageInfo();
+  }, []);
+
+  const updateStorageInfo = async () => {
+    const storageInfo = backupService.getCurrentStorageInfo();
+    if (storageInfo.type === 'Download only') {
+      setBackupStatus('Directory access not available in this browser. Use export/import instead.');
+    } else if (storageInfo.type === 'Android' || storageInfo.permission === 'granted') {
+      setBackupStatus('Auto backup enabled for Android');
+    }
+  };
+
+
   const handleChooseBackupDir = async () => {
     try {
       await backupService.chooseDirectory();
-      setBackupDir(backupService.getBackupDirName());
-      setBackupStatus('Backup directory set. Auto backups will save here when triggered.');
+      const dirName = backupService.getBackupDirName();
+      setBackupDir(dirName);
+      setBackupStatus(`Backup directory set: ${dirName}. Auto backups will save here.`);
       setTimeout(() => setBackupStatus(''), 3000);
     } catch (e) {
-      setBackupStatus('Directory pick canceled or not supported.');
-      setTimeout(() => setBackupStatus(''), 3000);
+      if (e.message.includes('Android') || e.message.includes('permission')) {
+        setBackupStatus('Storage permission required. Please allow storage access in Android settings.');
+      } else {
+        setBackupStatus('Directory access not available. Using download fallback.');
+      }
+      setTimeout(() => setBackupStatus(''), 5000);
     }
   };
 
@@ -201,30 +225,102 @@ export default function Settings({ currentPin, onPinChange }) {
           </label>
         </div>
 
+
           <div style={{ marginTop: '1rem' }}>
             <h3>Auto Backup</h3>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <button className="btn btn-outline" onClick={handleChooseBackupDir}>Choose Backup Folder</button>
-              <button className="btn btn-outline" onClick={handleGetBackupNow}>Backup Now</button>
-              <button className="btn btn-outline" onClick={handleImportFromBackup} title="Import from backup folder">Import from Backup</button>
+            <div style={{ 
+              padding: '0.75rem', 
+              backgroundColor: 'var(--bg-secondary)', 
+              borderRadius: '8px', 
+              marginBottom: '1rem',
+              border: '1px solid var(--border)'
+            }}>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>📱 Android Mode:</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  Auto-backup to Documents/copro-watch folder
+                </span>
+              </div>
             </div>
 
-            <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <label style={{ fontSize: '0.9rem' }}>Auto Export Threshold (exams):</label>
-              <input type="number" value={backupThreshold} onChange={(e) => setBackupThreshold(Number(e.target.value))} style={{ width: '6rem', padding: '0.5rem' }} />
-              <button className="btn btn-outline" onClick={handleThresholdSave}>Save</button>
-            </div>
-            <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <label style={{ fontSize: '0.9rem' }}>Auto Import From Backup Folder</label>
-              <button className="btn btn-outline" onClick={handleToggleAutoImport}>{autoImportEnabled ? 'Disable' : 'Enable'}</button>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button className="btn btn-outline" onClick={handleChooseBackupDir}>
+                📁 Setup Backup Folder
+              </button>
+              <button className="btn btn-outline" onClick={handleGetBackupNow}>
+                💾 Backup Now
+              </button>
+              <button className="btn btn-outline" onClick={handleImportFromBackup} title="Import from backup folder">
+                📂 Import from Backup
+              </button>
             </div>
 
-            <div style={{ marginTop: '0.5rem' }}>
-              {backupStatus && <p>{backupStatus}</p>}
-              {backupDir && <p>Current folder: {backupDir}</p>}
-              {backupDir && <button className="btn btn-outline" onClick={handleClearBackupDir}>Clear Folder</button>}
+            <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Auto Export Threshold (exams):</label>
+              <input 
+                type="number" 
+                value={backupThreshold} 
+                onChange={(e) => setBackupThreshold(Number(e.target.value))} 
+                style={{ 
+                  width: '5rem', 
+                  padding: '0.4rem', 
+                  borderRadius: '4px', 
+                  border: '1px solid var(--border)',
+                  fontSize: '0.9rem'
+                }} 
+              />
+              <button className="btn btn-outline" onClick={handleThresholdSave} style={{ fontSize: '0.9rem' }}>
+                💾 Save
+              </button>
             </div>
-            {msg && <p style={{ color: msg.includes('import') ? 'var(--success)' : 'var(--danger)' }}>{msg}</p>}
+            
+            <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Auto Import:</label>
+              <button 
+                className={`btn ${autoImportEnabled ? 'btn-primary' : 'btn-outline'}`} 
+                onClick={handleToggleAutoImport}
+                style={{ fontSize: '0.9rem' }}
+              >
+                {autoImportEnabled ? '🟢 Enabled' : '🔴 Disabled'}
+              </button>
+            </div>
+
+            <div style={{ marginTop: '0.75rem' }}>
+              {backupStatus && (
+                <div style={{ 
+                  padding: '0.5rem', 
+                  backgroundColor: 'var(--bg-secondary)', 
+                  borderRadius: '4px',
+                  fontSize: '0.9rem',
+                  border: '1px solid var(--border)'
+                }}>
+                  {backupStatus}
+                </div>
+              )}
+              {backupDir && (
+                <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                  <strong>📂 Current backup folder:</strong> {backupDir}
+                </div>
+              )}
+              {backupDir && (
+                <button 
+                  className="btn btn-outline" 
+                  onClick={handleClearBackupDir}
+                  style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}
+                >
+                  🗑️ Clear Folder
+                </button>
+              )}
+            </div>
+            {msg && (
+              <p style={{ 
+                color: msg.includes('import') || msg.includes('sauvegardé') ? 'var(--success)' : 'var(--danger)',
+                fontSize: '0.9rem',
+                marginTop: '0.5rem'
+              }}>
+                {msg}
+              </p>
+            )}
           </div>
       </div>
     </div>

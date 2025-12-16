@@ -17,6 +17,7 @@
     "@capacitor/android": "^8.0.0",
     "@capacitor/cli": "^8.0.0",
     "@capacitor/core": "^8.0.0",
+    "@capacitor/filesystem": "^8.0.0",
     "date-fns": "^4.1.0",
     "localforage": "^1.10.0",
     "react": "^19.2.0",
