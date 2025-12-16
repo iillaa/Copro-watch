@@ -7,10 +7,13 @@ export default function Settings({ currentPin, onPinChange }) {
   const [pin, setPin] = useState(currentPin);
   const [msg, setMsg] = useState('');
   const fileRef = useRef();
+
   const [backupDir, setBackupDir] = useState(null);
   const [backupStatus, setBackupStatus] = useState('');
+
   const [backupThreshold, setBackupThreshold] = useState(10);
   const [autoImportEnabled, setAutoImportEnabled] = useState(false);
+  const [backupProgress, setBackupProgress] = useState({ counter: 0, threshold: 10, progress: '0/10' });
 
   const handleSave = async () => {
     if (pin.length !== 4 || isNaN(pin)) {
@@ -23,26 +26,61 @@ export default function Settings({ currentPin, onPinChange }) {
     setTimeout(() => setMsg(''), 3000);
   };
 
+
   const download = (filename, data) => {
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
+    console.log('Creating download for:', filename);
+    console.log('Data length:', data.length);
+    
+    try {
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      console.log('Download triggered successfully');
+    } catch (e) {
+      console.error('Download failed:', e);
+      throw new Error('Download failed: ' + e.message);
+    }
   };
 
+
   const handleExportEncrypted = async () => {
-    const pw = prompt("Entrez un mot de passe pour chiffrer l'export:");
-    if (!pw) return;
-    const enc = await db.exportDataEncrypted(pw);
-    download('medical-export-encrypted.json', enc);
+    try {
+      const pw = prompt("Entrez un mot de passe pour chiffrer l'export:");
+      if (!pw) return;
+      
+      console.log('Starting encrypted export...');
+      const enc = await db.exportDataEncrypted(pw);
+      console.log('Export data generated, creating download...');
+      download('medical-export-encrypted.json', enc);
+      setMsg('Export chiffré réussi!');
+      setTimeout(() => setMsg(''), 3000);
+    } catch (e) {
+      console.error('Encrypted export failed:', e);
+      setMsg('Échec de l\'export chiffré: ' + (e.message || e));
+      setTimeout(() => setMsg(''), 5000);
+    }
   };
 
   const handleExportPlain = async () => {
-    const plain = await db.exportData();
-    download('medical-export.json', plain);
+    try {
+      console.log('Starting plain export...');
+      const plain = await db.exportData();
+      console.log('Export data generated, creating download...');
+      download('medical-export.json', plain);
+      setMsg('Export réussi!');
+      setTimeout(() => setMsg(''), 3000);
+    } catch (e) {
+      console.error('Plain export failed:', e);
+      setMsg('Échec de l\'export: ' + (e.message || e));
+      setTimeout(() => setMsg(''), 5000);
+    }
   };
 
   const handleImportEncrypted = async (e) => {
@@ -67,6 +105,7 @@ export default function Settings({ currentPin, onPinChange }) {
 
 
 
+
   useEffect(() => {
     // load backup settings
     (async () => {
@@ -77,6 +116,10 @@ export default function Settings({ currentPin, onPinChange }) {
         setBackupThreshold(currentThreshold);
         setAutoImportEnabled(await backupService.getAutoImport());
         setBackupDir(backupService.getBackupDirName());
+        
+        // Load backup progress
+        const status = await backupService.getBackupStatus();
+        setBackupProgress(status);
       } catch (e) {
         console.warn('backup init failed', e);
       }
@@ -115,14 +158,43 @@ export default function Settings({ currentPin, onPinChange }) {
     }
   };
 
+
   const handleGetBackupNow = async () => {
     try {
+      setBackupStatus('Creating backup...');
+      console.log('Starting manual backup...');
+      
       const json = await db.exportData();
-      await backupService.saveBackupJSON(json, 'backup-manual.json');
-      setBackupStatus('Backup saved');
-      setTimeout(() => setBackupStatus(''), 3000);
+      console.log('Export data generated, length:', json.length);
+      
+      const success = await backupService.saveBackupJSON(json, 'backup-manual.json');
+      console.log('Backup save result:', success);
+      
+      if (success) {
+        setBackupStatus('Backup saved successfully!');
+        
+        // Refresh backup progress
+        const status = await backupService.getBackupStatus();
+        setBackupProgress(status);
+      } else {
+        setBackupStatus('Backup failed: Service returned false');
+      }
     } catch (e) {
+      console.error('Manual backup failed:', e);
       setBackupStatus('Backup failed: ' + (e.message || e));
+    }
+    setTimeout(() => setBackupStatus(''), 5000);
+  };
+
+  const handleRefreshBackupProgress = async () => {
+    try {
+      const status = await backupService.getBackupStatus();
+      setBackupProgress(status);
+      setBackupStatus('Backup progress refreshed');
+      setTimeout(() => setBackupStatus(''), 2000);
+    } catch (e) {
+      setBackupStatus('Failed to refresh progress');
+      setTimeout(() => setBackupStatus(''), 2000);
     }
   };
 
@@ -243,6 +315,7 @@ export default function Settings({ currentPin, onPinChange }) {
               </div>
             </div>
 
+
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
               <button className="btn btn-outline" onClick={handleChooseBackupDir}>
                 📁 Setup Backup Folder
@@ -252,6 +325,9 @@ export default function Settings({ currentPin, onPinChange }) {
               </button>
               <button className="btn btn-outline" onClick={handleImportFromBackup} title="Import from backup folder">
                 📂 Import from Backup
+              </button>
+              <button className="btn btn-outline" onClick={handleRefreshBackupProgress} title="Refresh backup progress">
+                🔄 Refresh Progress
               </button>
             </div>
 
@@ -274,6 +350,7 @@ export default function Settings({ currentPin, onPinChange }) {
               </button>
             </div>
             
+
             <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
               <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Auto Import:</label>
               <button 
@@ -283,6 +360,46 @@ export default function Settings({ currentPin, onPinChange }) {
               >
                 {autoImportEnabled ? '🟢 Enabled' : '🔴 Disabled'}
               </button>
+            </div>
+
+            <div style={{ marginTop: '0.75rem' }}>
+              <div style={{ 
+                padding: '0.75rem', 
+                backgroundColor: 'var(--bg-secondary)', 
+                borderRadius: '8px',
+                border: '1px solid var(--border)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>📊 Auto Backup Progress:</span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    {backupProgress.progress} exams
+                  </span>
+                </div>
+                <div style={{ 
+                  width: '100%', 
+                  height: '8px', 
+                  backgroundColor: 'var(--border)',
+                  borderRadius: '4px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: `${(backupProgress.counter / backupProgress.threshold) * 100}%`,
+                    height: '100%',
+                    backgroundColor: backupProgress.counter >= backupProgress.threshold ? 'var(--success)' : 'var(--primary)',
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+                {backupProgress.counter >= backupProgress.threshold && (
+                  <div style={{ 
+                    marginTop: '0.5rem',
+                    fontSize: '0.8rem',
+                    color: 'var(--success)',
+                    fontWeight: '500'
+                  }}>
+                    ⚠️ Auto backup will trigger on next exam change
+                  </div>
+                )}
+              </div>
             </div>
 
             <div style={{ marginTop: '0.75rem' }}>

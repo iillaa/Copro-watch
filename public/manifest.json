@@ -1,7 +1,8 @@
+
 {
-  "name": "Gestionnaire de Visites Médicales",
-  "short_name": "MedVisit",
-  "description": "Offline SPA to manage medical visits",
+  "name": "Copro Watch",
+  "short_name": "CoproWatch",
+  "description": "Offline medical worker management app",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",

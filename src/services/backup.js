@@ -79,11 +79,15 @@ export async function chooseDirectory() {
   }
 }
 
+
 export async function saveBackupJSON(jsonString, filename = BACKUP_FILE_NAME) {
   try {
+    console.log('Starting backup save...', filename);
+    
     // For Android/Capacitor
     if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform()) {
       try {
+        console.log('Attempting Android backup...');
         const { Filesystem } = window.Capacitor.Plugins;
         
         // Create directory structure in app's Documents folder
@@ -100,6 +104,7 @@ export async function saveBackupJSON(jsonString, filename = BACKUP_FILE_NAME) {
           encoding: 'utf8'
         });
         
+        console.log('Android backup successful');
         return true;
       } catch (e) {
         console.warn('Native backup failed, falling back to download', e);
@@ -110,6 +115,7 @@ export async function saveBackupJSON(jsonString, filename = BACKUP_FILE_NAME) {
     // Web implementation or fallback
     if (typeof window !== 'undefined' && 'showDirectoryPicker' in window) {
       try {
+        console.log('Attempting web directory backup...');
         // Try to use File System Access API if we have a directory handle stored
         const meta = await localforage.getItem(BACKUP_STORE);
         if (meta && meta.dirHandle) {
@@ -118,6 +124,7 @@ export async function saveBackupJSON(jsonString, filename = BACKUP_FILE_NAME) {
           const writable = await fileHandle.createWritable();
           await writable.write(jsonString);
           await writable.close();
+          console.log('Web directory backup successful');
           return true;
         }
       } catch (e) {
@@ -126,6 +133,7 @@ export async function saveBackupJSON(jsonString, filename = BACKUP_FILE_NAME) {
     }
     
     // Universal fallback to download
+    console.log('Using download fallback...');
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -135,19 +143,24 @@ export async function saveBackupJSON(jsonString, filename = BACKUP_FILE_NAME) {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+    console.log('Download backup successful');
     return true;
     
   } catch (e) {
     console.error('Backup failed completely', e);
-    return false;
+    throw new Error('Backup failed: ' + e.message);
   }
 }
 
+
 export async function readBackupJSON(filename = BACKUP_FILE_NAME) {
   try {
+    console.log('Reading backup file:', filename);
+    
     // For Android/Capacitor
     if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform()) {
       try {
+        console.log('Attempting Android backup read...');
         const { Filesystem } = window.Capacitor.Plugins;
         
         const contents = await Filesystem.readFile({
@@ -161,6 +174,7 @@ export async function readBackupJSON(filename = BACKUP_FILE_NAME) {
           directory: 'documents'
         });
         
+        console.log('Android backup read successful');
         return {
           text: contents.data,
           lastModified: stat.mtime || Date.now()
@@ -173,19 +187,24 @@ export async function readBackupJSON(filename = BACKUP_FILE_NAME) {
     // Web implementation
     if (typeof window !== 'undefined' && 'showDirectoryPicker' in window) {
       try {
+        console.log('Attempting web directory backup read...');
         const meta = await localforage.getItem(BACKUP_STORE);
         if (meta && meta.dirHandle) {
           const dirHandle = meta.dirHandle;
           const fileHandle = await dirHandle.getFileHandle(filename);
           const file = await fileHandle.getFile();
           const text = await file.text();
+          console.log('Web directory backup read successful');
           return { text, lastModified: file.lastModified };
+        } else {
+          console.warn('No directory handle found');
         }
       } catch (e) {
         console.warn('Web directory backup read failed', e);
       }
     }
     
+    console.log('No backup file found or read failed');
     return null;
   } catch (e) {
     console.warn('No backup file to read or read failed', e);
@@ -240,8 +259,35 @@ export function getThreshold() {
   return counter >= threshold;
 }
 
+
 export async function getCurrentThreshold() {
   return threshold;
+}
+
+export async function getBackupStatus() {
+  try {
+    const savedCounter = await localforage.getItem('backup_counter');
+    counter = savedCounter || 0;
+    
+    return {
+      counter: counter,
+      threshold: threshold,
+      autoImportEnabled: autoImportEnabled,
+      progress: `${counter}/${threshold}`,
+      shouldBackup: counter >= threshold,
+      backupNeeded: counter >= threshold
+    };
+  } catch (e) {
+    console.warn('Failed to get backup status', e);
+    return {
+      counter: 0,
+      threshold: threshold,
+      autoImportEnabled: autoImportEnabled,
+      progress: `0/${threshold}`,
+      shouldBackup: false,
+      backupNeeded: false
+    };
+  }
 }
 
 export async function setThreshold(value) {
@@ -325,6 +371,7 @@ export function getCurrentStorageInfo() {
 }
 
 
+
 export default {
   init,
   chooseDirectory,
@@ -332,6 +379,7 @@ export default {
   readBackupJSON,
   getThreshold,
   getCurrentThreshold,
+  getBackupStatus,
   setThreshold,
   registerExamChange,
   resetCounter,
