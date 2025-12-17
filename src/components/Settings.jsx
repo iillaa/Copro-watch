@@ -40,68 +40,9 @@ export default function Settings({ currentPin, onPinChange }) {
 
 
 
-  const download = async (filename, data) => {
-    console.log('Creating download for:', filename);
-    console.log('Data length:', data.length);
-    
-    try {
-      // Import Capacitor properly for modern versions
-      const { Capacitor } = await import('@capacitor/core');
-      
-      // Check if we're on Android/Capacitor
-      if (Capacitor.isNativePlatform()) {
-        // Use Capacitor Filesystem for Android
-        try {
-          const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
-          
-          console.log('Attempting Android native export...');
-          
-          // Create copro-watch folder if it doesn't exist
-          await Filesystem.mkdir({
-            path: 'copro-watch',
-            directory: Directory.Documents,
-            recursive: true
-          });
-          
-          // Write file to app's documents directory
-          await Filesystem.writeFile({
-            path: `copro-watch/${filename}`,
-            data: data,
-            directory: Directory.Documents,
-            encoding: Encoding.UTF8
-          });
-          
-          console.log('Android export successful');
-          setMsg(`Export réussi ! Fichier sauvegardé dans Documents/copro-watch/${filename}`);
-          setTimeout(() => setMsg(''), 3000);
-          return true;
-        } catch (e) {
-          console.warn('Native export failed, falling back to web method:', e);
-          // Fall through to web method
-        }
-      }
-      
-      // Web fallback or non-Android
-      console.log('Using web download fallback');
-      const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      console.log('Web download triggered successfully');
-      return true;
-    } catch (e) {
-      console.error('Download failed completely:', e);
-      setMsg(`Échec du téléchargement: ${e.message}`);
-      setTimeout(() => setMsg(''), 5000);
-      throw new Error('Download failed: ' + e.message);
-    }
-  };
+
+
+
 
 
   const handleExportEncrypted = async () => {
@@ -112,8 +53,12 @@ export default function Settings({ currentPin, onPinChange }) {
       console.log('Starting encrypted export...');
       setMsg('Génération de l\'export chiffré...');
       const enc = await db.exportDataEncrypted(pw);
-      console.log('Export data generated, creating download...');
-      await download('medical-export-encrypted.json', enc);
+      console.log('Export data generated, using backup service...');
+      
+      // Use backup service directly for Android native export
+      await backupService.saveBackupJSON(enc, 'medical-export-encrypted.json');
+      setMsg('Export chiffré réussi ! Sauvegardé dans Documents/copro-watch/');
+      setTimeout(() => setMsg(''), 5000);
     } catch (e) {
       console.error('Encrypted export failed:', e);
       setMsg('Échec de l\'export chiffré: ' + (e.message || e));
@@ -126,8 +71,12 @@ export default function Settings({ currentPin, onPinChange }) {
       console.log('Starting plain export...');
       setMsg('Génération de l\'export...');
       const plain = await db.exportData();
-      console.log('Export data generated, creating download...');
-      await download('medical-export.json', plain);
+      console.log('Export data generated, using backup service...');
+      
+      // Use backup service directly for Android native export
+      await backupService.saveBackupJSON(plain, 'medical-export.json');
+      setMsg('Export réussi ! Sauvegardé dans Documents/copro-watch/');
+      setTimeout(() => setMsg(''), 5000);
     } catch (e) {
       console.error('Plain export failed:', e);
       setMsg('Échec de l\'export: ' + (e.message || e));
