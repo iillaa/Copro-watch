@@ -1,15 +1,8 @@
 import localforage from 'localforage';
 
-// NOTE: We do NOT use static imports for Capacitor to avoid issues on Web/Initialization
-// import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'; 
-// import { Capacitor } from '@capacitor/core'; 
-
 const BACKUP_STORE = 'backup_settings';
-
-// --- Separate filenames ---
 const MANUAL_BACKUP_FILE_NAME = 'backup-manuel.json';
 const AUTO_BACKUP_FILE_NAME = 'backup-auto.json';
-
 const DEFAULT_THRESHOLD = 10;
 
 let counter = 0;
@@ -30,9 +23,9 @@ export async function init() {
     const savedCounter = await localforage.getItem('backup_counter');
     counter = parseInt(savedCounter, 10) || 0;
     isInitialized = true;
-    console.log('[Backup] Service initialized. Counter:', counter, 'Threshold:', threshold);
+    console.log('[Backup] initialized. Counter:', counter);
   } catch (e) {
-    console.warn('[Backup] Failed to load backup settings', e);
+    console.warn('[Backup] Settings load error', e);
     isInitialized = true;
   }
 }
@@ -45,7 +38,6 @@ async function saveMeta() {
   });
 }
 
-// ... (chooseDirectory function is unchanged, copy it from previous if needed, or keep yours)
 export async function chooseDirectory() {
   const { Capacitor } = await import('@capacitor/core');
   if (Capacitor.isNativePlatform()) {
@@ -63,7 +55,6 @@ export async function chooseDirectory() {
   throw new Error('Non supporté');
 }
 
-
 export async function saveBackupJSON(jsonString, filename = MANUAL_BACKUP_FILE_NAME) {
   const { Capacitor } = await import('@capacitor/core');
 
@@ -75,7 +66,6 @@ export async function saveBackupJSON(jsonString, filename = MANUAL_BACKUP_FILE_N
       const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
       try {
         await Filesystem.requestPermissions();
-        // Check/Create Dir
         try {
           await Filesystem.stat({ path: 'copro-watch', directory: Directory.Documents });
         } catch {
@@ -121,9 +111,6 @@ export async function saveBackupJSON(jsonString, filename = MANUAL_BACKUP_FILE_N
   }
 }
 
-/**
- * HELPER: Reads a specific file and returns content + timestamp
- */
 async function getFileContent(filename) {
     const { Capacitor } = await import('@capacitor/core');
     
@@ -142,7 +129,7 @@ async function getFileContent(filename) {
             });
             return { text: contents.data, lastModified: stat.mtime };
         } catch (e) {
-            return null; // File doesn't exist or can't read
+            return null; 
         }
     } 
     // WEB
@@ -159,17 +146,10 @@ async function getFileContent(filename) {
     return null;
 }
 
-/**
- * INTELLIGENT IMPORT: Checks both files and picks the newest one.
- */
 export async function readBackupJSON() {
-    console.log('[Backup] Scanning for best backup file...');
-    
-    // Check both files
     const manual = await getFileContent(MANUAL_BACKUP_FILE_NAME);
     const auto = await getFileContent(AUTO_BACKUP_FILE_NAME);
 
-    // Logic to pick the best one
     let best = null;
     let source = '';
 
@@ -190,11 +170,11 @@ export async function readBackupJSON() {
     }
 
     if (best) {
-        console.log(`[Backup] Selected ${source} backup (Date: ${new Date(best.lastModified).toLocaleString()})`);
+        console.log(`[Backup] Selected ${source} (Date: ${new Date(best.lastModified).toLocaleString()})`);
         return best;
     }
 
-    throw new Error("Aucun fichier de sauvegarde trouvé (ni auto, ni manuel).");
+    throw new Error("Aucun fichier de sauvegarde trouvé.");
 }
 
 export async function setAutoImport(enabled) {
@@ -203,20 +183,15 @@ export async function setAutoImport(enabled) {
 }
 export async function getAutoImport() { return autoImportEnabled; }
 
-
 export async function checkAndAutoImport(dbInstance) {
   if (!autoImportEnabled) return { imported: false, reason: 'disabled' };
   
-  console.log('[Backup] Checking for auto-import...');
-  
   try {
-    // readBackupJSON now automatically finds the newest of the two files
     const backup = await readBackupJSON();
-    
     if (!backup) return { imported: false, reason: 'no_data' };
 
     const last = backup.lastModified;
-    // Tolerance of 1000ms for comparison
+    // Tolerance of 1000ms
     if (last > (lastImported + 1000)) {
       console.log('[Backup] Newer backup found. Importing...');
       const ok = await dbInstance.importData(backup.text);
@@ -238,27 +213,20 @@ export async function clearDirectory() {
   await localforage.setItem(BACKUP_STORE, meta);
 }
 
-// --- Generic Register Change Function ---
-// Use this for Workers, Departments, Exams, etc.
 export async function registerChange() {
   if (!isInitialized) await init();
   counter++;
   await localforage.setItem('backup_counter', counter);
-  console.log(`[Backup] Change registered. Counter: ${counter}/${threshold}`);
   if (counter >= threshold) return true;
   return false;
 }
 
-// Kept for backward compatibility if other files call them specific names
 export async function registerExamChange() { return registerChange(); }
 export async function registerWaterAnalysisChange() { return registerChange(); }
 
-
 export async function performAutoExport(getJsonCallback) {
   try {
-    console.log('[Backup] Performing Auto-Export...');
     const json = await getJsonCallback();
-    // Save as AUTO file
     const success = await saveBackupJSON(json, AUTO_BACKUP_FILE_NAME);
     if (success) {
       await resetCounter();
@@ -274,10 +242,8 @@ export async function performAutoExport(getJsonCallback) {
 export async function resetCounter() { 
   counter = 0; 
   await localforage.setItem('backup_counter', 0); 
-  console.log('[Backup] Counter reset to 0');
 }
 
-// Getters
 export function getThreshold() { return counter >= threshold; }
 export async function getCurrentThreshold() { return threshold; }
 export async function getBackupStatus() {
@@ -319,7 +285,7 @@ export default {
   getCurrentThreshold,
   getBackupStatus,
   setThreshold,
-  registerChange, // Generic one
+  registerChange,
   registerExamChange,
   registerWaterAnalysisChange,
   resetCounter,
