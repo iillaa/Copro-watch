@@ -9,20 +9,17 @@ localforage.config({
   description: 'Offline database for medical worker management'
 });
 
-
-
 const STORES = {
   DEPARTMENTS: 'departments',
   WORKPLACES: 'workplaces',
   WORKERS: 'workers',
   EXAMS: 'exams',
   WATER_ANALYSES: 'water_analyses',
-  WATER_DEPARTMENTS: 'water_departments', // Services pour analyses d'eau (séparés)
-  SETTINGS: 'settings' // For app settings like PIN, etc.
+  WATER_DEPARTMENTS: 'water_departments',
+  SETTINGS: 'settings'
 };
 
-
-// Seed Data
+// Seed Data (unchanged)
 const SEED_DATA = {
   departments: [
     { id: 1, name: "SWAG" },
@@ -32,7 +29,6 @@ const SEED_DATA = {
     { id: 5, name: "SWASS" },
     { id: 6, name: "AUTRES" }
   ],
-  // Services séparés pour analyses d'eau (indépendants des services travailleurs)
   waterDepartments: [
     { id: 1, name: "SWAG" },
     { id: 2, name: "BMPJ" },
@@ -47,7 +43,6 @@ const SEED_DATA = {
     { id: 3, name: "Autres" }
   ],
   workers: [
-    // Update workers to point to valid generic workplaces (e.g. 1, 2, 3)
     { id: 1, full_name: "Ahmed Benali", national_id: "1001", phone: "0661123456", workplace_id: 1, department_id: 1, job_role: "Cuisinier", start_date: "2023-01-15", notes: "Allergie aux arachides", last_exam_date: "2025-02-01", next_exam_due: "2025-08-01" },
     { id: 2, full_name: "Sarah Idrissi", national_id: "1002", phone: "0661123457", workplace_id: 1, department_id: 1, job_role: "Serveuse", start_date: "2023-03-10", notes: "", last_exam_date: "2024-09-01", next_exam_due: "2025-03-01" }, 
     { id: 3, full_name: "Karim Tazi", national_id: "1003", phone: "0661123458", workplace_id: 2, department_id: 4, job_role: "Plongeur", start_date: "2022-11-05", notes: "", last_exam_date: "2024-05-15", next_exam_due: "2024-11-15" }, 
@@ -56,8 +51,20 @@ const SEED_DATA = {
   ]
 };
 
+// Helper to trigger auto-backup check
+async function triggerBackupCheck() {
+  try {
+    // We use a generic 'registerChange' now
+    const thresholdReached = await backupService.registerChange();
+    if (thresholdReached) {
+      await backupService.performAutoExport(async () => await db.exportData());
+    }
+  } catch (e) {
+    console.warn('[DB] Auto backup trigger failed', e);
+  }
+}
+
 export const db = {
-  // Generic Get
   async getAll(storeKey) {
     const data = await localforage.getItem(storeKey);
     return data || [];
@@ -67,8 +74,6 @@ export const db = {
     return await localforage.setItem(storeKey, data);
   },
 
-
-  // Initialize/Seed
   async init() {
     const depts = await this.getAll(STORES.DEPARTMENTS);
     const hasSwass = depts.find(d => d.name === 'SWASS');
@@ -76,7 +81,6 @@ export const db = {
     const waterDepts = await this.getAll(STORES.WATER_DEPARTMENTS);
     const hasWaterSwass = waterDepts.find(d => d.name === 'SWASS');
     
-    // Check if initialization or update is needed
     if (depts.length === 0 || !hasSwass) {
       console.log("Seeding/Updating database...");
       await this.saveAll(STORES.DEPARTMENTS, SEED_DATA.departments);
@@ -89,14 +93,13 @@ export const db = {
       }
     }
     
-    // Initialize water departments separately
     if (waterDepts.length === 0 || !hasWaterSwass) {
       console.log("Seeding water departments database...");
       await this.saveAll(STORES.WATER_DEPARTMENTS, SEED_DATA.waterDepartments);
     }
   },
 
-  // Workers
+  // --- WORKERS (Updated with Backup Trigger) ---
   async getWorkers() { return this.getAll(STORES.WORKERS); },
   async saveWorker(worker) {
     const workers = await this.getWorkers();
@@ -104,20 +107,21 @@ export const db = {
     if (index >= 0) {
       workers[index] = worker;
     } else {
-      worker.id = Date.now(); // Simple ID generation
+      worker.id = Date.now();
       workers.push(worker);
     }
     await this.saveAll(STORES.WORKERS, workers);
+    await triggerBackupCheck(); // <--- ADDED
     return worker;
   },
   async deleteWorker(id) {
     const workers = await this.getWorkers();
     const newWorkers = workers.filter(w => w.id !== id);
     await this.saveAll(STORES.WORKERS, newWorkers);
+    await triggerBackupCheck(); // <--- ADDED
   },
 
-
-  // Exams
+  // --- EXAMS (Already had triggers, kept them) ---
   async getExams() { return this.getAll(STORES.EXAMS); },
   async saveExam(exam) {
     const exams = await this.getExams();
@@ -129,33 +133,17 @@ export const db = {
       exams.push(exam);
     }
     await this.saveAll(STORES.EXAMS, exams);
-    // register change for auto-backup; if threshold reached, perform export
-    try {
-      const thresholdReached = await backupService.registerExamChange();
-      if (thresholdReached) {
-        await backupService.performAutoExport(async () => await db.exportData());
-      }
-    } catch (e) {
-      console.warn('Auto backup error', e);
-    }
+    await triggerBackupCheck();
     return exam;
   },
   async deleteExam(id) {
     const exams = await this.getExams();
     const newExams = exams.filter(e => e.id !== id);
     await this.saveAll(STORES.EXAMS, newExams);
-    try {
-      const thresholdReached = await backupService.registerExamChange();
-      if (thresholdReached) {
-        await backupService.performAutoExport(async () => await db.exportData());
-      }
-    } catch (e) {
-      console.warn('Auto backup error', e);
-    }
+    await triggerBackupCheck();
   },
 
-
-  // Water Analyses
+  // --- WATER ANALYSES (Already had triggers, kept them) ---
   async getWaterAnalyses() { return this.getAll(STORES.WATER_ANALYSES); },
   async saveWaterAnalysis(analysis) {
     const analyses = await this.getWaterAnalyses();
@@ -168,32 +156,17 @@ export const db = {
       analyses.push(analysis);
     }
     await this.saveAll(STORES.WATER_ANALYSES, analyses);
-    // register change for auto-backup; if threshold reached, perform export
-    try {
-      const thresholdReached = await backupService.registerWaterAnalysisChange();
-      if (thresholdReached) {
-        await backupService.performAutoExport(async () => await db.exportData());
-      }
-    } catch (e) {
-      console.warn('Auto backup error', e);
-    }
+    await triggerBackupCheck();
     return analysis;
   },
   async deleteWaterAnalysis(id) {
     const analyses = await this.getWaterAnalyses();
     const newAnalyses = analyses.filter(a => a.id !== id);
     await this.saveAll(STORES.WATER_ANALYSES, newAnalyses);
-    try {
-      const thresholdReached = await backupService.registerWaterAnalysisChange();
-      if (thresholdReached) {
-        await backupService.performAutoExport(async () => await db.exportData());
-      }
-    } catch (e) {
-      console.warn('Auto backup error', e);
-    }
+    await triggerBackupCheck();
   },
 
-  // Departments CRUD
+  // --- DEPARTMENTS (Updated with Backup Trigger) ---
   async saveDepartment(department) {
     const departments = await this.getDepartments();
     const index = departments.findIndex(d => d.id === department.id);
@@ -204,12 +177,14 @@ export const db = {
       departments.push(department);
     }
     await this.saveAll(STORES.DEPARTMENTS, departments);
+    await triggerBackupCheck(); // <--- ADDED
     return department;
   },
   async deleteDepartment(id) {
     const departments = await this.getDepartments();
     const newDepartments = departments.filter(d => d.id !== id);
     await this.saveAll(STORES.DEPARTMENTS, newDepartments);
+    await triggerBackupCheck(); // <--- ADDED
   },
 
   // Settings
@@ -221,13 +196,11 @@ export const db = {
       return await this.saveAll(STORES.SETTINGS, settings);
   },
 
-
-  // Departments & Workplaces
+  // Getters
   async getDepartments() { return this.getAll(STORES.DEPARTMENTS); },
   async getWorkplaces() { return this.getAll(STORES.WORKPLACES); },
-
-  // Water Departments (séparés des services travailleurs)
   async getWaterDepartments() { return this.getAll(STORES.WATER_DEPARTMENTS); },
+  
   async saveWaterDepartment(waterDepartment) {
     const waterDepartments = await this.getWaterDepartments();
     const index = waterDepartments.findIndex(d => d.id === waterDepartment.id);
@@ -238,15 +211,15 @@ export const db = {
       waterDepartments.push(waterDepartment);
     }
     await this.saveAll(STORES.WATER_DEPARTMENTS, waterDepartments);
+    await triggerBackupCheck(); // <--- ADDED
     return waterDepartment;
   },
   async deleteWaterDepartment(id) {
     const waterDepartments = await this.getWaterDepartments();
     const newWaterDepartments = waterDepartments.filter(d => d.id !== id);
     await this.saveAll(STORES.WATER_DEPARTMENTS, newWaterDepartments);
+    await triggerBackupCheck(); // <--- ADDED
   },
-
-
 
   // Import/Export
   async exportData() {
@@ -256,7 +229,7 @@ export const db = {
       workers: await this.getWorkers(),
       exams: await this.getExams(),
       water_analyses: await this.getWaterAnalyses(),
-      water_departments: await this.getWaterDepartments() // Services séparés pour analyses d'eau
+      water_departments: await this.getWaterDepartments()
     };
     return JSON.stringify(data);
   },
@@ -266,7 +239,6 @@ export const db = {
     if (!password) throw new Error('Password required');
     return await encryptString(password, json);
   },
-
 
   async importData(jsonString) {
     try {
@@ -282,8 +254,7 @@ export const db = {
       console.error("Import failed", e);
       return false;
     }
-  }
-  ,
+  },
 
   async importDataEncrypted(encryptedString, password) {
     if (!password) throw new Error('Password required');
