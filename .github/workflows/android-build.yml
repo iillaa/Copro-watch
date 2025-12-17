@@ -1,6 +1,6 @@
 name: Build Android APK
 
-# MANUAL TRIGGER ONLY (To save resources)
+# MANUAL TRIGGER ONLY
 on: workflow_dispatch
 
 jobs:
@@ -24,13 +24,26 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # Kept your specific bash fix & switched to Release build
-      - name: Build Release APK (Bypass Permissions)
+      - name: Build Release APK
         run: |
           cd android
           bash gradlew assembleRelease
 
+      # THIS IS THE NEW PART THAT SIGNS THE APP
+      - name: Sign Release APK
+        id: sign_app
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: android/app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
+
+      # Uploads the SIGNED apk instead of the default one
       - uses: actions/upload-artifact@v4
         with:
-          name: app-release
-          path: android/app/build/outputs/apk/release/app-release.apk
+          name: app-release-signed
+          path: ${{ steps.sign_app.outputs.signedReleaseFile }}
