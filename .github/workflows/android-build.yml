@@ -29,12 +29,27 @@ jobs:
           bash gradlew assembleRelease
 
       - name: Sign Release APK
+        id: sign_app
+        env:
+          # Mapping secrets to env vars prevents YAML parsing errors
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          # 1. Decode the Keystore from the Secret to a file
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+          # 1. Decode Keystore
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.keystore
           
-          # 2. Find the latest Android Build Tools installed on the runner
+          # 2. Find Build Tools
           BUILD_TOOLS_PATH=$(ls -d $ANDROID_HOME/build-tools/* | tail -1)
+          
+          # 3. Sign APK (Command flattened to avoid line-break errors)
+          "$BUILD_TOOLS_PATH/apksigner" sign --ks release.keystore --ks-key-alias "$ANDROID_KEY_ALIAS" --ks-pass pass:"$ANDROID_KEYSTORE_PASSWORD" --key-pass pass:"$ANDROID_KEY_PASSWORD" --out android/app/build/outputs/apk/release/app-release-signed.apk android/app/build/outputs/apk/release/app-release.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release-signed
+          path: android/app/build/outputs/apk/release/app-release-signed.apk          BUILD_TOOLS_PATH=$(ls -d $ANDROID_HOME/build-tools/* | tail -1)
           
           # 3. Run apksigner (Standard Android Tool)
           # Inputs: The APK built by Gradle (app-release.apk)
