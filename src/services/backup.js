@@ -5,7 +5,11 @@ import localforage from 'localforage';
 // import { Capacitor } from '@capacitor/core'; 
 
 const BACKUP_STORE = 'backup_settings';
-const BACKUP_FILE_NAME = 'backup-auto.json';
+
+// --- NEW: Separate filenames for Manual and Auto backups ---
+const MANUAL_BACKUP_FILE_NAME = 'backup-manuel.json';
+const AUTO_BACKUP_FILE_NAME = 'backup-auto.json';
+
 const DEFAULT_THRESHOLD = 10;
 
 let counter = 0;
@@ -13,6 +17,7 @@ let threshold = DEFAULT_THRESHOLD;
 let autoImportEnabled = false;
 let lastImported = 0;
 let backupDir = null; // Used for Web API handle
+let isInitialized = false; // Safety flag
 
 export async function init() {
   try {
@@ -23,11 +28,15 @@ export async function init() {
       lastImported = meta.lastImported || 0;
     }
     const savedCounter = await localforage.getItem('backup_counter');
-    // FIX: Force integer parsing to avoid "01" string issues which break the math
+    // Force integer parsing
     counter = parseInt(savedCounter, 10) || 0;
+    
+    isInitialized = true;
     console.log('[Backup] Service initialized. Counter:', counter, 'Threshold:', threshold);
   } catch (e) {
     console.warn('[Backup] Failed to load backup settings', e);
+    // Even if fail, we mark initialized to allow app to run (with defaults)
+    isInitialized = true;
   }
 }
 
@@ -81,8 +90,9 @@ export async function chooseDirectory() {
 
 /**
  * Saves the JSON string to the backup file.
+ * defaults to MANUAL filename unless specified.
  */
-export async function saveBackupJSON(jsonString, filename = BACKUP_FILE_NAME) {
+export async function saveBackupJSON(jsonString, filename = MANUAL_BACKUP_FILE_NAME) {
   const { Capacitor } = await import('@capacitor/core');
 
   try {
@@ -97,15 +107,13 @@ export async function saveBackupJSON(jsonString, filename = BACKUP_FILE_NAME) {
         await Filesystem.requestPermissions();
         
         console.log('[Backup] Checking directory...');
-        // FIX: Check if directory exists before creating to avoid "already exists" crash
+        // Check if directory exists before creating to avoid "already exists" crash
         try {
           await Filesystem.stat({
             path: 'copro-watch',
             directory: Directory.Documents
           });
-          console.log('[Backup] Directory exists, skipping creation.');
         } catch (statErr) {
-          // If stat fails, the directory probably doesn't exist, so we create it
           console.log('[Backup] Directory not found, creating...');
           await Filesystem.mkdir({
             path: 'copro-watch',
@@ -114,7 +122,7 @@ export async function saveBackupJSON(jsonString, filename = BACKUP_FILE_NAME) {
           });
         }
 
-        console.log('[Backup] Writing file...');
+        console.log(`[Backup] Writing file ${filename}...`);
         await Filesystem.writeFile({
           path: `copro-watch/${filename}`,
           data: jsonString,
@@ -166,18 +174,18 @@ export async function saveBackupJSON(jsonString, filename = BACKUP_FILE_NAME) {
 
 /**
  * Reads the backup file.
+ * Defaults to AUTO backup for safety, but can be used for manual.
  */
-export async function readBackupJSON(filename = BACKUP_FILE_NAME) {
+export async function readBackupJSON(filename = AUTO_BACKUP_FILE_NAME) {
   const { Capacitor } = await import('@capacitor/core');
 
   try {
     // 1. ANDROID / NATIVE
     if (Capacitor.isNativePlatform()) {
       const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
-      console.log('[Backup] Reading from Android Documents...');
+      console.log(`[Backup] Reading ${filename} from Android Documents...`);
       
       try {
-        // FIX: Request permissions before reading too, just in case
         await Filesystem.requestPermissions();
 
         const contents = await Filesystem.readFile({
@@ -199,8 +207,9 @@ export async function readBackupJSON(filename = BACKUP_FILE_NAME) {
 
         return { text: contents.data, lastModified: mtime };
       } catch (e) {
-        console.error('[Backup] Native read failed:', e);
-        throw new Error("Impossible de lire le fichier (Permissions ou fichier manquant).");
+        console.error('[Backup] Native read failed (file missing?):', e.message);
+        // We throw so the caller knows the specific file is missing
+        throw new Error(`Fichier ${filename} introuvable ou illisible.`);
       }
     }
 
@@ -215,7 +224,8 @@ export async function readBackupJSON(filename = BACKUP_FILE_NAME) {
     throw new Error("Aucun dossier de sauvegarde configuré.");
 
   } catch (e) {
-    console.error('[Backup] readBackupJSON failed:', e);
+    // console.error('[Backup] readBackupJSON failed:', e); 
+    // Don't log error here to avoid noise when auto-check fails (normal)
     throw e; 
   }
 }
@@ -230,13 +240,17 @@ export async function getAutoImport() {
   return autoImportEnabled;
 }
 
+/**
+ * Auto-import now looks specifically for the AUTO backup file.
+ */
 export async function checkAndAutoImport(dbInstance) {
   if (!autoImportEnabled) return { imported: false, reason: 'disabled' };
   
   console.log('[Backup] Checking for auto-import...');
   
   try {
-    const backup = await readBackupJSON();
+    // Try to read the AUTO backup file
+    const backup = await readBackupJSON(AUTO_BACKUP_FILE_NAME);
     
     if (!backup) return { imported: false, reason: 'no_data' };
 
@@ -260,7 +274,8 @@ export async function checkAndAutoImport(dbInstance) {
         return { imported: false, reason: 'not_newer' };
     }
   } catch (e) { 
-    console.warn('[Backup] Auto-import check failed (normal if no file exists):', e.message);
+    // It's normal to fail if the file doesn't exist yet
+    console.log('[Backup] Auto-import check: No auto-backup file found (or error).');
     return { imported: false, error: e.message }; 
   }
 }
@@ -276,8 +291,9 @@ export function getThreshold() { return counter >= threshold; }
 export async function getCurrentThreshold() { return threshold; }
 
 export async function getBackupStatus() {
-    const savedCounter = await localforage.getItem('backup_counter') || 0;
-    counter = parseInt(savedCounter, 10) || 0;
+    // Ensure we have the latest counter
+    if (!isInitialized) await init();
+    
     return {
       counter: counter,
       threshold: threshold,
@@ -297,17 +313,22 @@ export async function setThreshold(value) {
   return false;
 }
 
-export async function registerExamChange() {
+// --- SAFE INCREMENT LOGIC ---
+async function safeIncrement() {
+  if (!isInitialized) await init();
   counter++;
   await localforage.setItem('backup_counter', counter);
+}
+
+export async function registerExamChange() {
+  await safeIncrement();
   console.log(`[Backup] Exam change registered. Counter: ${counter}/${threshold}`);
   if (counter >= threshold) return true;
   return false;
 }
 
 export async function registerWaterAnalysisChange() {
-  counter++;
-  await localforage.setItem('backup_counter', counter);
+  await safeIncrement();
   console.log(`[Backup] Water Analysis change registered. Counter: ${counter}/${threshold}`);
   if (counter >= threshold) return true;
   return false;
@@ -319,10 +340,15 @@ export async function resetCounter() {
   console.log('[Backup] Counter reset to 0');
 }
 
+/**
+ * AUTO EXPORT now uses the AUTO filename
+ */
 export async function performAutoExport(getJsonCallback) {
   try {
+    console.log('[Backup] Performing Auto-Export...');
     const json = await getJsonCallback();
-    const success = await saveBackupJSON(json, BACKUP_FILE_NAME);
+    // FORCE usage of AUTO filename
+    const success = await saveBackupJSON(json, AUTO_BACKUP_FILE_NAME);
     if (success) {
       await resetCounter();
       return true;
