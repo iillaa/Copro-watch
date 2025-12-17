@@ -19,7 +19,7 @@ const STORES = {
   SETTINGS: 'settings'
 };
 
-// Seed Data (unchanged)
+// Seed Data
 const SEED_DATA = {
   departments: [
     { id: 1, name: "SWAG" },
@@ -54,7 +54,6 @@ const SEED_DATA = {
 // Helper to trigger auto-backup check
 async function triggerBackupCheck() {
   try {
-    // We use a generic 'registerChange' now
     const thresholdReached = await backupService.registerChange();
     if (thresholdReached) {
       await backupService.performAutoExport(async () => await db.exportData());
@@ -75,17 +74,15 @@ export const db = {
   },
 
   async init() {
+    // FIX: Only seed if departments are completely empty.
+    // Do NOT check for specific names like 'SWASS' to avoid accidental resets.
     const depts = await this.getAll(STORES.DEPARTMENTS);
-    const hasSwass = depts.find(d => d.name === 'SWASS');
-    
-    const waterDepts = await this.getAll(STORES.WATER_DEPARTMENTS);
-    const hasWaterSwass = waterDepts.find(d => d.name === 'SWASS');
-    
-    if (depts.length === 0 || !hasSwass) {
-      console.log("Seeding/Updating database...");
+    if (depts.length === 0) {
+      console.log("Seeding database (First Run)...");
       await this.saveAll(STORES.DEPARTMENTS, SEED_DATA.departments);
       await this.saveAll(STORES.WORKPLACES, SEED_DATA.workplaces);
       
+      // Only seed workers if the table is empty AND we just seeded departments
       const workers = await this.getAll(STORES.WORKERS);
       if (workers.length === 0) {
         await this.saveAll(STORES.WORKERS, SEED_DATA.workers);
@@ -93,13 +90,15 @@ export const db = {
       }
     }
     
-    if (waterDepts.length === 0 || !hasWaterSwass) {
+    // FIX: Same logic for Water Departments
+    const waterDepts = await this.getAll(STORES.WATER_DEPARTMENTS);
+    if (waterDepts.length === 0) {
       console.log("Seeding water departments database...");
       await this.saveAll(STORES.WATER_DEPARTMENTS, SEED_DATA.waterDepartments);
     }
   },
 
-  // --- WORKERS (Updated with Backup Trigger) ---
+  // --- WORKERS ---
   async getWorkers() { return this.getAll(STORES.WORKERS); },
   async saveWorker(worker) {
     const workers = await this.getWorkers();
@@ -111,17 +110,17 @@ export const db = {
       workers.push(worker);
     }
     await this.saveAll(STORES.WORKERS, workers);
-    await triggerBackupCheck(); // <--- ADDED
+    await triggerBackupCheck(); 
     return worker;
   },
   async deleteWorker(id) {
     const workers = await this.getWorkers();
     const newWorkers = workers.filter(w => w.id !== id);
     await this.saveAll(STORES.WORKERS, newWorkers);
-    await triggerBackupCheck(); // <--- ADDED
+    await triggerBackupCheck();
   },
 
-  // --- EXAMS (Already had triggers, kept them) ---
+  // --- EXAMS ---
   async getExams() { return this.getAll(STORES.EXAMS); },
   async saveExam(exam) {
     const exams = await this.getExams();
@@ -143,7 +142,7 @@ export const db = {
     await triggerBackupCheck();
   },
 
-  // --- WATER ANALYSES (Already had triggers, kept them) ---
+  // --- WATER ANALYSES ---
   async getWaterAnalyses() { return this.getAll(STORES.WATER_ANALYSES); },
   async saveWaterAnalysis(analysis) {
     const analyses = await this.getWaterAnalyses();
@@ -166,7 +165,7 @@ export const db = {
     await triggerBackupCheck();
   },
 
-  // --- DEPARTMENTS (Updated with Backup Trigger) ---
+  // --- DEPARTMENTS ---
   async saveDepartment(department) {
     const departments = await this.getDepartments();
     const index = departments.findIndex(d => d.id === department.id);
@@ -177,14 +176,14 @@ export const db = {
       departments.push(department);
     }
     await this.saveAll(STORES.DEPARTMENTS, departments);
-    await triggerBackupCheck(); // <--- ADDED
+    await triggerBackupCheck();
     return department;
   },
   async deleteDepartment(id) {
     const departments = await this.getDepartments();
     const newDepartments = departments.filter(d => d.id !== id);
     await this.saveAll(STORES.DEPARTMENTS, newDepartments);
-    await triggerBackupCheck(); // <--- ADDED
+    await triggerBackupCheck();
   },
 
   // Settings
@@ -211,14 +210,14 @@ export const db = {
       waterDepartments.push(waterDepartment);
     }
     await this.saveAll(STORES.WATER_DEPARTMENTS, waterDepartments);
-    await triggerBackupCheck(); // <--- ADDED
+    await triggerBackupCheck();
     return waterDepartment;
   },
   async deleteWaterDepartment(id) {
     const waterDepartments = await this.getWaterDepartments();
     const newWaterDepartments = waterDepartments.filter(d => d.id !== id);
     await this.saveAll(STORES.WATER_DEPARTMENTS, newWaterDepartments);
-    await triggerBackupCheck(); // <--- ADDED
+    await triggerBackupCheck();
   },
 
   // Import/Export
