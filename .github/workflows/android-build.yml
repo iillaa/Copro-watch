@@ -1,6 +1,7 @@
 name: Build Android APK
 
-on: [push, workflow_dispatch]
+# CHANGED: 'push' removed. Only manual trigger remains.
+on: workflow_dispatch
 
 jobs:
   build:
@@ -23,7 +24,7 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # CRITICAL FIX: Bypass permission error 126 and use bash
+      # Kept your specific bash fix
       - name: Build APK (Bypass Permissions)
         run: |
           cd android
