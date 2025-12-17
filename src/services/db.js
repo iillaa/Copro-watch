@@ -10,18 +10,30 @@ localforage.config({
 });
 
 
+
 const STORES = {
   DEPARTMENTS: 'departments',
   WORKPLACES: 'workplaces',
   WORKERS: 'workers',
   EXAMS: 'exams',
   WATER_ANALYSES: 'water_analyses',
+  WATER_DEPARTMENTS: 'water_departments', // Services pour analyses d'eau (séparés)
   SETTINGS: 'settings' // For app settings like PIN, etc.
 };
+
 
 // Seed Data
 const SEED_DATA = {
   departments: [
+    { id: 1, name: "SWAG" },
+    { id: 2, name: "BMPJ" },
+    { id: 3, name: "SD INGHAR" },
+    { id: 4, name: "BPFA" },
+    { id: 5, name: "SWASS" },
+    { id: 6, name: "AUTRES" }
+  ],
+  // Services séparés pour analyses d'eau (indépendants des services travailleurs)
+  waterDepartments: [
     { id: 1, name: "SWAG" },
     { id: 2, name: "BMPJ" },
     { id: 3, name: "SD INGHAR" },
@@ -55,10 +67,14 @@ export const db = {
     return await localforage.setItem(storeKey, data);
   },
 
+
   // Initialize/Seed
   async init() {
     const depts = await this.getAll(STORES.DEPARTMENTS);
     const hasSwass = depts.find(d => d.name === 'SWASS');
+    
+    const waterDepts = await this.getAll(STORES.WATER_DEPARTMENTS);
+    const hasWaterSwass = waterDepts.find(d => d.name === 'SWASS');
     
     // Check if initialization or update is needed
     if (depts.length === 0 || !hasSwass) {
@@ -71,6 +87,12 @@ export const db = {
         await this.saveAll(STORES.WORKERS, SEED_DATA.workers);
         await this.saveAll(STORES.EXAMS, []);
       }
+    }
+    
+    // Initialize water departments separately
+    if (waterDepts.length === 0 || !hasWaterSwass) {
+      console.log("Seeding water departments database...");
+      await this.saveAll(STORES.WATER_DEPARTMENTS, SEED_DATA.waterDepartments);
     }
   },
 
@@ -199,9 +221,31 @@ export const db = {
       return await this.saveAll(STORES.SETTINGS, settings);
   },
 
+
   // Departments & Workplaces
   async getDepartments() { return this.getAll(STORES.DEPARTMENTS); },
   async getWorkplaces() { return this.getAll(STORES.WORKPLACES); },
+
+  // Water Departments (séparés des services travailleurs)
+  async getWaterDepartments() { return this.getAll(STORES.WATER_DEPARTMENTS); },
+  async saveWaterDepartment(waterDepartment) {
+    const waterDepartments = await this.getWaterDepartments();
+    const index = waterDepartments.findIndex(d => d.id === waterDepartment.id);
+    if (index >= 0) {
+      waterDepartments[index] = waterDepartment;
+    } else {
+      waterDepartment.id = waterDepartment.id || Date.now();
+      waterDepartments.push(waterDepartment);
+    }
+    await this.saveAll(STORES.WATER_DEPARTMENTS, waterDepartments);
+    return waterDepartment;
+  },
+  async deleteWaterDepartment(id) {
+    const waterDepartments = await this.getWaterDepartments();
+    const newWaterDepartments = waterDepartments.filter(d => d.id !== id);
+    await this.saveAll(STORES.WATER_DEPARTMENTS, newWaterDepartments);
+  },
+
 
 
   // Import/Export
@@ -211,7 +255,8 @@ export const db = {
       workplaces: await this.getWorkplaces(),
       workers: await this.getWorkers(),
       exams: await this.getExams(),
-      water_analyses: await this.getWaterAnalyses()
+      water_analyses: await this.getWaterAnalyses(),
+      water_departments: await this.getWaterDepartments() // Services séparés pour analyses d'eau
     };
     return JSON.stringify(data);
   },
@@ -231,6 +276,7 @@ export const db = {
       if (data.workers) await this.saveAll(STORES.WORKERS, data.workers);
       if (data.exams) await this.saveAll(STORES.EXAMS, data.exams);
       if (data.water_analyses) await this.saveAll(STORES.WATER_ANALYSES, data.water_analyses);
+      if (data.water_departments) await this.saveAll(STORES.WATER_DEPARTMENTS, data.water_departments);
       return true;
     } catch (e) {
       console.error("Import failed", e);

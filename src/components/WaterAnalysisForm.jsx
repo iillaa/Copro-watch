@@ -1,11 +1,13 @@
+
 import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
 import { FaTimes, FaSave, FaFlask } from 'react-icons/fa';
 
-export default function WaterAnalysisForm({ type, analysis, workplace, onSuccess, onCancel }) {
+
+export default function WaterAnalysisForm({ type, analysis, department, workplace, analysisToEdit, onSuccess, onCancel }) {
   const [formData, setFormData] = useState({
-    structure_id: workplace?.id || analysis?.structure_id,
+    department_id: department?.id || analysis?.department_id || analysis?.structure_id,
     sample_date: new Date().toISOString().split('T')[0], // Today's date
     result_date: '',
     result: '',
@@ -14,29 +16,48 @@ export default function WaterAnalysisForm({ type, analysis, workplace, onSuccess
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+
+  // Pre-fill form when editing an existing analysis
+  useEffect(() => {
+    if (analysisToEdit) {
+      setFormData({
+        id: analysisToEdit.id, // Conserver l'ID pour la mise à jour
+        department_id: analysisToEdit.department_id || analysisToEdit.structure_id,
+        sample_date: analysisToEdit.sample_date,
+        result_date: analysisToEdit.result_date || '',
+        result: analysisToEdit.result || '',
+        notes: analysisToEdit.notes || ''
+      });
+    }
+  }, [analysisToEdit]);
+
+
   useEffect(() => {
     // Pre-fill form based on type
-    if (type === 'launch') {
+    if (type === 'edit') {
+      // For edit mode, the formData is already set in the analysisToEdit useEffect
+      // Nothing to do here, the edit useEffect above handles it
+    } else if (type === 'launch') {
       setFormData(prev => ({
         ...prev,
-        structure_id: workplace.id,
+        department_id: department?.id || workplace?.id,
         sample_date: new Date().toISOString().split('T')[0]
       }));
     } else if (type === 'result') {
       setFormData(prev => ({
         ...prev,
-        structure_id: analysis.structure_id,
-        sample_date: analysis.sample_date,
+        department_id: analysis?.department_id || analysis?.structure_id,
+        sample_date: analysis?.sample_date,
         result_date: new Date().toISOString().split('T')[0] // Today's date for result entry
       }));
     } else if (type === 'retest') {
       setFormData(prev => ({
         ...prev,
-        structure_id: workplace.id,
+        department_id: department?.id || workplace?.id,
         sample_date: new Date().toISOString().split('T')[0] // New sample for retest
       }));
     }
-  }, [type, analysis, workplace]);
+  }, [type, analysis, department, workplace]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -49,9 +70,10 @@ export default function WaterAnalysisForm({ type, analysis, workplace, onSuccess
     if (error) setError('');
   };
 
+
   const validateForm = () => {
-    if (!formData.structure_id) {
-      setError('Veuillez sélectionner une structure.');
+    if (!formData.department_id) {
+      setError('Veuillez sélectionner un service.');
       return false;
     }
     
@@ -60,11 +82,16 @@ export default function WaterAnalysisForm({ type, analysis, workplace, onSuccess
       return false;
     }
 
-    // For result entry, result is required
+
+
+
+    // For result entry or retest, result is required
     if ((type === 'result' || type === 'retest') && !formData.result) {
       setError('Veuillez saisir le résultat de l\'analyse.');
       return false;
     }
+    
+    // For edit mode, result is optional - no additional validation needed
 
     return true;
   };
@@ -82,6 +109,7 @@ export default function WaterAnalysisForm({ type, analysis, workplace, onSuccess
     try {
       let analysisData = { ...formData };
 
+
       // Set result_date based on result type
       if (type === 'launch') {
         // For launch, result is pending
@@ -93,11 +121,13 @@ export default function WaterAnalysisForm({ type, analysis, workplace, onSuccess
           analysisData.result_date = new Date().toISOString().split('T')[0];
         }
       }
+      // For edit mode, keep existing data as is - no changes needed
+
 
       // Save the analysis
-      await db.saveWaterAnalysis(analysisData);
+      const savedAnalysis = await db.saveWaterAnalysis(analysisData);
       
-      onSuccess();
+      onSuccess(savedAnalysis);
     } catch (error) {
       console.error('Error saving water analysis:', error);
       setError('Erreur lors de la sauvegarde de l\'analyse. Veuillez réessayer.');
@@ -105,6 +135,7 @@ export default function WaterAnalysisForm({ type, analysis, workplace, onSuccess
       setLoading(false);
     }
   };
+
 
   const getFormTitle = () => {
     switch (type) {
@@ -114,22 +145,29 @@ export default function WaterAnalysisForm({ type, analysis, workplace, onSuccess
         return 'Saisir le résultat d\'analyse';
       case 'retest':
         return 'Nouvelle analyse (Re-test)';
+      case 'edit':
+        return 'Éditer l\'analyse d\'eau';
       default:
         return 'Analyse d\'eau';
     }
   };
 
   const getFormDescription = () => {
+    const serviceName = department?.name || workplace?.name || 'le service';
     switch (type) {
       case 'launch':
-        return `Enregistrer qu'un échantillon a été prélevé pour ${workplace?.name || 'la structure'}.`;
+        return `Enregistrer qu'un échantillon a été prélevé pour ${serviceName}.`;
       case 'result':
         return `Saisir le résultat d'analyse pour l'échantillon du ${analysis?.sample_date}.`;
       case 'retest':
-        return `Lancer une nouvelle analyse pour ${workplace?.name || 'la structure'} suite à un résultat non potable.`;
+        return `Lancer une nouvelle analyse pour ${serviceName} suite à un résultat non potable.`;
       default:
         return '';
     }
+  };
+
+  const getServiceName = () => {
+    return department?.name || workplace?.name || 'Service inconnu';
   };
 
   return (
@@ -185,14 +223,14 @@ export default function WaterAnalysisForm({ type, analysis, workplace, onSuccess
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
-          {/* Structure (read-only) */}
+          {/* Service (read-only) */}
           <div style={{ marginBottom: '1rem' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-              Structure
+              Service
             </label>
             <input
               type="text"
-              value={workplace?.name || 'Structure inconnue'}
+              value={getServiceName()}
               readOnly
               style={{
                 width: '100%',
@@ -224,17 +262,18 @@ export default function WaterAnalysisForm({ type, analysis, workplace, onSuccess
             />
           </div>
 
-          {/* Result (only for result/retest types) */}
-          {(type === 'result' || type === 'retest') && (
+
+          {/* Result (for result/retest/edit types) */}
+          {(type === 'result' || type === 'retest' || type === 'edit') && (
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                Résultat <span style={{ color: 'var(--danger)' }}>*</span>
+                Résultat {type === 'edit' ? '' : <span style={{ color: 'var(--danger)' }}>*</span>}
               </label>
               <select
                 name="result"
                 value={formData.result}
                 onChange={handleInputChange}
-                required
+                required={type !== 'edit'}
                 style={{
                   width: '100%',
                   padding: '0.5rem',
@@ -242,15 +281,17 @@ export default function WaterAnalysisForm({ type, analysis, workplace, onSuccess
                   border: '1px solid var(--border)'
                 }}
               >
-                <option value="">Sélectionner le résultat</option>
+                {type === 'edit' && <option value="">Sélectionner le résultat (laisser vide pour "En attente")</option>}
+                <option value="pending">En attente</option>
                 <option value="potable">Eau Potable</option>
                 <option value="non_potable">Non Potable</option>
               </select>
             </div>
           )}
 
-          {/* Result Date (only for result/retest types) */}
-          {(type === 'result' || type === 'retest') && (
+
+          {/* Result Date (for result/retest/edit types) */}
+          {(type === 'result' || type === 'retest' || type === 'edit') && (
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
                 Date du résultat
@@ -268,7 +309,7 @@ export default function WaterAnalysisForm({ type, analysis, workplace, onSuccess
                 }}
               />
               <small style={{ color: 'var(--text-muted)' }}>
-                Laissez vide pour utiliser la date d'aujourd'hui
+                {type === 'edit' ? 'Date du résultat (optionnel)' : 'Laissez vide pour utiliser la date d\'aujourd\'hui'}
               </small>
             </div>
           )}
@@ -345,3 +386,4 @@ export default function WaterAnalysisForm({ type, analysis, workplace, onSuccess
     </div>
   );
 }
+

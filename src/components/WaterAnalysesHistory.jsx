@@ -1,9 +1,12 @@
+
 import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
+import WaterAnalysisForm from './WaterAnalysisForm';
 import { FaTrash, FaEye } from 'react-icons/fa';
 
 export default function WaterAnalysesHistory() {
+
   const [workplaces, setWorkplaces] = useState([]);
   const [waterAnalyses, setWaterAnalyses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,6 +14,8 @@ export default function WaterAnalysesHistory() {
   const [selectedWorkplace, setSelectedWorkplace] = useState('all');
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedResult, setSelectedResult] = useState('all');
+  const [showForm, setShowForm] = useState(false);
+  const [selectedAnalysis, setSelectedAnalysis] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -80,6 +85,7 @@ export default function WaterAnalysesHistory() {
     setFilteredAnalyses(sortedFiltered);
   };
 
+
   const handleDelete = async (analysisId) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette analyse ?')) {
       try {
@@ -90,6 +96,17 @@ export default function WaterAnalysesHistory() {
         alert('Erreur lors de la suppression de l\'analyse.');
       }
     }
+  };
+
+  const handleEditDetail = (analysis) => {
+    setSelectedAnalysis({ type: 'edit', analysis });
+    setShowForm(true);
+  };
+
+  const handleFormSuccess = () => {
+    setShowForm(false);
+    setSelectedAnalysis(null);
+    loadData(); // Refresh data to sync with overview and statistics
   };
 
   const getResultBadge = (result) => {
@@ -277,10 +294,11 @@ export default function WaterAnalysesHistory() {
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'flex-end' }}>
+
                         <button 
                           className="btn btn-sm btn-outline"
-                          onClick={() => alert(`Analyse ID: ${analysis.id}\nCréée le: ${new Date(analysis.created_at).toLocaleDateString('fr-FR')}`)}
-                          title="Voir les détails"
+                          onClick={() => handleEditDetail(analysis)}
+                          title="Éditer les détails"
                         >
                           <FaEye size={12} />
                         </button>
@@ -298,8 +316,22 @@ export default function WaterAnalysesHistory() {
                 ))}
               </tbody>
             </table>
+
           </div>
         </div>
+      )}
+
+      {/* Water Analysis Form Modal */}
+      {showForm && selectedAnalysis && (
+        <WaterAnalysisForm
+          type={selectedAnalysis.type}
+          analysisToEdit={selectedAnalysis.analysis}
+          onSuccess={handleFormSuccess}
+          onCancel={() => {
+            setShowForm(false);
+            setSelectedAnalysis(null);
+          }}
+        />
       )}
     </div>
   );

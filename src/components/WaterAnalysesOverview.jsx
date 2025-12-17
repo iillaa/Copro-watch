@@ -9,8 +9,11 @@ export default function WaterAnalysesOverview() {
   const [waterAnalyses, setWaterAnalyses] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+
   const [showForm, setShowForm] = useState(false);
   const [selectedAnalysis, setSelectedAnalysis] = useState(null);
+  const [showDetailForm, setShowDetailForm] = useState(false);
+  const [detailAnalysis, setDetailAnalysis] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -51,10 +54,22 @@ export default function WaterAnalysesOverview() {
     setShowForm(true);
   };
 
+
   const handleFormSuccess = () => {
     setShowForm(false);
     setSelectedAnalysis(null);
     loadData(); // Refresh data
+  };
+
+  const handleViewDetail = (analysis) => {
+    setDetailAnalysis(analysis);
+    setShowDetailForm(true);
+  };
+
+  const handleDetailFormSuccess = () => {
+    setShowDetailForm(false);
+    setDetailAnalysis(null);
+    loadData(); // Refresh data to sync with history and statistics
   };
 
   const getStatusCard = (workplace) => {
@@ -103,40 +118,76 @@ export default function WaterAnalysesOverview() {
               Lancer l'analyse
             </button>
           );
+
         case 'pending':
           return (
-            <button 
-              className="btn btn-warning" 
-              onClick={() => handleEnterResult(analysis)}
-              style={{ width: '100%' }}
-            >
-              <FaFlask style={{ marginRight: '0.5rem' }} />
-              Saisir le résultat
-            </button>
-          );
-        case 'ok':
-          return (
-            <div style={{ 
-              padding: '0.75rem', 
-              backgroundColor: '#d4edda', 
-              borderRadius: '4px',
-              textAlign: 'center',
-              color: '#155724'
-            }}>
-              <FaCheckCircle style={{ marginRight: '0.5rem' }} />
-              Analyse terminée
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <button 
+                className="btn btn-warning" 
+                onClick={() => handleEnterResult(analysis)}
+                style={{ width: '100%' }}
+              >
+                <FaFlask style={{ marginRight: '0.5rem' }} />
+                Saisir le résultat
+              </button>
+              <button 
+                className="btn btn-outline" 
+                onClick={() => handleViewDetail(analysis)}
+                style={{ width: '100%' }}
+                title="Voir/Éditer les détails"
+              >
+                <FaEye style={{ marginRight: '0.5rem' }} />
+                Détails
+              </button>
             </div>
           );
+
+        case 'ok':
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ 
+                padding: '0.75rem', 
+                backgroundColor: '#d4edda', 
+                borderRadius: '4px',
+                textAlign: 'center',
+                color: '#155724'
+              }}>
+                <FaCheckCircle style={{ marginRight: '0.5rem' }} />
+                Analyse terminée
+              </div>
+              <button 
+                className="btn btn-outline" 
+                onClick={() => handleViewDetail(analysis)}
+                style={{ width: '100%' }}
+                title="Voir/Éditer les détails"
+              >
+                <FaEye style={{ marginRight: '0.5rem' }} />
+                Détails
+              </button>
+            </div>
+          );
+
         case 'alert':
           return (
-            <button 
-              className="btn btn-danger" 
-              onClick={() => handleRetest(analysis)}
-              style={{ width: '100%' }}
-            >
-              <FaExclamationTriangle style={{ marginRight: '0.5rem' }} />
-              Re-test requis
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <button 
+                className="btn btn-danger" 
+                onClick={() => handleRetest(analysis)}
+                style={{ width: '100%' }}
+              >
+                <FaExclamationTriangle style={{ marginRight: '0.5rem' }} />
+                Re-test requis
+              </button>
+              <button 
+                className="btn btn-outline" 
+                onClick={() => handleViewDetail(analysis)}
+                style={{ width: '100%' }}
+                title="Voir/Éditer les détails"
+              >
+                <FaEye style={{ marginRight: '0.5rem' }} />
+                Détails
+              </button>
+            </div>
           );
         default:
           return null;
@@ -282,6 +333,7 @@ export default function WaterAnalysesOverview() {
         {stats && stats.todo.concat(stats.pending, stats.ok, stats.alerts).map(getStatusCard)}
       </div>
 
+
       {/* Water Analysis Form Modal */}
       {showForm && selectedAnalysis && (
         <WaterAnalysisForm
@@ -292,6 +344,19 @@ export default function WaterAnalysesOverview() {
           onCancel={() => {
             setShowForm(false);
             setSelectedAnalysis(null);
+          }}
+        />
+      )}
+
+      {/* Water Analysis Detail Form Modal */}
+      {showDetailForm && detailAnalysis && (
+        <WaterAnalysisForm
+          type="edit"
+          analysisToEdit={detailAnalysis}
+          onSuccess={handleDetailFormSuccess}
+          onCancel={() => {
+            setShowDetailForm(false);
+            setDetailAnalysis(null);
           }}
         />
       )}

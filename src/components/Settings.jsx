@@ -14,10 +14,18 @@ export default function Settings({ currentPin, onPinChange }) {
   const [autoImportEnabled, setAutoImportEnabled] = useState(false);
   const [backupProgress, setBackupProgress] = useState({ counter: 0, threshold: 10, progress: '0/10' });
   
+
   // Departments management
   const [departments, setDepartments] = useState([]);
   const [newDepartmentName, setNewDepartmentName] = useState('');
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
+
+
+  // Water Departments management (séparés)
+
+  const [waterDepartments, setWaterDepartments] = useState([]);
+  const [newWaterDepartmentName, setNewWaterDepartmentName] = useState('');
+  const [waterDepartmentsLoading, setWaterDepartmentsLoading] = useState(false);
 
   const handleSave = async () => {
     if (pin.length !== 4 || isNaN(pin)) {
@@ -31,18 +39,24 @@ export default function Settings({ currentPin, onPinChange }) {
   };
 
 
+
   const download = async (filename, data) => {
     console.log('Creating download for:', filename);
     console.log('Data length:', data.length);
     
     try {
+      // Import Capacitor properly for modern versions
+      const { Capacitor } = await import('@capacitor/core');
+      
       // Check if we're on Android/Capacitor
-      if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform()) {
+      if (Capacitor.isNativePlatform()) {
         // Use Capacitor Filesystem for Android
         try {
-          const { Filesystem, Directory, Encoding } = window.Capacitor.Plugins;
+          const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
           
-          // Create downloads folder if it doesn't exist
+          console.log('Attempting Android native export...');
+          
+          // Create copro-watch folder if it doesn't exist
           await Filesystem.mkdir({
             path: 'copro-watch',
             directory: Directory.Documents,
@@ -57,16 +71,18 @@ export default function Settings({ currentPin, onPinChange }) {
             encoding: Encoding.UTF8
           });
           
+          console.log('Android export successful');
           setMsg(`Export réussi ! Fichier sauvegardé dans Documents/copro-watch/${filename}`);
           setTimeout(() => setMsg(''), 3000);
           return true;
         } catch (e) {
-          console.warn('Native export failed, falling back to web method', e);
+          console.warn('Native export failed, falling back to web method:', e);
           // Fall through to web method
         }
       }
       
       // Web fallback or non-Android
+      console.log('Using web download fallback');
       const blob = new Blob([data], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -77,10 +93,12 @@ export default function Settings({ currentPin, onPinChange }) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      console.log('Download triggered successfully');
+      console.log('Web download triggered successfully');
       return true;
     } catch (e) {
-      console.error('Download failed:', e);
+      console.error('Download failed completely:', e);
+      setMsg(`Échec du téléchargement: ${e.message}`);
+      setTimeout(() => setMsg(''), 5000);
       throw new Error('Download failed: ' + e.message);
     }
   };
@@ -156,8 +174,11 @@ export default function Settings({ currentPin, onPinChange }) {
       }
     })();
     
+
     // Load departments
     loadDepartments();
+    // Load water departments
+    loadWaterDepartments();
   }, []);
 
   useEffect(() => {
@@ -199,11 +220,12 @@ export default function Settings({ currentPin, onPinChange }) {
       const json = await db.exportData();
       console.log('Export data generated, length:', json.length);
       
-      const success = await backupService.saveBackupJSON(json, 'backup-manual.json');
+      // Use unique filename generation (will create timestamped filename)
+      const success = await backupService.saveBackupJSON(json);
       console.log('Backup save result:', success);
       
       if (success) {
-        setBackupStatus('Backup saved successfully!');
+        setBackupStatus('Backup saved successfully with unique filename!');
         
         // Refresh backup progress
         const status = await backupService.getBackupStatus();
@@ -230,18 +252,20 @@ export default function Settings({ currentPin, onPinChange }) {
     }
   };
 
+
   const handleImportFromBackup = async () => {
     setBackupStatus('Importing...');
     try {
-      const txt = await backupService.readBackupJSON();
-      if (!txt) {
+      const backupData = await backupService.readBackupJSON();
+      if (!backupData || !backupData.text) {
         setBackupStatus('No backup file found in directory.');
         return;
       }
-      const ok = await db.importData(txt);
+      const ok = await db.importData(backupData.text);
       setBackupStatus(ok ? 'Imported from backup folder.' : 'Import failed.');
       setTimeout(() => setBackupStatus(''), 3000);
     } catch (e) {
+
       setBackupStatus('Import failed: ' + (e.message || e));
     }
   };
@@ -311,6 +335,7 @@ export default function Settings({ currentPin, onPinChange }) {
     }
   };
 
+
   const deleteDepartment = async (id) => {
     if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce service ?')) {
       return;
@@ -324,6 +349,56 @@ export default function Settings({ currentPin, onPinChange }) {
     } catch (error) {
       console.error('Error deleting department:', error);
       setMsg('Erreur lors de la suppression du service.');
+      setTimeout(() => setMsg(''), 3000);
+    }
+  };
+
+  // Water Departments management functions
+  const loadWaterDepartments = async () => {
+    setWaterDepartmentsLoading(true);
+    try {
+      const waterDepts = await db.getWaterDepartments();
+      setWaterDepartments(waterDepts);
+    } catch (error) {
+      console.error('Error loading water departments:', error);
+    }
+    setWaterDepartmentsLoading(false);
+  };
+
+  const addWaterDepartment = async () => {
+    if (!newWaterDepartmentName.trim()) {
+      setMsg('Veuillez saisir un nom de service d\'eau.');
+      setTimeout(() => setMsg(''), 3000);
+      return;
+    }
+
+    try {
+      const newDept = { name: newWaterDepartmentName.trim() };
+      await db.saveWaterDepartment(newDept);
+      setNewWaterDepartmentName('');
+      await loadWaterDepartments();
+      setMsg('Service d\'eau ajouté avec succès !');
+      setTimeout(() => setMsg(''), 3000);
+    } catch (error) {
+      console.error('Error adding water department:', error);
+      setMsg('Erreur lors de l\'ajout du service d\'eau.');
+      setTimeout(() => setMsg(''), 3000);
+    }
+  };
+
+  const deleteWaterDepartment = async (id) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce service d\'eau ?')) {
+      return;
+    }
+
+    try {
+      await db.deleteWaterDepartment(id);
+      await loadWaterDepartments();
+      setMsg('Service d\'eau supprimé avec succès !');
+      setTimeout(() => setMsg(''), 3000);
+    } catch (error) {
+      console.error('Error deleting water department:', error);
+      setMsg('Erreur lors de la suppression du service d\'eau.');
       setTimeout(() => setMsg(''), 3000);
     }
   };
@@ -445,6 +520,82 @@ export default function Settings({ currentPin, onPinChange }) {
                       onClick={() => deleteDepartment(dept.id)}
                       style={{ color: 'var(--danger)' }}
                       title="Supprimer ce service"
+                    >
+                      <FaTrash size={12} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+        </div>
+      </div>
+
+      {/* Water Department Management */}
+      <div className="card" style={{ maxWidth: '600px', marginTop: '2rem' }}>
+        <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <FaBuilding /> Services d'Eau
+        </h3>
+        
+        <div style={{ marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+            <input
+              type="text"
+              placeholder="Nom du nouveau service d'eau..."
+              value={newWaterDepartmentName}
+              onChange={(e) => setNewWaterDepartmentName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && addWaterDepartment()}
+              style={{
+                flex: 1,
+                padding: '0.5rem',
+                borderRadius: '4px',
+                border: '1px solid var(--border)'
+              }}
+            />
+            <button 
+              className="btn btn-primary" 
+              onClick={addWaterDepartment}
+              disabled={waterDepartmentsLoading || !newWaterDepartmentName.trim()}
+            >
+              <FaPlus /> Ajouter
+            </button>
+          </div>
+
+          {waterDepartmentsLoading ? (
+            <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
+              Chargement des services d'eau...
+            </div>
+          ) : (
+            <div style={{ 
+              maxHeight: '300px', 
+              overflowY: 'auto',
+              border: '1px solid var(--border)',
+              borderRadius: '4px',
+              padding: '0.5rem'
+            }}>
+              {waterDepartments.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
+                  Aucun service d'eau configuré.
+                </div>
+              ) : (
+                waterDepartments.map(dept => (
+                  <div 
+                    key={dept.id} 
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '0.5rem',
+                      borderBottom: '1px solid var(--border)'
+                    }}
+                  >
+                    <span style={{ fontWeight: '500' }}>{dept.name}</span>
+                    <button 
+                      className="btn btn-sm btn-outline"
+                      onClick={() => deleteWaterDepartment(dept.id)}
+                      style={{ color: 'var(--danger)' }}
+                      title="Supprimer ce service d'eau"
                     >
                       <FaTrash size={12} />
                     </button>
