@@ -30,11 +30,43 @@ export default function Settings({ currentPin, onPinChange }) {
     setTimeout(() => setMsg(''), 3000);
   };
 
-  const download = (filename, data) => {
+
+  const download = async (filename, data) => {
     console.log('Creating download for:', filename);
     console.log('Data length:', data.length);
     
     try {
+      // Check if we're on Android/Capacitor
+      if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform()) {
+        // Use Capacitor Filesystem for Android
+        try {
+          const { Filesystem, Directory, Encoding } = window.Capacitor.Plugins;
+          
+          // Create downloads folder if it doesn't exist
+          await Filesystem.mkdir({
+            path: 'copro-watch',
+            directory: Directory.Documents,
+            recursive: true
+          });
+          
+          // Write file to app's documents directory
+          await Filesystem.writeFile({
+            path: `copro-watch/${filename}`,
+            data: data,
+            directory: Directory.Documents,
+            encoding: Encoding.UTF8
+          });
+          
+          setMsg(`Export réussi ! Fichier sauvegardé dans Documents/copro-watch/${filename}`);
+          setTimeout(() => setMsg(''), 3000);
+          return true;
+        } catch (e) {
+          console.warn('Native export failed, falling back to web method', e);
+          // Fall through to web method
+        }
+      }
+      
+      // Web fallback or non-Android
       const blob = new Blob([data], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -46,11 +78,13 @@ export default function Settings({ currentPin, onPinChange }) {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       console.log('Download triggered successfully');
+      return true;
     } catch (e) {
       console.error('Download failed:', e);
       throw new Error('Download failed: ' + e.message);
     }
   };
+
 
   const handleExportEncrypted = async () => {
     try {
@@ -58,11 +92,10 @@ export default function Settings({ currentPin, onPinChange }) {
       if (!pw) return;
       
       console.log('Starting encrypted export...');
+      setMsg('Génération de l\'export chiffré...');
       const enc = await db.exportDataEncrypted(pw);
       console.log('Export data generated, creating download...');
-      download('medical-export-encrypted.json', enc);
-      setMsg('Export chiffré réussi!');
-      setTimeout(() => setMsg(''), 3000);
+      await download('medical-export-encrypted.json', enc);
     } catch (e) {
       console.error('Encrypted export failed:', e);
       setMsg('Échec de l\'export chiffré: ' + (e.message || e));
@@ -73,11 +106,10 @@ export default function Settings({ currentPin, onPinChange }) {
   const handleExportPlain = async () => {
     try {
       console.log('Starting plain export...');
+      setMsg('Génération de l\'export...');
       const plain = await db.exportData();
       console.log('Export data generated, creating download...');
-      download('medical-export.json', plain);
-      setMsg('Export réussi!');
-      setTimeout(() => setMsg(''), 3000);
+      await download('medical-export.json', plain);
     } catch (e) {
       console.error('Plain export failed:', e);
       setMsg('Échec de l\'export: ' + (e.message || e));

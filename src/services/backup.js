@@ -1,5 +1,9 @@
+
 import localforage from 'localforage';
 
+// Import Capacitor plugins properly for modern versions
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
 const BACKUP_STORE = 'backup_settings';
 const BACKUP_FILE_NAME = 'backup-auto.json';
@@ -36,24 +40,16 @@ async function saveMeta() {
   });
 }
 
+
 export async function chooseDirectory() {
-  // For Android apps, we'll simulate directory selection by checking storage availability
-  if (typeof window !== 'undefined' && window.Capacitor) {
-    try {
-      // Check if running on Capacitor
-      const isNative = window.Capacitor.isNativePlatform();
-      if (isNative) {
-        // In native Android, we'll use app's internal storage
-        // This simulates directory selection for Android
-        return {
-          type: 'android',
-          path: 'Documents/copro-watch',
-          name: 'App Documents'
-        };
-      }
-    } catch (e) {
-      console.warn('Capacitor check failed', e);
-    }
+  // For Android apps, we'll use the app's Documents directory
+  if (Capacitor.isNativePlatform()) {
+    // In native Android, we'll use app's Documents directory
+    return {
+      type: 'android',
+      path: 'Documents/copro-watch',
+      name: 'App Documents'
+    };
   }
   
   // Web fallback - use File System Access API if available
@@ -80,28 +76,28 @@ export async function chooseDirectory() {
 }
 
 
+
 export async function saveBackupJSON(jsonString, filename = BACKUP_FILE_NAME) {
   try {
     console.log('Starting backup save...', filename);
     
     // For Android/Capacitor
-    if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform()) {
+    if (Capacitor.isNativePlatform()) {
       try {
         console.log('Attempting Android backup...');
-        const { Filesystem } = window.Capacitor.Plugins;
         
         // Create directory structure in app's Documents folder
         await Filesystem.mkdir({
           path: 'copro-watch',
-          directory: 'documents',
+          directory: Directory.Documents,
           recursive: true
         });
         
         await Filesystem.writeFile({
           path: `copro-watch/${filename}`,
           data: jsonString,
-          directory: 'documents',
-          encoding: 'utf8'
+          directory: Directory.Documents,
+          encoding: Encoding.UTF8
         });
         
         console.log('Android backup successful');
@@ -153,25 +149,25 @@ export async function saveBackupJSON(jsonString, filename = BACKUP_FILE_NAME) {
 }
 
 
+
 export async function readBackupJSON(filename = BACKUP_FILE_NAME) {
   try {
     console.log('Reading backup file:', filename);
     
     // For Android/Capacitor
-    if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform()) {
+    if (Capacitor.isNativePlatform()) {
       try {
         console.log('Attempting Android backup read...');
-        const { Filesystem } = window.Capacitor.Plugins;
         
         const contents = await Filesystem.readFile({
           path: `copro-watch/${filename}`,
-          directory: 'documents',
-          encoding: 'utf8'
+          directory: Directory.Documents,
+          encoding: Encoding.UTF8
         });
         
         const stat = await Filesystem.stat({
           path: `copro-watch/${filename}`,
-          directory: 'documents'
+          directory: Directory.Documents
         });
         
         console.log('Android backup read successful');
@@ -341,23 +337,24 @@ export async function performAutoExport(getJsonCallback) {
 }
 
 
+
 export function getDirHandle() { 
-  return (window.Capacitor && window.Capacitor.isNativePlatform()) ? backupDir : backupDir; 
+  return Capacitor.isNativePlatform() ? backupDir : backupDir; 
 }
 
 export function getBackupDirName() { 
-  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+  if (Capacitor.isNativePlatform()) {
     return 'Documents/Copro-Watch';
   }
   return backupDir ? (backupDir.name || 'Selected Directory') : null; 
 }
 
 export function isDirectoryAvailable() {
-  return (window.Capacitor && window.Capacitor.isNativePlatform()) || ('showDirectoryPicker' in window);
+  return Capacitor.isNativePlatform() || ('showDirectoryPicker' in window);
 }
 
 export function getCurrentStorageInfo() {
-  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+  if (Capacitor.isNativePlatform()) {
     return {
       type: 'Android',
       path: 'Documents/copro-watch',
