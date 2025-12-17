@@ -6,7 +6,7 @@ import localforage from 'localforage';
 
 const BACKUP_STORE = 'backup_settings';
 
-// --- NEW: Separate filenames for Manual and Auto backups ---
+// --- Separate filenames ---
 const MANUAL_BACKUP_FILE_NAME = 'backup-manuel.json';
 const AUTO_BACKUP_FILE_NAME = 'backup-auto.json';
 
@@ -16,8 +16,8 @@ let counter = 0;
 let threshold = DEFAULT_THRESHOLD;
 let autoImportEnabled = false;
 let lastImported = 0;
-let backupDir = null; // Used for Web API handle
-let isInitialized = false; // Safety flag
+let backupDir = null; 
+let isInitialized = false;
 
 export async function init() {
   try {
@@ -28,14 +28,11 @@ export async function init() {
       lastImported = meta.lastImported || 0;
     }
     const savedCounter = await localforage.getItem('backup_counter');
-    // Force integer parsing
     counter = parseInt(savedCounter, 10) || 0;
-    
     isInitialized = true;
     console.log('[Backup] Service initialized. Counter:', counter, 'Threshold:', threshold);
   } catch (e) {
     console.warn('[Backup] Failed to load backup settings', e);
-    // Even if fail, we mark initialized to allow app to run (with defaults)
     isInitialized = true;
   }
 }
@@ -48,111 +45,66 @@ async function saveMeta() {
   });
 }
 
-/**
- * Prompts the user to choose a directory (Web) or sets up the path (Android).
- */
+// ... (chooseDirectory function is unchanged, copy it from previous if needed, or keep yours)
 export async function chooseDirectory() {
   const { Capacitor } = await import('@capacitor/core');
-
-  // ANDROID: We target the Documents folder
   if (Capacitor.isNativePlatform()) {
-      console.log('[Backup] Android platform detected for directory selection');
-      return {
-        type: 'android',
-        path: 'Documents/copro-watch',
-        name: 'Dossier Documents/copro-watch'
-      };
+      return { type: 'android', path: 'Documents/copro-watch', name: 'Dossier Documents/copro-watch' };
   }
-
-  // WEB: Use File System Access API
   if (typeof window !== 'undefined' && 'showDirectoryPicker' in window) {
     try {
       const dirHandle = await window.showDirectoryPicker();
       backupDir = dirHandle; 
-      
-      return {
-        type: 'web',
-        handle: dirHandle,
-        name: dirHandle.name
-      };
+      return { type: 'web', handle: dirHandle, name: dirHandle.name };
     } catch (e) {
-      if (e.name === 'AbortError') {
-        console.warn('[Backup] Directory selection cancelled by user');
-        throw new Error('Sélection annulée par l\'utilisateur');
-      }
-      console.error('[Backup] Directory picker error:', e);
-      throw new Error('Impossible de sélectionner le dossier: ' + e.message);
+      throw new Error('Sélection annulée');
     }
-  } else {
-    throw new Error('La sauvegarde automatique n\'est pas supportée sur ce navigateur');
   }
+  throw new Error('Non supporté');
 }
 
-/**
- * Saves the JSON string to the backup file.
- * defaults to MANUAL filename unless specified.
- */
+
 export async function saveBackupJSON(jsonString, filename = MANUAL_BACKUP_FILE_NAME) {
   const { Capacitor } = await import('@capacitor/core');
 
   try {
-    console.log(`[Backup] Starting backup save for ${filename}... Size: ${jsonString.length} bytes`);
+    console.log(`[Backup] Saving ${filename}...`);
 
-    // 1. ANDROID / NATIVE
+    // 1. ANDROID
     if (Capacitor.isNativePlatform()) {
       const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
-      
       try {
-        console.log('[Backup] Requesting permissions...');
         await Filesystem.requestPermissions();
-        
-        console.log('[Backup] Checking directory...');
-        // Check if directory exists before creating to avoid "already exists" crash
+        // Check/Create Dir
         try {
-          await Filesystem.stat({
-            path: 'copro-watch',
-            directory: Directory.Documents
-          });
-        } catch (statErr) {
-          console.log('[Backup] Directory not found, creating...');
-          await Filesystem.mkdir({
-            path: 'copro-watch',
-            directory: Directory.Documents,
-            recursive: true
-          });
+          await Filesystem.stat({ path: 'copro-watch', directory: Directory.Documents });
+        } catch {
+          await Filesystem.mkdir({ path: 'copro-watch', directory: Directory.Documents, recursive: true });
         }
 
-        console.log(`[Backup] Writing file ${filename}...`);
         await Filesystem.writeFile({
           path: `copro-watch/${filename}`,
           data: jsonString,
           directory: Directory.Documents,
           encoding: Encoding.UTF8
         });
-        
-        console.log('[Backup] Android backup successful');
         return true;
       } catch (e) {
         console.error('[Backup] Native write failed:', e);
-        throw new Error("Échec de la sauvegarde Android: " + e.message); 
+        throw new Error("Échec Android: " + e.message); 
       }
     }
 
-    // 2. WEB (File System Access API)
+    // 2. WEB
     if (typeof window !== 'undefined' && backupDir) {
-      try {
-        const fileHandle = await backupDir.getFileHandle(filename, { create: true });
-        const writable = await fileHandle.createWritable();
-        await writable.write(jsonString);
-        await writable.close();
-        return true;
-      } catch (e) {
-        console.error('[Backup] Web directory write failed:', e);
-      }
+      const fileHandle = await backupDir.getFileHandle(filename, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(jsonString);
+      await writable.close();
+      return true;
     }
 
-    // 3. FALLBACK: Browser Download
-    console.log('[Backup] Falling back to browser download...');
+    // 3. FALLBACK Download
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -160,122 +112,122 @@ export async function saveBackupJSON(jsonString, filename = MANUAL_BACKUP_FILE_N
     a.download = filename;
     document.body.appendChild(a);
     a.click();
-    setTimeout(() => {
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-    }, 0);
+    setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 0);
     return true;
 
   } catch (e) {
-    console.error('[Backup] Critical backup failure:', e);
+    console.error('[Backup] Critical failure:', e);
     throw e;
   }
 }
 
 /**
- * Reads the backup file.
- * Defaults to AUTO backup for safety, but can be used for manual.
+ * HELPER: Reads a specific file and returns content + timestamp
  */
-export async function readBackupJSON(filename = AUTO_BACKUP_FILE_NAME) {
-  const { Capacitor } = await import('@capacitor/core');
-
-  try {
-    // 1. ANDROID / NATIVE
+async function getFileContent(filename) {
+    const { Capacitor } = await import('@capacitor/core');
+    
+    // ANDROID
     if (Capacitor.isNativePlatform()) {
-      const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
-      console.log(`[Backup] Reading ${filename} from Android Documents...`);
-      
-      try {
-        await Filesystem.requestPermissions();
-
-        const contents = await Filesystem.readFile({
-          path: `copro-watch/${filename}`,
-          directory: Directory.Documents,
-          encoding: Encoding.UTF8
-        });
-
-        let mtime = Date.now();
+        const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
         try {
             const stat = await Filesystem.stat({
-              path: `copro-watch/${filename}`,
-              directory: Directory.Documents
+                path: `copro-watch/${filename}`,
+                directory: Directory.Documents
             });
-            mtime = stat.mtime;
-        } catch(statErr) {
-            console.warn('[Backup] Could not get file stats:', statErr);
+            const contents = await Filesystem.readFile({
+                path: `copro-watch/${filename}`,
+                directory: Directory.Documents,
+                encoding: Encoding.UTF8
+            });
+            return { text: contents.data, lastModified: stat.mtime };
+        } catch (e) {
+            return null; // File doesn't exist or can't read
         }
+    } 
+    // WEB
+    else if (backupDir) {
+        try {
+            const handle = await backupDir.getFileHandle(filename);
+            const file = await handle.getFile();
+            const text = await file.text();
+            return { text, lastModified: file.lastModified };
+        } catch (e) {
+            return null;
+        }
+    }
+    return null;
+}
 
-        return { text: contents.data, lastModified: mtime };
-      } catch (e) {
-        console.error('[Backup] Native read failed (file missing?):', e.message);
-        // We throw so the caller knows the specific file is missing
-        throw new Error(`Fichier ${filename} introuvable ou illisible.`);
-      }
+/**
+ * INTELLIGENT IMPORT: Checks both files and picks the newest one.
+ */
+export async function readBackupJSON() {
+    console.log('[Backup] Scanning for best backup file...');
+    
+    // Check both files
+    const manual = await getFileContent(MANUAL_BACKUP_FILE_NAME);
+    const auto = await getFileContent(AUTO_BACKUP_FILE_NAME);
+
+    // Logic to pick the best one
+    let best = null;
+    let source = '';
+
+    if (manual && auto) {
+        if (manual.lastModified > auto.lastModified) {
+            best = manual;
+            source = 'MANUAL';
+        } else {
+            best = auto;
+            source = 'AUTO';
+        }
+    } else if (manual) {
+        best = manual;
+        source = 'MANUAL';
+    } else if (auto) {
+        best = auto;
+        source = 'AUTO';
     }
 
-    // 2. WEB
-    if (typeof window !== 'undefined' && backupDir) {
-        const fileHandle = await backupDir.getFileHandle(filename);
-        const file = await fileHandle.getFile();
-        const text = await file.text();
-        return { text, lastModified: file.lastModified };
+    if (best) {
+        console.log(`[Backup] Selected ${source} backup (Date: ${new Date(best.lastModified).toLocaleString()})`);
+        return best;
     }
 
-    throw new Error("Aucun dossier de sauvegarde configuré.");
-
-  } catch (e) {
-    // console.error('[Backup] readBackupJSON failed:', e); 
-    // Don't log error here to avoid noise when auto-check fails (normal)
-    throw e; 
-  }
+    throw new Error("Aucun fichier de sauvegarde trouvé (ni auto, ni manuel).");
 }
 
 export async function setAutoImport(enabled) {
   autoImportEnabled = !!enabled;
   await saveMeta();
-  console.log('[Backup] Auto-import set to:', autoImportEnabled);
 }
+export async function getAutoImport() { return autoImportEnabled; }
 
-export async function getAutoImport() {
-  return autoImportEnabled;
-}
 
-/**
- * Auto-import now looks specifically for the AUTO backup file.
- */
 export async function checkAndAutoImport(dbInstance) {
   if (!autoImportEnabled) return { imported: false, reason: 'disabled' };
   
   console.log('[Backup] Checking for auto-import...');
   
   try {
-    // Try to read the AUTO backup file
-    const backup = await readBackupJSON(AUTO_BACKUP_FILE_NAME);
+    // readBackupJSON now automatically finds the newest of the two files
+    const backup = await readBackupJSON();
     
     if (!backup) return { imported: false, reason: 'no_data' };
 
     const last = backup.lastModified;
-    console.log(`[Backup] File time: ${last}, Last imported: ${lastImported}`);
-
-    if (last > lastImported) {
-      console.log('[Backup] New backup found, importing...');
+    // Tolerance of 1000ms for comparison
+    if (last > (lastImported + 1000)) {
+      console.log('[Backup] Newer backup found. Importing...');
       const ok = await dbInstance.importData(backup.text);
-      
       if (ok) {
         lastImported = last;
         await saveMeta();
-        console.log('[Backup] Auto-import successful');
         return { imported: true };
-      } else {
-        console.error('[Backup] Import data validation failed');
-        return { imported: false, reason: 'validation_failed' };
       }
-    } else {
-        return { imported: false, reason: 'not_newer' };
     }
+    return { imported: false, reason: 'not_newer' };
   } catch (e) { 
-    // It's normal to fail if the file doesn't exist yet
-    console.log('[Backup] Auto-import check: No auto-backup file found (or error).');
     return { imported: false, error: e.message }; 
   }
 }
@@ -284,70 +236,29 @@ export async function clearDirectory() {
   const meta = await localforage.getItem(BACKUP_STORE) || {};
   backupDir = null;
   await localforage.setItem(BACKUP_STORE, meta);
-  console.log('[Backup] Directory selection cleared');
 }
 
-export function getThreshold() { return counter >= threshold; }
-export async function getCurrentThreshold() { return threshold; }
-
-export async function getBackupStatus() {
-    // Ensure we have the latest counter
-    if (!isInitialized) await init();
-    
-    return {
-      counter: counter,
-      threshold: threshold,
-      autoImportEnabled: autoImportEnabled,
-      progress: `${counter}/${threshold}`,
-      shouldBackup: counter >= threshold,
-      backupNeeded: counter >= threshold
-    };
-}
-
-export async function setThreshold(value) {
-  if (typeof value === 'number' && value > 0) {
-    threshold = value;
-    await saveMeta();
-    return true;
-  }
-  return false;
-}
-
-// --- SAFE INCREMENT LOGIC ---
-async function safeIncrement() {
+// --- Generic Register Change Function ---
+// Use this for Workers, Departments, Exams, etc.
+export async function registerChange() {
   if (!isInitialized) await init();
   counter++;
   await localforage.setItem('backup_counter', counter);
-}
-
-export async function registerExamChange() {
-  await safeIncrement();
-  console.log(`[Backup] Exam change registered. Counter: ${counter}/${threshold}`);
+  console.log(`[Backup] Change registered. Counter: ${counter}/${threshold}`);
   if (counter >= threshold) return true;
   return false;
 }
 
-export async function registerWaterAnalysisChange() {
-  await safeIncrement();
-  console.log(`[Backup] Water Analysis change registered. Counter: ${counter}/${threshold}`);
-  if (counter >= threshold) return true;
-  return false;
-}
+// Kept for backward compatibility if other files call them specific names
+export async function registerExamChange() { return registerChange(); }
+export async function registerWaterAnalysisChange() { return registerChange(); }
 
-export async function resetCounter() { 
-  counter = 0; 
-  await localforage.setItem('backup_counter', 0); 
-  console.log('[Backup] Counter reset to 0');
-}
 
-/**
- * AUTO EXPORT now uses the AUTO filename
- */
 export async function performAutoExport(getJsonCallback) {
   try {
     console.log('[Backup] Performing Auto-Export...');
     const json = await getJsonCallback();
-    // FORCE usage of AUTO filename
+    // Save as AUTO file
     const success = await saveBackupJSON(json, AUTO_BACKUP_FILE_NAME);
     if (success) {
       await resetCounter();
@@ -360,32 +271,43 @@ export async function performAutoExport(getJsonCallback) {
   }
 }
 
-export function getDirHandle() { return backupDir; }
+export async function resetCounter() { 
+  counter = 0; 
+  await localforage.setItem('backup_counter', 0); 
+  console.log('[Backup] Counter reset to 0');
+}
 
+// Getters
+export function getThreshold() { return counter >= threshold; }
+export async function getCurrentThreshold() { return threshold; }
+export async function getBackupStatus() {
+    if (!isInitialized) await init();
+    return {
+      counter,
+      threshold,
+      autoImportEnabled,
+      progress: `${counter}/${threshold}`,
+      shouldBackup: counter >= threshold,
+      backupNeeded: counter >= threshold
+    };
+}
+export async function setThreshold(value) {
+  if (typeof value === 'number' && value > 0) {
+    threshold = value;
+    await saveMeta();
+    return true;
+  }
+  return false;
+}
+export function getDirHandle() { return backupDir; }
 export function getBackupDirName() { 
   if (backupDir) return backupDir.name;
   return 'Dossier Documents (Android) ou Non sélectionné'; 
 }
-
-export function isDirectoryAvailable() {
-  return typeof window !== 'undefined';
-}
-
+export function isDirectoryAvailable() { return typeof window !== 'undefined'; }
 export function getCurrentStorageInfo() {
-  if (backupDir) {
-    return {
-      type: 'Web API',
-      path: backupDir.name,
-      available: true,
-      permission: 'granted'
-    };
-  }
-  return {
-    type: 'Système / Android',
-    path: 'Documents/copro-watch',
-    available: true, 
-    permission: 'unknown'
-  };
+  if (backupDir) return { type: 'Web API', path: backupDir.name, available: true, permission: 'granted' };
+  return { type: 'Système / Android', path: 'Documents/copro-watch', available: true, permission: 'unknown' };
 }
 
 export default {
@@ -397,6 +319,7 @@ export default {
   getCurrentThreshold,
   getBackupStatus,
   setThreshold,
+  registerChange, // Generic one
   registerExamChange,
   registerWaterAnalysisChange,
   resetCounter,
