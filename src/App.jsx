@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import { db } from './services/db';
 import backupService from './services/backup';
+
 import Dashboard from './components/Dashboard';
 import WorkerList from './components/WorkerList';
 import WorkerDetail from './components/WorkerDetail'; // We might need this or just modal
 import PinLock from './components/PinLock';
 import Settings from './components/Settings';
+import WaterAnalyses from './components/WaterAnalyses';
 
-import { FaUsers, FaChartLine, FaCog } from 'react-icons/fa';
+import { FaUsers, FaChartLine, FaCog, FaFlask } from 'react-icons/fa';
 
 function App() {
-  const [view, setView] = useState('dashboard'); // dashboard, workers, settings
+
+  const [view, setView] = useState('dashboard'); // dashboard, workers, water-analyses, settings
   const [loading, setLoading] = useState(true);
   const [selectedWorkerId, setSelectedWorkerId] = useState(null);
   const [isLocked, setIsLocked] = useState(true);
@@ -62,6 +65,7 @@ function App() {
         </div>
         
 
+
         <nav style={{display:'flex', flexDirection:'column', gap:'0.25rem'}}>
           <div 
             className={`nav-item ${view === 'dashboard' ? 'active' : ''}`}
@@ -78,6 +82,14 @@ function App() {
           >
             <FaUsers className="nav-icon" />
             <span className="nav-text">Travailleurs</span>
+          </div>
+          <div 
+            className={`nav-item ${view === 'water-analyses' ? 'active' : ''}`}
+            onClick={() => setView('water-analyses')}
+            title="Analyses d'eau"
+          >
+            <FaFlask className="nav-icon" />
+            <span className="nav-text">Analyses d'eau</span>
           </div>
           <div 
             className={`nav-item ${view === 'settings' ? 'active' : ''}`}
@@ -104,6 +116,7 @@ function App() {
           <button aria-label="Toggle sidebar" className="btn btn-sm no-print" style={{marginBottom: '1rem'}} onClick={() => setSidebarOpen(!isSidebarOpen)}>
             {isSidebarOpen ? 'Masquer' : 'Afficher'}
           </button>
+
           {view === 'dashboard' && (
             <Dashboard onNavigateWorker={navigateToWorker} />
           )}
@@ -115,6 +128,9 @@ function App() {
               workerId={selectedWorkerId} 
               onBack={() => setView('workers')} 
             />
+          )}
+          {view === 'water-analyses' && (
+            <WaterAnalyses />
           )}
           {view === 'settings' && (
             <Settings currentPin={pin} onPinChange={setPin} />

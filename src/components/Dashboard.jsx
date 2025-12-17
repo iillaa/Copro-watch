@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
@@ -9,8 +10,10 @@ export default function Dashboard({ onNavigateWorker }) {
 
   const loadStats = async () => {
     setLoading(true);
-    const workers = await db.getWorkers();
-    const exams = await db.getExams();
+    const [workers, exams] = await Promise.all([
+      db.getWorkers(),
+      db.getExams()
+    ]);
     const computed = logic.getDashboardStats(workers, exams);
     setStats(computed);
     setLoading(false);
@@ -19,7 +22,6 @@ export default function Dashboard({ onNavigateWorker }) {
   useEffect(() => {
     loadStats();
   }, []);
-
 
   if (loading) return (
     <div style={{
@@ -56,6 +58,7 @@ export default function Dashboard({ onNavigateWorker }) {
         <p>Aperçu de la situation médicale.</p>
       </header>
       
+
       <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginBottom: '2.5rem'}}>
         {/* Due Soon - Orange/Yellow */}
         <div className="card" style={{display:'flex', justifyContent:'space-between', alignItems:'center', background:'var(--warning-light)', padding: '1.5rem'}}>
@@ -185,3 +188,4 @@ export default function Dashboard({ onNavigateWorker }) {
     </div>
   );
 }
+

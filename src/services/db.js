@@ -9,11 +9,13 @@ localforage.config({
   description: 'Offline database for medical worker management'
 });
 
+
 const STORES = {
   DEPARTMENTS: 'departments',
   WORKPLACES: 'workplaces',
   WORKERS: 'workers',
   EXAMS: 'exams',
+  WATER_ANALYSES: 'water_analyses',
   SETTINGS: 'settings' // For app settings like PIN, etc.
 };
 
@@ -92,6 +94,7 @@ export const db = {
     await this.saveAll(STORES.WORKERS, newWorkers);
   },
 
+
   // Exams
   async getExams() { return this.getAll(STORES.EXAMS); },
   async saveExam(exam) {
@@ -129,6 +132,64 @@ export const db = {
     }
   },
 
+
+  // Water Analyses
+  async getWaterAnalyses() { return this.getAll(STORES.WATER_ANALYSES); },
+  async saveWaterAnalysis(analysis) {
+    const analyses = await this.getWaterAnalyses();
+    const index = analyses.findIndex(a => a.id === analysis.id);
+    if (index >= 0) {
+      analyses[index] = analysis;
+    } else {
+      analysis.id = analysis.id || Date.now();
+      analysis.created_at = analysis.created_at || new Date().toISOString();
+      analyses.push(analysis);
+    }
+    await this.saveAll(STORES.WATER_ANALYSES, analyses);
+    // register change for auto-backup; if threshold reached, perform export
+    try {
+      const thresholdReached = await backupService.registerWaterAnalysisChange();
+      if (thresholdReached) {
+        await backupService.performAutoExport(async () => await db.exportData());
+      }
+    } catch (e) {
+      console.warn('Auto backup error', e);
+    }
+    return analysis;
+  },
+  async deleteWaterAnalysis(id) {
+    const analyses = await this.getWaterAnalyses();
+    const newAnalyses = analyses.filter(a => a.id !== id);
+    await this.saveAll(STORES.WATER_ANALYSES, newAnalyses);
+    try {
+      const thresholdReached = await backupService.registerWaterAnalysisChange();
+      if (thresholdReached) {
+        await backupService.performAutoExport(async () => await db.exportData());
+      }
+    } catch (e) {
+      console.warn('Auto backup error', e);
+    }
+  },
+
+  // Departments CRUD
+  async saveDepartment(department) {
+    const departments = await this.getDepartments();
+    const index = departments.findIndex(d => d.id === department.id);
+    if (index >= 0) {
+      departments[index] = department;
+    } else {
+      department.id = department.id || Date.now();
+      departments.push(department);
+    }
+    await this.saveAll(STORES.DEPARTMENTS, departments);
+    return department;
+  },
+  async deleteDepartment(id) {
+    const departments = await this.getDepartments();
+    const newDepartments = departments.filter(d => d.id !== id);
+    await this.saveAll(STORES.DEPARTMENTS, newDepartments);
+  },
+
   // Settings
   async getSettings() {
       const settings = await this.getAll(STORES.SETTINGS);
@@ -142,13 +203,15 @@ export const db = {
   async getDepartments() { return this.getAll(STORES.DEPARTMENTS); },
   async getWorkplaces() { return this.getAll(STORES.WORKPLACES); },
 
+
   // Import/Export
   async exportData() {
     const data = {
       departments: await this.getDepartments(),
       workplaces: await this.getWorkplaces(),
       workers: await this.getWorkers(),
-      exams: await this.getExams()
+      exams: await this.getExams(),
+      water_analyses: await this.getWaterAnalyses()
     };
     return JSON.stringify(data);
   },
@@ -159,6 +222,7 @@ export const db = {
     return await encryptString(password, json);
   },
 
+
   async importData(jsonString) {
     try {
       const data = JSON.parse(jsonString);
@@ -166,6 +230,7 @@ export const db = {
       if (data.workplaces) await this.saveAll(STORES.WORKPLACES, data.workplaces);
       if (data.workers) await this.saveAll(STORES.WORKERS, data.workers);
       if (data.exams) await this.saveAll(STORES.EXAMS, data.exams);
+      if (data.water_analyses) await this.saveAll(STORES.WATER_ANALYSES, data.water_analyses);
       return true;
     } catch (e) {
       console.error("Import failed", e);

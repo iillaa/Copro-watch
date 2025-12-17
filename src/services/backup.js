@@ -299,7 +299,18 @@ export async function setThreshold(value) {
   return false;
 }
 
+
 export async function registerExamChange() {
+  counter++;
+  await localforage.setItem('backup_counter', counter);
+  
+  if (counter >= threshold) {
+    return true; // threshold reached, trigger backup
+  }
+  return false; // threshold not reached yet
+}
+
+export async function registerWaterAnalysisChange() {
   counter++;
   await localforage.setItem('backup_counter', counter);
   
@@ -372,6 +383,7 @@ export function getCurrentStorageInfo() {
 
 
 
+
 export default {
   init,
   chooseDirectory,
@@ -382,6 +394,7 @@ export default {
   getBackupStatus,
   setThreshold,
   registerExamChange,
+  registerWaterAnalysisChange,
   resetCounter,
   performAutoExport,
   getDirHandle,

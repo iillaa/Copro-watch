@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { db } from '../services/db';
 import backupService from '../services/backup';
-import { FaSave, FaLock, FaDownload, FaUpload } from 'react-icons/fa';
+import { FaSave, FaLock, FaDownload, FaUpload, FaPlus, FaTrash, FaBuilding } from 'react-icons/fa';
 
 export default function Settings({ currentPin, onPinChange }) {
   const [pin, setPin] = useState(currentPin);
@@ -10,10 +10,14 @@ export default function Settings({ currentPin, onPinChange }) {
 
   const [backupDir, setBackupDir] = useState(null);
   const [backupStatus, setBackupStatus] = useState('');
-
   const [backupThreshold, setBackupThreshold] = useState(10);
   const [autoImportEnabled, setAutoImportEnabled] = useState(false);
   const [backupProgress, setBackupProgress] = useState({ counter: 0, threshold: 10, progress: '0/10' });
+  
+  // Departments management
+  const [departments, setDepartments] = useState([]);
+  const [newDepartmentName, setNewDepartmentName] = useState('');
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
 
   const handleSave = async () => {
     if (pin.length !== 4 || isNaN(pin)) {
@@ -25,7 +29,6 @@ export default function Settings({ currentPin, onPinChange }) {
     setMsg('Paramètres sauvegardés !');
     setTimeout(() => setMsg(''), 3000);
   };
-
 
   const download = (filename, data) => {
     console.log('Creating download for:', filename);
@@ -48,7 +51,6 @@ export default function Settings({ currentPin, onPinChange }) {
       throw new Error('Download failed: ' + e.message);
     }
   };
-
 
   const handleExportEncrypted = async () => {
     try {
@@ -103,9 +105,6 @@ export default function Settings({ currentPin, onPinChange }) {
     setTimeout(() => setMsg(''), 3000);
   };
 
-
-
-
   useEffect(() => {
     // load backup settings
     (async () => {
@@ -124,6 +123,9 @@ export default function Settings({ currentPin, onPinChange }) {
         console.warn('backup init failed', e);
       }
     })();
+    
+    // Load departments
+    loadDepartments();
   }, []);
 
   useEffect(() => {
@@ -139,7 +141,6 @@ export default function Settings({ currentPin, onPinChange }) {
       setBackupStatus('Auto backup enabled for Android');
     }
   };
-
 
   const handleChooseBackupDir = async () => {
     try {
@@ -157,7 +158,6 @@ export default function Settings({ currentPin, onPinChange }) {
       setTimeout(() => setBackupStatus(''), 5000);
     }
   };
-
 
   const handleGetBackupNow = async () => {
     try {
@@ -246,10 +246,61 @@ export default function Settings({ currentPin, onPinChange }) {
     setTimeout(() => setBackupStatus(''), 3000);
   };
 
+  // Department management functions
+  const loadDepartments = async () => {
+    setDepartmentsLoading(true);
+    try {
+      const depts = await db.getDepartments();
+      setDepartments(depts);
+    } catch (error) {
+      console.error('Error loading departments:', error);
+    }
+    setDepartmentsLoading(false);
+  };
+
+  const addDepartment = async () => {
+    if (!newDepartmentName.trim()) {
+      setMsg('Veuillez saisir un nom de service.');
+      setTimeout(() => setMsg(''), 3000);
+      return;
+    }
+
+    try {
+      const newDept = { name: newDepartmentName.trim() };
+      await db.saveDepartment(newDept);
+      setNewDepartmentName('');
+      await loadDepartments();
+      setMsg('Service ajouté avec succès !');
+      setTimeout(() => setMsg(''), 3000);
+    } catch (error) {
+      console.error('Error adding department:', error);
+      setMsg('Erreur lors de l\'ajout du service.');
+      setTimeout(() => setMsg(''), 3000);
+    }
+  };
+
+  const deleteDepartment = async (id) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce service ?')) {
+      return;
+    }
+
+    try {
+      await db.deleteDepartment(id);
+      await loadDepartments();
+      setMsg('Service supprimé avec succès !');
+      setTimeout(() => setMsg(''), 3000);
+    } catch (error) {
+      console.error('Error deleting department:', error);
+      setMsg('Erreur lors de la suppression du service.');
+      setTimeout(() => setMsg(''), 3000);
+    }
+  };
+
   return (
     <div>
       <h2 style={{ marginBottom: '1.5rem' }}>Paramètres</h2>
 
+      {/* Security Section */}
       <div className="card" style={{ maxWidth: '500px' }}>
         <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <FaLock /> Sécurité
@@ -296,150 +347,226 @@ export default function Settings({ currentPin, onPinChange }) {
             <input type="file" onChange={handleImportEncrypted} style={{ display: 'none' }} />
           </label>
         </div>
+      </div>
 
-
-          <div style={{ marginTop: '1rem' }}>
-            <h3>Auto Backup</h3>
-            <div style={{ 
-              padding: '0.75rem', 
-              backgroundColor: 'var(--bg-secondary)', 
-              borderRadius: '8px', 
-              marginBottom: '1rem',
-              border: '1px solid var(--border)'
-            }}>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>📱 Android Mode:</span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  Auto-backup to Documents/copro-watch folder
-                </span>
-              </div>
-            </div>
-
-
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <button className="btn btn-outline" onClick={handleChooseBackupDir}>
-                📁 Setup Backup Folder
-              </button>
-              <button className="btn btn-outline" onClick={handleGetBackupNow}>
-                💾 Backup Now
-              </button>
-              <button className="btn btn-outline" onClick={handleImportFromBackup} title="Import from backup folder">
-                📂 Import from Backup
-              </button>
-              <button className="btn btn-outline" onClick={handleRefreshBackupProgress} title="Refresh backup progress">
-                🔄 Refresh Progress
-              </button>
-            </div>
-
-            <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Auto Export Threshold (exams):</label>
-              <input 
-                type="number" 
-                value={backupThreshold} 
-                onChange={(e) => setBackupThreshold(Number(e.target.value))} 
-                style={{ 
-                  width: '5rem', 
-                  padding: '0.4rem', 
-                  borderRadius: '4px', 
-                  border: '1px solid var(--border)',
-                  fontSize: '0.9rem'
-                }} 
-              />
-              <button className="btn btn-outline" onClick={handleThresholdSave} style={{ fontSize: '0.9rem' }}>
-                💾 Save
-              </button>
-            </div>
-            
-
-            <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Auto Import:</label>
-              <button 
-                className={`btn ${autoImportEnabled ? 'btn-primary' : 'btn-outline'}`} 
-                onClick={handleToggleAutoImport}
-                style={{ fontSize: '0.9rem' }}
-              >
-                {autoImportEnabled ? '🟢 Enabled' : '🔴 Disabled'}
-              </button>
-            </div>
-
-            <div style={{ marginTop: '0.75rem' }}>
-              <div style={{ 
-                padding: '0.75rem', 
-                backgroundColor: 'var(--bg-secondary)', 
-                borderRadius: '8px',
+      {/* Department Management */}
+      <div className="card" style={{ maxWidth: '600px', marginTop: '2rem' }}>
+        <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <FaBuilding /> Gestion des Services
+        </h3>
+        
+        <div style={{ marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+            <input
+              type="text"
+              placeholder="Nom du nouveau service..."
+              value={newDepartmentName}
+              onChange={(e) => setNewDepartmentName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && addDepartment()}
+              style={{
+                flex: 1,
+                padding: '0.5rem',
+                borderRadius: '4px',
                 border: '1px solid var(--border)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>📊 Auto Backup Progress:</span>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    {backupProgress.progress} exams
-                  </span>
-                </div>
-                <div style={{ 
-                  width: '100%', 
-                  height: '8px', 
-                  backgroundColor: 'var(--border)',
-                  borderRadius: '4px',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{
-                    width: `${(backupProgress.counter / backupProgress.threshold) * 100}%`,
-                    height: '100%',
-                    backgroundColor: backupProgress.counter >= backupProgress.threshold ? 'var(--success)' : 'var(--primary)',
-                    transition: 'width 0.3s ease'
-                  }} />
-                </div>
-                {backupProgress.counter >= backupProgress.threshold && (
-                  <div style={{ 
-                    marginTop: '0.5rem',
-                    fontSize: '0.8rem',
-                    color: 'var(--success)',
-                    fontWeight: '500'
-                  }}>
-                    ⚠️ Auto backup will trigger on next exam change
-                  </div>
-                )}
-              </div>
-            </div>
+              }}
+            />
+            <button 
+              className="btn btn-primary" 
+              onClick={addDepartment}
+              disabled={departmentsLoading || !newDepartmentName.trim()}
+            >
+              <FaPlus /> Ajouter
+            </button>
+          </div>
 
-            <div style={{ marginTop: '0.75rem' }}>
-              {backupStatus && (
-                <div style={{ 
-                  padding: '0.5rem', 
-                  backgroundColor: 'var(--bg-secondary)', 
-                  borderRadius: '4px',
-                  fontSize: '0.9rem',
-                  border: '1px solid var(--border)'
-                }}>
-                  {backupStatus}
+          {departmentsLoading ? (
+            <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
+              Chargement des services...
+            </div>
+          ) : (
+            <div style={{ 
+              maxHeight: '300px', 
+              overflowY: 'auto',
+              border: '1px solid var(--border)',
+              borderRadius: '4px',
+              padding: '0.5rem'
+            }}>
+              {departments.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
+                  Aucun service configuré.
                 </div>
-              )}
-              {backupDir && (
-                <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
-                  <strong>📂 Current backup folder:</strong> {backupDir}
-                </div>
-              )}
-              {backupDir && (
-                <button 
-                  className="btn btn-outline" 
-                  onClick={handleClearBackupDir}
-                  style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}
-                >
-                  🗑️ Clear Folder
-                </button>
+              ) : (
+                departments.map(dept => (
+                  <div 
+                    key={dept.id} 
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '0.5rem',
+                      borderBottom: '1px solid var(--border)'
+                    }}
+                  >
+                    <span style={{ fontWeight: '500' }}>{dept.name}</span>
+                    <button 
+                      className="btn btn-sm btn-outline"
+                      onClick={() => deleteDepartment(dept.id)}
+                      style={{ color: 'var(--danger)' }}
+                      title="Supprimer ce service"
+                    >
+                      <FaTrash size={12} />
+                    </button>
+                  </div>
+                ))
               )}
             </div>
-            {msg && (
-              <p style={{ 
-                color: msg.includes('import') || msg.includes('sauvegardé') ? 'var(--success)' : 'var(--danger)',
-                fontSize: '0.9rem',
-                marginTop: '0.5rem'
+          )}
+        </div>
+      </div>
+
+      {/* Auto Backup Section */}
+      <div className="card" style={{ maxWidth: '800px', marginTop: '2rem' }}>
+        <h3 style={{ marginTop: 0 }}>Auto Backup</h3>
+        
+        <div style={{ 
+          padding: '0.75rem', 
+          backgroundColor: 'var(--bg-secondary)', 
+          borderRadius: '8px', 
+          marginBottom: '1rem',
+          border: '1px solid var(--border)'
+        }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>📱 Android Mode:</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              Auto-backup to Documents/copro-watch folder
+            </span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
+          <button className="btn btn-outline" onClick={handleChooseBackupDir}>
+            📁 Setup Backup Folder
+          </button>
+          <button className="btn btn-outline" onClick={handleGetBackupNow}>
+            💾 Backup Now
+          </button>
+          <button className="btn btn-outline" onClick={handleImportFromBackup} title="Import from backup folder">
+            📂 Import from Backup
+          </button>
+          <button className="btn btn-outline" onClick={handleRefreshBackupProgress} title="Refresh backup progress">
+            🔄 Refresh Progress
+          </button>
+        </div>
+
+        <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
+          <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Auto Export Threshold (exams):</label>
+          <input 
+            type="number" 
+            value={backupThreshold} 
+            onChange={(e) => setBackupThreshold(Number(e.target.value))} 
+            style={{ 
+              width: '5rem', 
+              padding: '0.4rem', 
+              borderRadius: '4px', 
+              border: '1px solid var(--border)',
+              fontSize: '0.9rem'
+            }} 
+          />
+          <button className="btn btn-outline" onClick={handleThresholdSave} style={{ fontSize: '0.9rem' }}>
+            💾 Save
+          </button>
+        </div>
+
+        <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
+          <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Auto Import:</label>
+          <button 
+            className={`btn ${autoImportEnabled ? 'btn-primary' : 'btn-outline'}`} 
+            onClick={handleToggleAutoImport}
+            style={{ fontSize: '0.9rem' }}
+          >
+            {autoImportEnabled ? '🟢 Enabled' : '🔴 Disabled'}
+          </button>
+        </div>
+
+        <div style={{ marginTop: '0.75rem' }}>
+          <div style={{ 
+            padding: '0.75rem', 
+            backgroundColor: 'var(--bg-secondary)', 
+            borderRadius: '8px',
+            border: '1px solid var(--border)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>📊 Auto Backup Progress:</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                {backupProgress.progress} exams
+              </span>
+            </div>
+            <div style={{ 
+              width: '100%', 
+              height: '8px', 
+              backgroundColor: 'var(--border)',
+              borderRadius: '4px',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                width: `${(backupProgress.counter / backupProgress.threshold) * 100}%`,
+                height: '100%',
+                backgroundColor: backupProgress.counter >= backupProgress.threshold ? 'var(--success)' : 'var(--primary)',
+                transition: 'width 0.3s ease'
+              }} />
+            </div>
+            {backupProgress.counter >= backupProgress.threshold && (
+              <div style={{ 
+                marginTop: '0.5rem',
+                fontSize: '0.8rem',
+                color: 'var(--success)',
+                fontWeight: '500'
               }}>
-                {msg}
-              </p>
+                ⚠️ Auto backup will trigger on next exam change
+              </div>
             )}
           </div>
+        </div>
+
+        <div style={{ marginTop: '0.75rem' }}>
+          {backupStatus && (
+            <div style={{ 
+              padding: '0.5rem', 
+              backgroundColor: 'var(--bg-secondary)', 
+              borderRadius: '4px',
+              fontSize: '0.9rem',
+              border: '1px solid var(--border)',
+              marginBottom: '0.5rem'
+            }}>
+              {backupStatus}
+            </div>
+          )}
+          {backupDir && (
+            <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+              <strong>📂 Current backup folder:</strong> {backupDir}
+            </div>
+          )}
+          {backupDir && (
+            <button 
+              className="btn btn-outline" 
+              onClick={handleClearBackupDir}
+              style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}
+            >
+              🗑️ Clear Folder
+            </button>
+          )}
+        </div>
       </div>
+
+      {msg && (
+        <p style={{ 
+          color: msg.includes('import') || msg.includes('sauvegardé') || msg.includes('ajouté') || msg.includes('supprimé') ? 'var(--success)' : 'var(--danger)',
+          fontSize: '0.9rem',
+          marginTop: '0.5rem'
+        }}>
+          {msg}
+        </p>
+      )}
     </div>
   );
 }
