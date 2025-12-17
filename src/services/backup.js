@@ -21,11 +21,10 @@ export async function init() {
       threshold = meta.threshold || DEFAULT_THRESHOLD;
       autoImportEnabled = !!meta.autoImport;
       lastImported = meta.lastImported || 0;
-      // Note: dirHandle cannot be stored in localforage properly across reloads in all browsers, 
-      // but we keep the structure for compatibility.
     }
     const savedCounter = await localforage.getItem('backup_counter');
-    counter = savedCounter || 0;
+    // FIX: Force integer parsing to avoid "01" string issues which break the math
+    counter = parseInt(savedCounter, 10) || 0;
     console.log('[Backup] Service initialized. Counter:', counter, 'Threshold:', threshold);
   } catch (e) {
     console.warn('[Backup] Failed to load backup settings', e);
@@ -37,7 +36,6 @@ async function saveMeta() {
     threshold, 
     autoImport: autoImportEnabled, 
     lastImported,
-    // We don't save dirHandle here as it's not serializable for long-term storage in all contexts
   });
 }
 
@@ -45,7 +43,6 @@ async function saveMeta() {
  * Prompts the user to choose a directory (Web) or sets up the path (Android).
  */
 export async function chooseDirectory() {
-  // Dynamically import Capacitor Core to check platform safely
   const { Capacitor } = await import('@capacitor/core');
 
   // ANDROID: We target the Documents folder
@@ -62,7 +59,7 @@ export async function chooseDirectory() {
   if (typeof window !== 'undefined' && 'showDirectoryPicker' in window) {
     try {
       const dirHandle = await window.showDirectoryPicker();
-      backupDir = dirHandle; // Cache it in memory
+      backupDir = dirHandle; 
       
       return {
         type: 'web',
@@ -97,15 +94,25 @@ export async function saveBackupJSON(jsonString, filename = BACKUP_FILE_NAME) {
       
       try {
         console.log('[Backup] Requesting permissions...');
-        // Always request permissions first on Android
         await Filesystem.requestPermissions();
         
-        console.log('[Backup] Ensuring directory exists...');
-        await Filesystem.mkdir({
-          path: 'copro-watch',
-          directory: Directory.Documents,
-          recursive: true
-        });
+        console.log('[Backup] Checking directory...');
+        // FIX: Check if directory exists before creating to avoid "already exists" crash
+        try {
+          await Filesystem.stat({
+            path: 'copro-watch',
+            directory: Directory.Documents
+          });
+          console.log('[Backup] Directory exists, skipping creation.');
+        } catch (statErr) {
+          // If stat fails, the directory probably doesn't exist, so we create it
+          console.log('[Backup] Directory not found, creating...');
+          await Filesystem.mkdir({
+            path: 'copro-watch',
+            directory: Directory.Documents,
+            recursive: true
+          });
+        }
 
         console.log('[Backup] Writing file...');
         await Filesystem.writeFile({
@@ -126,16 +133,13 @@ export async function saveBackupJSON(jsonString, filename = BACKUP_FILE_NAME) {
     // 2. WEB (File System Access API)
     if (typeof window !== 'undefined' && backupDir) {
       try {
-        console.log('[Backup] Writing to Web Directory Handle...');
         const fileHandle = await backupDir.getFileHandle(filename, { create: true });
         const writable = await fileHandle.createWritable();
         await writable.write(jsonString);
         await writable.close();
-        console.log('[Backup] Web directory backup successful');
         return true;
       } catch (e) {
         console.error('[Backup] Web directory write failed:', e);
-        // Don't throw here, allow fallback to download
       }
     }
 
@@ -162,7 +166,6 @@ export async function saveBackupJSON(jsonString, filename = BACKUP_FILE_NAME) {
 
 /**
  * Reads the backup file.
- * NOW THROWS ERRORS instead of returning null for better debugging.
  */
 export async function readBackupJSON(filename = BACKUP_FILE_NAME) {
   const { Capacitor } = await import('@capacitor/core');
@@ -174,13 +177,15 @@ export async function readBackupJSON(filename = BACKUP_FILE_NAME) {
       console.log('[Backup] Reading from Android Documents...');
       
       try {
+        // FIX: Request permissions before reading too, just in case
+        await Filesystem.requestPermissions();
+
         const contents = await Filesystem.readFile({
           path: `copro-watch/${filename}`,
           directory: Directory.Documents,
           encoding: Encoding.UTF8
         });
 
-        // Try to get last modified time
         let mtime = Date.now();
         try {
             const stat = await Filesystem.stat({
@@ -195,13 +200,12 @@ export async function readBackupJSON(filename = BACKUP_FILE_NAME) {
         return { text: contents.data, lastModified: mtime };
       } catch (e) {
         console.error('[Backup] Native read failed:', e);
-        throw new Error("Impossible de lire le fichier de sauvegarde sur l'appareil.");
+        throw new Error("Impossible de lire le fichier (Permissions ou fichier manquant).");
       }
     }
 
     // 2. WEB
     if (typeof window !== 'undefined' && backupDir) {
-        console.log('[Backup] Reading from Web Directory...');
         const fileHandle = await backupDir.getFileHandle(filename);
         const file = await fileHandle.getFile();
         const text = await file.text();
@@ -212,7 +216,7 @@ export async function readBackupJSON(filename = BACKUP_FILE_NAME) {
 
   } catch (e) {
     console.error('[Backup] readBackupJSON failed:', e);
-    throw e; // Re-throw to be handled by caller
+    throw e; 
   }
 }
 
@@ -226,10 +230,6 @@ export async function getAutoImport() {
   return autoImportEnabled;
 }
 
-/**
- * Checks if a newer backup exists and imports it.
- * Now includes detailed logging and error reporting.
- */
 export async function checkAndAutoImport(dbInstance) {
   if (!autoImportEnabled) return { imported: false, reason: 'disabled' };
   
@@ -238,13 +238,11 @@ export async function checkAndAutoImport(dbInstance) {
   try {
     const backup = await readBackupJSON();
     
-    // Note: readBackupJSON now throws if file not found, which we catch below
     if (!backup) return { imported: false, reason: 'no_data' };
 
     const last = backup.lastModified;
     console.log(`[Backup] File time: ${last}, Last imported: ${lastImported}`);
 
-    // If file is newer (or we haven't imported anything yet)
     if (last > lastImported) {
       console.log('[Backup] New backup found, importing...');
       const ok = await dbInstance.importData(backup.text);
@@ -262,7 +260,7 @@ export async function checkAndAutoImport(dbInstance) {
         return { imported: false, reason: 'not_newer' };
     }
   } catch (e) { 
-    console.warn('[Backup] Auto-import check failed (normal if no file exists yet):', e.message);
+    console.warn('[Backup] Auto-import check failed (normal if no file exists):', e.message);
     return { imported: false, error: e.message }; 
   }
 }
@@ -270,7 +268,6 @@ export async function checkAndAutoImport(dbInstance) {
 export async function clearDirectory() {
   const meta = await localforage.getItem(BACKUP_STORE) || {};
   backupDir = null;
-  // delete meta.dirHandle; // Not used in this version
   await localforage.setItem(BACKUP_STORE, meta);
   console.log('[Backup] Directory selection cleared');
 }
@@ -280,7 +277,7 @@ export async function getCurrentThreshold() { return threshold; }
 
 export async function getBackupStatus() {
     const savedCounter = await localforage.getItem('backup_counter') || 0;
-    counter = parseInt(savedCounter, 10);
+    counter = parseInt(savedCounter, 10) || 0;
     return {
       counter: counter,
       threshold: threshold,
@@ -340,22 +337,15 @@ export async function performAutoExport(getJsonCallback) {
 export function getDirHandle() { return backupDir; }
 
 export function getBackupDirName() { 
-  // We can't synchronously check platform here easily without the import, 
-  // but we can rely on our internal state or a rough check.
-  // For UI display, this is usually sufficient:
   if (backupDir) return backupDir.name;
   return 'Dossier Documents (Android) ou Non sélectionné'; 
 }
 
 export function isDirectoryAvailable() {
-  // Simple check - for accurate platform check we'd need async
   return typeof window !== 'undefined';
 }
 
 export function getCurrentStorageInfo() {
-  // Since we don't have synchronous access to Capacitor.isNativePlatform() here without import,
-  // we return a generic object that the UI can interpret.
-  // The UI should ideally call an async function to get this status if strict accuracy is needed.
   if (backupDir) {
     return {
       type: 'Web API',
@@ -367,7 +357,7 @@ export function getCurrentStorageInfo() {
   return {
     type: 'Système / Android',
     path: 'Documents/copro-watch',
-    available: true, // Assumed available on Android
+    available: true, 
     permission: 'unknown'
   };
 }
