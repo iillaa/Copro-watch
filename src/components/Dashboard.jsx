@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
@@ -14,7 +13,15 @@ export default function Dashboard({ onNavigateWorker }) {
       db.getWorkers(),
       db.getExams()
     ]);
-    const computed = logic.getDashboardStats(workers, exams);
+
+    // --- CORRECTION ICI ---
+    // On filtre les travailleurs : on ne garde que ceux qui NE SONT PAS archivés (!w.archived)
+    // Cela empêche les "jardiniers" ou anciens employés de polluer les statistiques de retard.
+    const activeWorkers = workers.filter(w => !w.archived);
+
+    // On calcule les stats uniquement sur les actifs
+    const computed = logic.getDashboardStats(activeWorkers, exams);
+    
     setStats(computed);
     setLoading(false);
   };
@@ -188,4 +195,3 @@ export default function Dashboard({ onNavigateWorker }) {
     </div>
   );
 }
-
