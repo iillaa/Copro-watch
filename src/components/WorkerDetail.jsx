@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
 import ExamForm from './ExamForm';
-import { FaArrowLeft, FaFileMedical, FaTrash } from 'react-icons/fa';
+// AJOUT : Import des icônes d'archive
+import { FaArrowLeft, FaFileMedical, FaTrash, FaArchive, FaBoxOpen } from 'react-icons/fa';
 
 export default function WorkerDetail({ workerId, onBack }) {
   const [worker, setWorker] = useState(null);
@@ -54,8 +55,23 @@ export default function WorkerDetail({ workerId, onBack }) {
     }
   };
 
+  // NOUVELLE FONCTION : Gère l'archivage
+  const handleToggleArchive = async () => {
+    const newStatus = !worker.archived;
+    const actionName = newStatus ? "archiver" : "réactiver";
+    
+    if (window.confirm(`Voulez-vous vraiment ${actionName} ce travailleur ?`)) {
+      // On utilise saveWorker qui gère la sauvegarde
+      const updatedWorker = { ...worker, archived: newStatus };
+      await db.saveWorker(updatedWorker);
+      
+      alert(`Travailleur ${newStatus ? "archivé" : "réactivé"} avec succès.`);
+      loadData(); 
+    }
+  };
+
   const handleDeleteWorker = async () => {
-      if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${worker.full_name} ?`)) {
+      if (window.confirm(`ATTENTION : La suppression est définitive !\n\nVoulez-vous vraiment supprimer ${worker.full_name} et tout son historique ?\n\n(Conseil : Utilisez plutôt "Archiver" pour le masquer temporairement)`)) {
           await db.deleteWorker(worker.id);
           onBack();
       }
@@ -96,7 +112,11 @@ export default function WorkerDetail({ workerId, onBack }) {
       <div className="card">
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'start'}}>
            <div>
-             <h2 style={{margin:0}}>{worker.full_name}</h2>
+             <h2 style={{margin:0}}>
+                {worker.full_name}
+                {/* Indicateur visuel si archivé */}
+                {worker.archived && <span style={{fontSize:'0.5em', marginLeft:'10px', background:'#eee', padding:'2px 6px', borderRadius:'4px', color:'#666', verticalAlign:'middle'}}>ARCHIVÉ</span>}
+             </h2>
              <p style={{color:'var(--text-muted)', marginTop:'0.5rem'}}>
                 <strong>Service:</strong> {deptName} • <strong>Lieu:</strong> {workplaceName} • <strong>Poste:</strong> {worker.job_role}
              </p>
@@ -105,13 +125,39 @@ export default function WorkerDetail({ workerId, onBack }) {
                 <span className="badge badge-yellow">Prochain Examen: {worker.next_exam_due}</span>
              </div>
            </div>
+           
            <div style={{display:'flex', gap:'0.5rem'}}>
-             <button className="btn btn-primary" onClick={handleNewExam}><FaFileMedical /> Nouvel Examen</button>
-             <button className="btn btn-outline" onClick={handleDeleteWorker} style={{color: 'var(--danger)', borderColor: 'var(--danger)'}} title="Supprimer le travailleur">
+             {/* Bouton Nouvel Examen */}
+             <button className="btn btn-primary" onClick={handleNewExam} disabled={worker.archived}>
+                <FaFileMedical /> Nouvel Examen
+             </button>
+             
+             {/* NOUVEAU BOUTON ARCHIVER / REACTIVER */}
+             <button 
+                className="btn btn-outline" 
+                onClick={handleToggleArchive}
+                title={worker.archived ? "Réactiver ce travailleur" : "Archiver (Désactiver temporairement)"}
+                style={{
+                    color: worker.archived ? 'var(--success)' : 'var(--warning)', 
+                    borderColor: worker.archived ? 'var(--success)' : 'var(--warning)'
+                }}
+             >
+                {worker.archived ? <><FaBoxOpen /> Réactiver</> : <><FaArchive /> Archiver</>}
+             </button>
+
+             {/* Bouton Supprimer (Rouge) */}
+             <button className="btn btn-outline" onClick={handleDeleteWorker} style={{color: 'var(--danger)', borderColor: 'var(--danger)'}} title="Supprimer définitivement">
                 <FaTrash />
              </button>
            </div>
         </div>
+
+        {worker.archived && (
+            <div style={{marginTop:'1rem', padding:'0.75rem', background:'#f8f9fa', border:'1px dashed #ccc', borderRadius:'4px', fontSize:'0.9rem', color:'#666'}}>
+                ℹ️ Ce dossier est archivé. Il n'apparaîtra plus dans le tableau de bord des retards. Cliquez sur "Réactiver" pour le modifier.
+            </div>
+        )}
+
         <div style={{marginTop:'1rem', paddingTop:'1rem', borderTop:'1px solid var(--border)'}}>
            <strong>Antécédents médicaux:</strong> {worker.notes || 'Aucun antécédent.'}
         </div>
