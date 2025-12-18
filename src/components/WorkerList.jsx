@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
 import AddWorkerForm from './AddWorkerForm';
-import { FaPlus, FaSearch, FaFileDownload, FaFileUpload, FaEdit, FaTrash, FaFilter } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaFileDownload, FaFileUpload, FaEdit, FaTrash, FaFilter, FaArchive } from 'react-icons/fa';
 
 export default function WorkerList({ onNavigateWorker }) {
   const [workers, setWorkers] = useState([]);
@@ -12,7 +12,9 @@ export default function WorkerList({ onNavigateWorker }) {
   const [exams, setExams] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDept, setFilterDept] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  
+  // NOUVEAU STATE : Pour gérer l'affichage des archives
+  const [showArchived, setShowArchived] = useState(false);
   
   const [showForm, setShowForm] = useState(false);
   const [editingWorker, setEditingWorker] = useState(null);
@@ -33,10 +35,19 @@ export default function WorkerList({ onNavigateWorker }) {
   useEffect(() => {
     let result = workers;
     
+    // 1. FILTRE ARCHIVE (Le plus important)
+    if (!showArchived) {
+        // Si la case n'est pas cochée, on cache ceux qui sont archivés
+        result = result.filter(w => !w.archived);
+    }
+    // (Si elle est cochée, on montre tout le monde)
+
+    // 2. Filtre Département
     if (filterDept) {
       result = result.filter(w => w.department_id == filterDept);
     }
 
+    // 3. Filtre Recherche
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
       result = result.filter(w => 
@@ -45,7 +56,7 @@ export default function WorkerList({ onNavigateWorker }) {
       );
     }
     setFilteredWorkers(result);
-  }, [searchTerm, filterDept, workers]);
+  }, [searchTerm, filterDept, workers, showArchived]); // Ajout de showArchived aux dépendances
 
   const handleEdit = (e, worker) => {
     e.stopPropagation();
@@ -55,7 +66,7 @@ export default function WorkerList({ onNavigateWorker }) {
 
   const handleDelete = async (e, worker) => {
     e.stopPropagation();
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${worker.full_name} ? Cette action est irréversible.`)) {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${worker.full_name} ? Cette action est irréversible.\n\n(Préférez l'archivage via la fiche du travailleur)`)) {
         await db.deleteWorker(worker.id);
         loadData();
     }
@@ -100,9 +111,7 @@ export default function WorkerList({ onNavigateWorker }) {
   const getWorkerLastStatus = (workerId) => {
     const workerExams = exams.filter(e => e.worker_id === workerId);
     if (workerExams.length === 0) return null;
-    // Sort desc by exam date
     workerExams.sort((a, b) => new Date(b.exam_date) - new Date(a.exam_date));
-    // Find first one with a decision
     const lastDecision = workerExams.find(e => e.decision?.status);
     return lastDecision?.decision?.status;
   };
@@ -143,7 +152,7 @@ export default function WorkerList({ onNavigateWorker }) {
 
       <div className="card" style={{display:'flex', gap:'1rem', padding:'1rem', alignItems:'center', marginBottom:'1.5rem', flexWrap:'wrap'}}>
         <div style={{flex:1, display:'flex', alignItems:'center', minWidth:'250px', position:'relative'}}>
-            <FaSearch style={{color:'var(--text-muted)', marginRight:'0.5rem', transition:'all 0.2s ease'}} />
+            <FaSearch style={{color:'var(--text-muted)', marginRight:'0.5rem'}} />
             <input 
               style={{
                 border:'none', 
@@ -151,45 +160,18 @@ export default function WorkerList({ onNavigateWorker }) {
                 padding:'0.75rem', 
                 width:'100%', 
                 fontSize:'1rem', 
-                background:'transparent',
-                transition:'all 0.2s ease'
+                background:'transparent'
               }} 
               placeholder="Rechercher par nom ou matricule..." 
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              onFocus={(e) => {
-                e.target.style.backgroundColor = 'var(--primary-light)';
-                e.target.style.borderRadius = '8px';
-                e.target.style.transform = 'translate(-2px, -2px)';
-                e.target.style.boxShadow = '2px 2px 0px var(--border-color)';
-              }}
-              onBlur={(e) => {
-                e.target.style.backgroundColor = 'transparent';
-                e.target.style.transform = 'translate(0, 0)';
-                e.target.style.boxShadow = 'none';
-              }}
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
                 style={{
-                  position:'absolute',
-                  right:'0.5rem',
-                  background:'none',
-                  border:'none',
-                  color:'var(--text-muted)',
-                  cursor:'pointer',
-                  padding:'0.25rem',
-                  borderRadius:'4px',
-                  transition:'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = 'var(--danger-light)';
-                  e.target.style.color = 'var(--danger)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'transparent';
-                  e.target.style.color = 'var(--text-muted)';
+                  position:'absolute', right:'0.5rem', background:'none', border:'none',
+                  color:'var(--text-muted)', cursor:'pointer', padding:'0.25rem'
                 }}
               >
                 ×
@@ -197,21 +179,14 @@ export default function WorkerList({ onNavigateWorker }) {
             )}
         </div>
         <div style={{borderLeft:'1px solid var(--border-color)', height:'2rem', margin:'0 0.5rem'}}></div>
+        
         <div style={{display:'flex', alignItems:'center', gap:'0.5rem'}}>
             <FaFilter style={{color:'var(--text-muted)'}} />
             <select 
                 className="input" 
-                style={{padding:'0.75rem', width:'auto', minWidth:'150px', transition:'all 0.2s ease'}}
+                style={{padding:'0.75rem', width:'auto', minWidth:'150px'}}
                 value={filterDept}
                 onChange={e => setFilterDept(e.target.value)}
-                onFocus={(e) => {
-                  e.target.style.transform = 'translate(-1px, -1px)';
-                  e.target.style.boxShadow = '2px 2px 0px var(--border-color)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.transform = 'translate(0, 0)';
-                  e.target.style.boxShadow = 'none';
-                }}
             >
                 <option value="">Tous les services</option>
                 {departments.map(d => (
@@ -219,14 +194,25 @@ export default function WorkerList({ onNavigateWorker }) {
                 ))}
             </select>
         </div>
+
+        {/* NOUVEAU : Case à cocher pour voir les archives */}
+        <label style={{
+            display:'flex', alignItems:'center', gap:'0.5rem', 
+            cursor:'pointer', fontSize:'0.9rem', color:'var(--text-muted)',
+            paddingLeft: '10px', borderLeft: '1px solid var(--border-color)'
+        }}>
+            <input 
+                type="checkbox" 
+                checked={showArchived} 
+                onChange={e => setShowArchived(e.target.checked)} 
+            />
+            Voir archives
+        </label>
+
         {(searchTerm || filterDept) && (
           <button 
             className="btn btn-outline btn-sm"
-            onClick={() => {
-              setSearchTerm('');
-              setFilterDept('');
-            }}
-            style={{transition:'all 0.2s ease'}}
+            onClick={() => { setSearchTerm(''); setFilterDept(''); }}
           >
             Effacer filtres
           </button>
@@ -249,20 +235,35 @@ export default function WorkerList({ onNavigateWorker }) {
             {filteredWorkers.map(w => {
                const isOverdue = logic.isOverdue(w.next_exam_due);
                const status = getWorkerLastStatus(w.id);
+               
+               // Style spécial pour les archivés (Grisé)
+               const rowStyle = w.archived ? {
+                   opacity: 0.6,
+                   background: '#f9f9f9',
+                   color: '#666'
+               } : {
+                   cursor:'pointer'
+               };
+
                return (
-
-
-                  <tr key={w.id} onClick={() => onNavigateWorker(w.id)} className={isOverdue ? 'overdue-worker-row' : ''} style={{cursor:'pointer'}}>
+                  <tr 
+                    key={w.id} 
+                    onClick={() => onNavigateWorker(w.id)} 
+                    className={(!w.archived && isOverdue) ? 'overdue-worker-row' : ''} 
+                    style={rowStyle}
+                  >
                     <td style={{fontWeight:500}}>
                         {w.full_name}
+                        {/* Petit badge Archivé */}
+                        {w.archived && <span style={{fontSize:'0.7rem', background:'#ddd', color:'#555', padding:'2px 4px', borderRadius:'3px', marginLeft:'6px'}}>Archivé</span>}
                     </td>
-                    <td><span style={{fontFamily:'monospace', background:'var(--bg-app)', padding:'2px 6px', borderRadius:'4px'}}>{w.national_id}</span></td>
+                    <td><span style={{fontFamily:'monospace', background: w.archived ? '#eee' : 'var(--bg-app)', padding:'2px 6px', borderRadius:'4px'}}>{w.national_id}</span></td>
                     <td>{getDeptName(w.department_id)}</td>
                     <td>{w.last_exam_date ? logic.formatDate(new Date(w.last_exam_date)) : '-'}</td>
                     <td>
                         {w.next_exam_due}
                         {renderStatusBadge(status)}
-                        {isOverdue && <span className="badge badge-red" style={{marginLeft:'0.5rem', fontSize:'0.7rem'}}>Retard</span>}
+                        {(!w.archived && isOverdue) && <span className="badge badge-red" style={{marginLeft:'0.5rem', fontSize:'0.7rem'}}>Retard</span>}
                     </td>
                     <td style={{textAlign:'right'}}>
                       <button className="btn btn-outline btn-sm" onClick={(e) => handleEdit(e, w)} title="Modifier" style={{marginRight: '0.5rem'}}>
