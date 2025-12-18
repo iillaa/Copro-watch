@@ -15,7 +15,8 @@ export default function WorkerForm({ workerToEdit, onClose, onSave }) {
     job_role: '',
     start_date: new Date().toISOString().split('T')[0],
     notes: '',
-    next_exam_due: ''
+    next_exam_due: '',
+    archived: false // On initialise à false par défaut
   });
 
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function WorkerForm({ workerToEdit, onClose, onSave }) {
     loadRefData();
 
     if (workerToEdit) {
+      // On charge les données existantes (y compris le statut 'archived')
       setFormData(workerToEdit);
     }
   }, [workerToEdit]);
@@ -44,14 +46,14 @@ export default function WorkerForm({ workerToEdit, onClose, onSave }) {
       return;
     }
 
-    // Default to due now if not set (new worker)
+    // Date par défaut si nouvelle saisie
     let nextDue = formData.next_exam_due;
     if (!nextDue) {
         nextDue = new Date().toISOString().split('T')[0];
     }
     
     await db.saveWorker({
-      ...formData,
+      ...formData, // Cela préserve le champ 'archived' si on modifie un ancien dossier
       id: workerToEdit ? workerToEdit.id : undefined,
       department_id: parseInt(formData.department_id),
       workplace_id: parseInt(formData.workplace_id),
@@ -60,12 +62,6 @@ export default function WorkerForm({ workerToEdit, onClose, onSave }) {
     
     onSave();
   };
-
-  // Filter workplaces by selected department (Removed as per new requirements - workplaces are global)
-  // const filteredWorkplaces = formData.department_id 
-  //   ? workplaces.filter(w => w.department_id === parseInt(formData.department_id))
-  //   : [];
-
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -98,18 +94,23 @@ export default function WorkerForm({ workerToEdit, onClose, onSave }) {
               fontWeight: 'bold',
               transition: 'all 0.2s ease'
             }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translate(-2px, -2px)';
-              e.target.style.boxShadow = '2px 2px 0px var(--danger)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translate(0, 0)';
-              e.target.style.boxShadow = 'none';
-            }}
           >
             ×
           </button>
         </div>
+
+        {/* AJOUT : Alerte si le dossier est archivé */}
+        {formData.archived && (
+          <div style={{
+            background: '#eee', color: '#555', padding: '0.75rem', 
+            borderRadius: '6px', marginBottom: '1rem', fontSize: '0.9rem',
+            border: '1px solid #ccc'
+          }}>
+            <strong>📦 Attention :</strong> Ce travailleur est actuellement <strong>archivé</strong>.
+            <br/>Ses données ne sont pas visibles dans le tableau de bord principal.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="label">Nom complet</label>
