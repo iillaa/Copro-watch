@@ -897,34 +897,34 @@ html {
 
 .sidebar {
   /* 1. OFF-WHITE BACKGROUND (Comfort) */
-  background-color: #f8fafc;      /* Slate 50 - Softer than pure white */
-  
+  background-color: #f8fafc; /* Slate 50 - Softer than pure white */
+
   /* 2. THICK BORDER (Identity) */
   /* We changed this from 02px gray to 3px Dark Slate to match the app style */
-  border-right: 3px solid var(--border-color); 
-  
+  border-right: 3px solid var(--border-color);
+
   color: var(--text-main);
 }
 
 .brand-text {
-  color: var(--primary); 
+  color: var(--primary);
 }
 
 /* Nav Items: Clean by default, but ready to pop */
 .nav-item {
-  color: #64748b;       
+  color: #64748b;
   background: transparent;
-  
+
   /* Reserve space for the border so it doesn't jump when hovered */
-  border: 2px solid transparent; 
+  border: 2px solid transparent;
   margin-bottom: 8px;
 }
 
 /* Hover: The Neobrutalism appears! */
 .nav-item:hover {
-  background-color: #ffffff; 
+  background-color: #ffffff;
   color: var(--primary);
-  
+
   /* Identity: Bring back the border and shadow on interaction */
   border-color: var(--border-color);
   box-shadow: 2px 2px 0px var(--border-color);
@@ -934,9 +934,9 @@ html {
 /* Active: Full Neobrutalist "Pop" */
 .nav-item.active {
   background-color: var(--primary); /* Solid Blue */
-  color: white;                     /* White Text */
-  font-weight: 700;          
-  
+  color: white; /* White Text */
+  font-weight: 700;
+
   /* Identity: Thick border + Hard shadow */
   border: 2px solid var(--border-color);
   box-shadow: 2px 2px 0px var(--border-color);
@@ -945,15 +945,39 @@ html {
 
 /* Credit Box: Kept subtle/grey as requested */
 .credit {
-  background: #f1f5f9;       /* Blends with the new off-white bg */
+  background: #f1f5f9; /* Blends with the new off-white bg */
   border: 2px dashed #cbd5e1; /* Dashed line fits the cartoon style but stays soft */
   box-shadow: none;
 }
-.credit-title { color: #94a3b8; text-shadow: none; }
-.credit-author { color: #334155; text-shadow: none; }
-.credit-version { 
-  background-color: #e2e8f0; 
-  color: #64748b; 
-  border: none; 
-  text-shadow: none; 
+.credit-title {
+  color: #94a3b8;
+  text-shadow: none;
+}
+.credit-author {
+  color: #334155;
+  text-shadow: none;
+}
+.credit-version {
+  background-color: #e2e8f0;
+  color: #64748b;
+  border: none;
+  text-shadow: none;
+} /* Water Analysis Timeline Styles */
+.card.completed {
+  opacity: 0.6;
+  background-color: #f8fafc; /* Light gray to show it's done */
+  border-color: #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.card.completed:hover {
+  opacity: 1; /* Brighten if the user wants to edit it */
+  background-color: white;
+  border-color: var(--primary);
+}
+
+/* Optional: Make the active step pop a bit more */
+.card:not(.completed) {
+  border: 2px solid var(--primary);
+  box-shadow: var(--shadow-hard);
 }

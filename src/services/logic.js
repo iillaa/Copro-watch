@@ -147,8 +147,11 @@ export const logic = {
     };
   },
 
-  // Water Analysis Functions
-  // Get current month date range
+  // ==========================================
+  // NEW WATER ANALYSIS LOGIC (3-STEP WORKFLOW)
+  // ==========================================
+
+  // 1. Helper: Get current month range
   getCurrentMonthRange() {
     const today = new Date();
     return {
@@ -159,196 +162,86 @@ export const logic = {
     };
   },
 
-  // Get analysis status for a structure in current month
-  getStructureWaterAnalysisStatus(structureId, waterAnalyses) {
-    const { start, end } = this.getCurrentMonthRange();
-
-    // Find analyses for this structure in current month
-    const monthAnalyses = waterAnalyses.filter((analysis) => {
-      const sampleDate = parseISO(analysis.sample_date);
-      return analysis.structure_id === structureId && sampleDate >= start && sampleDate <= end;
-    });
-
-    if (monthAnalyses.length === 0) {
-      return { status: 'todo', analysis: null };
-    }
-
-    // Sort by sample date desc to get latest
-    monthAnalyses.sort((a, b) => new Date(b.sample_date) - new Date(a.sample_date));
-    const latest = monthAnalyses[0];
-
-    switch (latest.result) {
-      case 'pending':
-        return { status: 'pending', analysis: latest };
-      case 'potable':
-        return { status: 'ok', analysis: latest };
-      case 'non_potable':
-        return { status: 'alert', analysis: latest };
-      default:
-        return { status: 'todo', analysis: null };
-    }
-  },
-
-  // Get all structures with their current water analysis status
-  getWorkplacesWaterAnalysesStatus(workplaces, waterAnalyses) {
-    return workplaces.map((workplace) => {
-      const statusInfo = this.getStructureWaterAnalysisStatus(workplace.id, waterAnalyses);
-      return {
-        ...workplace,
-        waterStatus: statusInfo.status,
-        waterAnalysis: statusInfo.analysis,
-      };
-    });
-  },
-
-  // Get water analysis dashboard statistics
-  getWaterAnalysisDashboardStats(workplaces, waterAnalyses) {
-    const workplaceStats = this.getWorkplacesWaterAnalysesStatus(workplaces, waterAnalyses);
-
-    const todo = workplaceStats.filter((w) => w.waterStatus === 'todo');
-    const pending = workplaceStats.filter((w) => w.waterStatus === 'pending');
-    const ok = workplaceStats.filter((w) => w.waterStatus === 'ok');
-    const alerts = workplaceStats.filter((w) => w.waterStatus === 'alert');
-
-    return {
-      todo,
-      pending,
-      ok,
-      alerts,
-      summary: {
-        total: workplaces.length,
-        todoCount: todo.length,
-        pendingCount: pending.length,
-        okCount: ok.length,
-        alertCount: alerts.length,
-      },
-    };
-  },
-
-  // Check if structure needs re-test (has non-potable result without subsequent potable)
-  needsRetest(structureId, waterAnalyses) {
-    const structureAnalyses = waterAnalyses
-      .filter((a) => a.structure_id === structureId)
-      .sort((a, b) => new Date(b.sample_date) - new Date(a.sample_date));
-
-    if (structureAnalyses.length === 0) return false;
-
-    const latest = structureAnalyses[0];
-
-    // If latest is non-potable, check if there's a subsequent potable result
-    if (latest.result === 'non_potable') {
-      const hasPotableAfter = structureAnalyses.some(
-        (a) => a.result === 'potable' && new Date(a.sample_date) > new Date(latest.sample_date)
-      );
-      return !hasPotableAfter;
-    }
-
-    return false;
-  },
-
-  // Format status for display
-  getWaterAnalysisStatusLabel(status) {
-    switch (status) {
-      case 'todo':
-        return 'À faire';
-      case 'pending':
-        return 'En attente';
-      case 'ok':
-        return 'OK';
-      case 'alert':
-        return 'ALERTE';
-      default:
-        return 'Inconnu';
-    }
-  },
-
-  // Get status color for UI
-  getWaterAnalysisStatusColor(status) {
-    switch (status) {
-      case 'todo':
-        return '#6c757d'; // gray
-      case 'pending':
-        return '#ffc107'; // yellow
-      case 'ok':
-        return '#28a745'; // green
-      case 'alert':
-        return '#dc3545'; // red
-      default:
-        return '#6c757d';
-    }
-  },
-
-  // SERVICE-BASED WATER ANALYSIS LOGIC (New Department-centric approach)
-
   /**
-   * Determine water analysis status for a service (department) in current month
-   * @param {number} departmentId - Service/department ID
-   * @param {Array} allAnalyses - All water analyses from database
-   * @returns {Object} { status, analysis, lastSampleDate }
-   *
-   * Status values:
-   * - 'todo': No analysis this month (gray)
-   * - 'pending': Analysis launched but no result yet (yellow)
-   * - 'ok': Latest analysis result is 'potable' (green)
-   * - 'alert': Latest analysis result is 'non_potable' (red)
+   * Determine status for a service (department) in current month
+   * 3 Steps: Requested -> Pending (Sampled) -> Result (OK/Alert)
    */
   getServiceWaterStatus(departmentId, allAnalyses) {
     const { start, end } = this.getCurrentMonthRange();
 
     // Filter analyses for this department in current month
     const monthAnalyses = allAnalyses.filter((analysis) => {
-      const sampleDate = parseISO(analysis.sample_date);
-      // For backward compatibility, handle both structure_id and department_id
+      // Compatibility: handle both IDs (legacy structure_id vs new department_id)
       const analysisDepartmentId = analysis.department_id || analysis.structure_id;
-      return analysisDepartmentId === departmentId && sampleDate >= start && sampleDate <= end;
+      if (analysisDepartmentId !== departmentId) return false;
+
+      // Check if ANY relevant date falls in current month
+      const dateToCheck = analysis.sample_date || analysis.request_date;
+      if (!dateToCheck) return false;
+
+      const pDate = parseISO(dateToCheck);
+      return pDate >= start && pDate <= end;
     });
 
+    // If no activity this month -> TODO
     if (monthAnalyses.length === 0) {
+      return { status: 'todo', analysis: null, lastDate: null };
+    }
+
+    // Sort by latest activity (Newest date first)
+    monthAnalyses.sort((a, b) => {
+      const dateA = a.request_date || a.sample_date;
+      const dateB = b.request_date || b.sample_date;
+      return new Date(dateB) - new Date(dateA);
+    });
+
+    const latest = monthAnalyses[0];
+    const relevantDate = latest.sample_date || latest.request_date;
+
+    // --- DETERMINE STATUS ---
+
+    // Step 1: Requested (Has request_date, but NO sample_date)
+    if (latest.request_date && !latest.sample_date) {
       return {
-        status: 'todo',
-        analysis: null,
-        lastSampleDate: null,
+        status: 'requested',
+        analysis: latest,
+        lastDate: relevantDate,
       };
     }
 
-    // Sort by sample date desc to get latest
-    monthAnalyses.sort((a, b) => new Date(b.sample_date) - new Date(a.sample_date));
-    const latest = monthAnalyses[0];
-
-    // Determine status based on latest result
-    switch (latest.result) {
-      case 'pending':
-        return {
-          status: 'pending',
-          analysis: latest,
-          lastSampleDate: latest.sample_date,
-        };
-      case 'potable':
-        return {
-          status: 'ok',
-          analysis: latest,
-          lastSampleDate: latest.sample_date,
-        };
-      case 'non_potable':
-        return {
-          status: 'alert',
-          analysis: latest,
-          lastSampleDate: latest.sample_date,
-        };
-      default:
-        return {
-          status: 'todo',
-          analysis: null,
-          lastSampleDate: null,
-        };
+    // Step 2: Sampled/Pending (Has sample_date, result is 'pending')
+    if (latest.result === 'pending') {
+      return {
+        status: 'pending',
+        analysis: latest,
+        lastDate: relevantDate,
+      };
     }
+
+    // Step 3: Completed (Has result)
+    if (latest.result === 'potable') {
+      return {
+        status: 'ok',
+        analysis: latest,
+        lastDate: relevantDate,
+      };
+    }
+
+    if (latest.result === 'non_potable') {
+      return {
+        status: 'alert',
+        analysis: latest,
+        lastDate: relevantDate,
+      };
+    }
+
+    // Fallback
+    return { status: 'todo', analysis: null, lastDate: null };
   },
 
   /**
    * Get all departments with their current water analysis status
-   * @param {Array} departments - All departments/services
-   * @param {Array} waterAnalyses - All water analyses
-   * @returns {Array} Departments with water status information
+   * This is used by the Left Panel List
    */
   getDepartmentsWaterStatus(departments, waterAnalyses) {
     return departments.map((department) => {
@@ -357,92 +250,71 @@ export const logic = {
         ...department,
         waterStatus: statusInfo.status,
         waterAnalysis: statusInfo.analysis,
-        lastSampleDate: statusInfo.lastSampleDate,
+        lastDate: statusInfo.lastDate,
       };
     });
   },
 
-  /**
-   * Get water analysis dashboard statistics for services
-   * @param {Array} departments - All departments/services
-   * @param {Array} waterAnalyses - All water analyses
-   * @returns {Object} Statistics grouped by status
-   */
+  // Helper for UI Labels
+  getServiceWaterStatusLabel(status) {
+    switch (status) {
+      case 'todo':
+        return 'À Faire';
+      case 'requested':
+        return 'Demandé'; // Blue
+      case 'pending':
+        return 'En Cours'; // Orange
+      case 'ok':
+        return 'OK'; // Green
+      case 'alert':
+        return 'ALERTE'; // Red
+      default:
+        return '-';
+    }
+  },
+
+  // Helper for UI Colors
+  getServiceWaterStatusColor(status) {
+    switch (status) {
+      case 'todo':
+        return '#94a3b8'; // Slate 400
+      case 'requested':
+        return '#3b82f6'; // Blue
+      case 'pending':
+        return '#f59e0b'; // Amber
+      case 'ok':
+        return '#22c55e'; // Green
+      case 'alert':
+        return '#ef4444'; // Red
+      default:
+        return '#94a3b8';
+    }
+  },
+
+  // Dashboard Stats (Safe to keep or replace)
   getServiceWaterAnalysisStats(departments, waterAnalyses) {
     const departmentStats = this.getDepartmentsWaterStatus(departments, waterAnalyses);
 
     const todo = departmentStats.filter((d) => d.waterStatus === 'todo');
+    const requested = departmentStats.filter((d) => d.waterStatus === 'requested');
     const pending = departmentStats.filter((d) => d.waterStatus === 'pending');
     const ok = departmentStats.filter((d) => d.waterStatus === 'ok');
     const alerts = departmentStats.filter((d) => d.waterStatus === 'alert');
 
     return {
       todo,
+      requested,
       pending,
       ok,
       alerts,
       summary: {
         total: departments.length,
         todoCount: todo.length,
+        requestedCount: requested.length,
         pendingCount: pending.length,
         okCount: ok.length,
         alertCount: alerts.length,
       },
     };
-  },
-
-  /**
-   * Format service water analysis status for display
-   * @param {string} status - Status code
-   * @returns {string} Display label
-   */
-  getServiceWaterStatusLabel(status) {
-    switch (status) {
-      case 'todo':
-        return 'À Faire';
-      case 'pending':
-        return 'En Attente';
-      case 'ok':
-        return 'OK';
-      case 'alert':
-        return 'ALERTE';
-      default:
-        return 'Inconnu';
-    }
-  },
-
-  /**
-   * Get water analysis status color for service-based UI
-   * @param {string} status - Status code
-   * @returns {string} Color hex code
-   */
-  getServiceWaterStatusColor(status) {
-    switch (status) {
-      case 'todo':
-        return '#6c757d'; // gray
-      case 'pending':
-        return '#ffc107'; // yellow
-      case 'ok':
-        return '#28a745'; // green
-      case 'alert':
-        return '#dc3545'; // red
-      default:
-        return '#6c757d';
-    }
-  },
-
-  /**
-   * Get historical water analyses for a specific department
-   * @param {number} departmentId - Department/service ID
-   * @param {Array} waterAnalyses - All water analyses
-   * @returns {Array} Filtered and sorted analyses for the department
-   */
-  getDepartmentWaterHistory(departmentId, waterAnalyses) {
-    return waterAnalyses
-      .filter((analysis) => {
-        const analysisDepartmentId = analysis.department_id || analysis.structure_id;
-        return analysisDepartmentId === departmentId;
-      })
-      .sort((a, b) => new Date(b.sample_date) - new Date(a.sample_date));
   },
 };

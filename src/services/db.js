@@ -4,8 +4,8 @@ import backupService from './backup';
 
 // Configure localforage
 localforage.config({
-  name: 'MedicalWorkerManager',
-  storeName: 'medical_db',
+  name: 'CoproWatch',
+  storeName: 'copro_db',
   description: 'Offline database for medical worker management',
 });
 
