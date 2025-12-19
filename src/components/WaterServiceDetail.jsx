@@ -4,18 +4,17 @@ import { logic } from '../services/logic';
 import WaterAnalysisForm from './WaterAnalysisForm';
 import { FaArrowLeft, FaFlask, FaTrash } from 'react-icons/fa';
 
-
 export default function WaterServiceDetail({ department, onBack, onSave }) {
   const [analyses, setAnalyses] = useState([]);
   const [allAnalyses, setAllAnalyses] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [selectedAnalysis, setSelectedAnalysis] = useState(null);
   const [editingAnalysis, setEditingAnalysis] = useState(null);
-  
+
   const loadData = async () => {
     const [deptAnalyses, allAnalysesData] = await Promise.all([
       logic.getDepartmentWaterHistory(department.id, await db.getWaterAnalyses()),
-      db.getWaterAnalyses()
+      db.getWaterAnalyses(),
     ]);
     setAnalyses(deptAnalyses);
     setAllAnalyses(allAnalysesData);
@@ -24,7 +23,6 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
   useEffect(() => {
     loadData();
   }, [department.id]);
-
 
   const handleNewAnalysis = () => {
     setSelectedAnalysis(null);
@@ -39,12 +37,11 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
   };
 
   const handleDeleteAnalysis = async (analysisId) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette analyse ?")) {
-        await db.deleteWaterAnalysis(analysisId);
-        loadData();
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette analyse ?')) {
+      await db.deleteWaterAnalysis(analysisId);
+      loadData();
     }
   };
-
 
   const handleFormSuccess = () => {
     setShowForm(false);
@@ -59,21 +56,21 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
     let badgeClass = '';
     let label = '';
 
-    switch(result) {
-        case 'potable':
-            badgeClass = 'badge badge-green';
-            label = 'Potable';
-            break;
-        case 'non_potable':
-            badgeClass = 'badge badge-red';
-            label = 'Non Potable';
-            break;
-        case 'pending':
-            badgeClass = 'badge badge-yellow';
-            label = 'En attente';
-            break;
-        default:
-            return result;
+    switch (result) {
+      case 'potable':
+        badgeClass = 'badge badge-green';
+        label = 'Potable';
+        break;
+      case 'non_potable':
+        badgeClass = 'badge badge-red';
+        label = 'Non Potable';
+        break;
+      case 'pending':
+        badgeClass = 'badge badge-yellow';
+        label = 'En attente';
+        break;
+      default:
+        return result;
     }
     return <span className={badgeClass}>{label}</span>;
   };
@@ -85,35 +82,41 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
 
   return (
     <div>
-      <div style={{marginBottom:'1rem'}}>
-        <button className="btn btn-outline" onClick={onBack}><FaArrowLeft /> Retour</button>
+      <div style={{ marginBottom: '1rem' }}>
+        <button className="btn btn-outline" onClick={onBack}>
+          <FaArrowLeft /> Retour
+        </button>
       </div>
 
       <div className="card">
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'start'}}>
-           <div>
-             <h2 style={{margin:0}}>{department.name}</h2>
-             <p style={{color:'var(--text-muted)', marginTop:'0.5rem'}}>
-                Service de Copro-Watch
-             </p>
-             <div style={{marginTop:'0.5rem'}}>
-                <span className="badge badge-blue">Suivi qualité de l'eau</span>
-             </div>
-           </div>
-           <div style={{display:'flex', gap:'0.5rem'}}>
-             <button className="btn btn-primary" onClick={handleNewAnalysis}><FaFlask /> Nouvelle Analyse</button>
-           </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+          <div>
+            <h2 style={{ margin: 0 }}>{department.name}</h2>
+            <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+              Service de Copro-Watch
+            </p>
+            <div style={{ marginTop: '0.5rem' }}>
+              <span className="badge badge-blue">Suivi qualité de l'eau</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-primary" onClick={handleNewAnalysis}>
+              <FaFlask /> Nouvelle Analyse
+            </button>
+          </div>
         </div>
-        <div style={{marginTop:'1rem', paddingTop:'1rem', borderTop:'1px solid var(--border)'}}>
-           <strong>Statut actuel:</strong> 
-           <span style={{ color: statusColor, fontWeight: 'bold', marginLeft: '0.5rem' }}>
-             {statusLabel}
-           </span>
+        <div
+          style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}
+        >
+          <strong>Statut actuel:</strong>
+          <span style={{ color: statusColor, fontWeight: 'bold', marginLeft: '0.5rem' }}>
+            {statusLabel}
+          </span>
         </div>
       </div>
 
       <h3>Historique des Analyses</h3>
-      <div className="card" style={{padding:0}}>
+      <div className="card" style={{ padding: 0 }}>
         <table>
           <thead>
             <tr>
@@ -125,7 +128,7 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
             </tr>
           </thead>
           <tbody>
-            {analyses.map(a => (
+            {analyses.map((a) => (
               <tr key={a.id}>
                 <td>{logic.formatDate(new Date(a.sample_date))}</td>
                 <td>{a.result_date ? logic.formatDate(new Date(a.result_date)) : '-'}</td>
@@ -133,19 +136,37 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
                 <td>{a.notes || '-'}</td>
 
                 <td>
-                  <button className="btn btn-outline btn-sm" onClick={() => handleEdit(a)} style={{marginRight:'0.5rem'}}>Détails</button>
-                  <button className="btn btn-outline btn-sm" onClick={() => handleDeleteAnalysis(a.id)} style={{color:'var(--danger)', borderColor:'var(--danger)'}} title="Supprimer"><FaTrash /></button>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => handleEdit(a)}
+                    style={{ marginRight: '0.5rem' }}
+                  >
+                    Détails
+                  </button>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => handleDeleteAnalysis(a.id)}
+                    style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                    title="Supprimer"
+                  >
+                    <FaTrash />
+                  </button>
                 </td>
               </tr>
             ))}
-            {analyses.length === 0 && <tr><td colSpan="5" style={{textAlign:'center'}}>Aucune analyse enregistrée.</td></tr>}
+            {analyses.length === 0 && (
+              <tr>
+                <td colSpan="5" style={{ textAlign: 'center' }}>
+                  Aucune analyse enregistrée.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
-
       {showForm && (
-        <WaterAnalysisForm 
+        <WaterAnalysisForm
           type={selectedAnalysis ? 'result' : 'launch'}
           department={department}
           analysis={selectedAnalysis}
@@ -157,4 +178,3 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
     </div>
   );
 }
-

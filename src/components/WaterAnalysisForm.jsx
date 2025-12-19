@@ -1,21 +1,26 @@
-
 import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
 import { FaTimes, FaSave, FaFlask } from 'react-icons/fa';
 
-
-export default function WaterAnalysisForm({ type, analysis, department, workplace, analysisToEdit, onSuccess, onCancel }) {
+export default function WaterAnalysisForm({
+  type,
+  analysis,
+  department,
+  workplace,
+  analysisToEdit,
+  onSuccess,
+  onCancel,
+}) {
   const [formData, setFormData] = useState({
     department_id: department?.id || analysis?.department_id || analysis?.structure_id,
     sample_date: new Date().toISOString().split('T')[0], // Today's date
     result_date: '',
     result: '',
-    notes: ''
+    notes: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
 
   // Pre-fill form when editing an existing analysis
   useEffect(() => {
@@ -26,11 +31,10 @@ export default function WaterAnalysisForm({ type, analysis, department, workplac
         sample_date: analysisToEdit.sample_date,
         result_date: analysisToEdit.result_date || '',
         result: analysisToEdit.result || '',
-        notes: analysisToEdit.notes || ''
+        notes: analysisToEdit.notes || '',
       });
     }
   }, [analysisToEdit]);
-
 
   useEffect(() => {
     // Pre-fill form based on type
@@ -38,59 +42,55 @@ export default function WaterAnalysisForm({ type, analysis, department, workplac
       // For edit mode, the formData is already set in the analysisToEdit useEffect
       // Nothing to do here, the edit useEffect above handles it
     } else if (type === 'launch') {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         department_id: department?.id || workplace?.id,
-        sample_date: new Date().toISOString().split('T')[0]
+        sample_date: new Date().toISOString().split('T')[0],
       }));
     } else if (type === 'result') {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         department_id: analysis?.department_id || analysis?.structure_id,
         sample_date: analysis?.sample_date,
-        result_date: new Date().toISOString().split('T')[0] // Today's date for result entry
+        result_date: new Date().toISOString().split('T')[0], // Today's date for result entry
       }));
     } else if (type === 'retest') {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         department_id: department?.id || workplace?.id,
-        sample_date: new Date().toISOString().split('T')[0] // New sample for retest
+        sample_date: new Date().toISOString().split('T')[0], // New sample for retest
       }));
     }
   }, [type, analysis, department, workplace]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-    
+
     // Clear error when user starts typing
     if (error) setError('');
   };
-
 
   const validateForm = () => {
     if (!formData.department_id) {
       setError('Veuillez sélectionner un service.');
       return false;
     }
-    
+
     if (!formData.sample_date) {
-      setError('Veuillez saisir la date d\'échantillonnage.');
+      setError("Veuillez saisir la date d'échantillonnage.");
       return false;
     }
-
-
-
 
     // For result entry or retest, result is required
     if ((type === 'result' || type === 'retest') && !formData.result) {
-      setError('Veuillez saisir le résultat de l\'analyse.');
+      setError("Veuillez saisir le résultat de l'analyse.");
       return false;
     }
-    
+
     // For edit mode, result is optional - no additional validation needed
 
     return true;
@@ -98,7 +98,7 @@ export default function WaterAnalysisForm({ type, analysis, department, workplac
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -108,7 +108,6 @@ export default function WaterAnalysisForm({ type, analysis, department, workplac
 
     try {
       let analysisData = { ...formData };
-
 
       // Set result_date based on result type
       if (type === 'launch') {
@@ -123,32 +122,30 @@ export default function WaterAnalysisForm({ type, analysis, department, workplac
       }
       // For edit mode, keep existing data as is - no changes needed
 
-
       // Save the analysis
       const savedAnalysis = await db.saveWaterAnalysis(analysisData);
-      
+
       onSuccess(savedAnalysis);
     } catch (error) {
       console.error('Error saving water analysis:', error);
-      setError('Erreur lors de la sauvegarde de l\'analyse. Veuillez réessayer.');
+      setError("Erreur lors de la sauvegarde de l'analyse. Veuillez réessayer.");
     } finally {
       setLoading(false);
     }
   };
 
-
   const getFormTitle = () => {
     switch (type) {
       case 'launch':
-        return 'Lancer une analyse d\'eau';
+        return "Lancer une analyse d'eau";
       case 'result':
-        return 'Saisir le résultat d\'analyse';
+        return "Saisir le résultat d'analyse";
       case 'retest':
         return 'Nouvelle analyse (Re-test)';
       case 'edit':
-        return 'Éditer l\'analyse d\'eau';
+        return "Éditer l'analyse d'eau";
       default:
-        return 'Analyse d\'eau';
+        return "Analyse d'eau";
     }
   };
 
@@ -171,52 +168,56 @@ export default function WaterAnalysisForm({ type, analysis, department, workplac
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 1000
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        padding: '2rem',
-        maxWidth: '500px',
-        width: '90%',
-        maxHeight: '90vh',
-        overflow: 'auto'
-      }}>
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          padding: '2rem',
+          maxWidth: '500px',
+          width: '90%',
+          maxHeight: '90vh',
+          overflow: 'auto',
+        }}
+      >
         {/* Header */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: '1.5rem'
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1.5rem',
+          }}
+        >
           <div>
             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
               <FaFlask style={{ marginRight: '0.5rem' }} />
               {getFormTitle()}
             </h3>
-            <p style={{ 
-              margin: '0.5rem 0 0 0', 
-              fontSize: '0.9rem', 
-              color: 'var(--text-muted)' 
-            }}>
+            <p
+              style={{
+                margin: '0.5rem 0 0 0',
+                fontSize: '0.9rem',
+                color: 'var(--text-muted)',
+              }}
+            >
               {getFormDescription()}
             </p>
           </div>
-          <button 
-            onClick={onCancel}
-            className="btn btn-outline"
-            style={{ padding: '0.5rem' }}
-          >
+          <button onClick={onCancel} className="btn btn-outline" style={{ padding: '0.5rem' }}>
             <FaTimes />
           </button>
         </div>
@@ -237,7 +238,7 @@ export default function WaterAnalysisForm({ type, analysis, department, workplac
                 padding: '0.5rem',
                 borderRadius: '4px',
                 border: '1px solid var(--border)',
-                backgroundColor: '#f8f9fa'
+                backgroundColor: '#f8f9fa',
               }}
             />
           </div>
@@ -257,11 +258,10 @@ export default function WaterAnalysisForm({ type, analysis, department, workplac
                 width: '100%',
                 padding: '0.5rem',
                 borderRadius: '4px',
-                border: '1px solid var(--border)'
+                border: '1px solid var(--border)',
               }}
             />
           </div>
-
 
           {/* Result (for result/retest/edit types) */}
           {(type === 'result' || type === 'retest' || type === 'edit') && (
@@ -278,17 +278,20 @@ export default function WaterAnalysisForm({ type, analysis, department, workplac
                   width: '100%',
                   padding: '0.5rem',
                   borderRadius: '4px',
-                  border: '1px solid var(--border)'
+                  border: '1px solid var(--border)',
                 }}
               >
-                {type === 'edit' && <option value="">Sélectionner le résultat (laisser vide pour "En attente")</option>}
+                {type === 'edit' && (
+                  <option value="">
+                    Sélectionner le résultat (laisser vide pour "En attente")
+                  </option>
+                )}
                 <option value="pending">En attente</option>
                 <option value="potable">Eau Potable</option>
                 <option value="non_potable">Non Potable</option>
               </select>
             </div>
           )}
-
 
           {/* Result Date (for result/retest/edit types) */}
           {(type === 'result' || type === 'retest' || type === 'edit') && (
@@ -305,11 +308,13 @@ export default function WaterAnalysisForm({ type, analysis, department, workplac
                   width: '100%',
                   padding: '0.5rem',
                   borderRadius: '4px',
-                  border: '1px solid var(--border)'
+                  border: '1px solid var(--border)',
                 }}
               />
               <small style={{ color: 'var(--text-muted)' }}>
-                {type === 'edit' ? 'Date du résultat (optionnel)' : 'Laissez vide pour utiliser la date d\'aujourd\'hui'}
+                {type === 'edit'
+                  ? 'Date du résultat (optionnel)'
+                  : "Laissez vide pour utiliser la date d'aujourd'hui"}
               </small>
             </div>
           )}
@@ -330,47 +335,45 @@ export default function WaterAnalysisForm({ type, analysis, department, workplac
                 padding: '0.5rem',
                 borderRadius: '4px',
                 border: '1px solid var(--border)',
-                resize: 'vertical'
+                resize: 'vertical',
               }}
             />
           </div>
 
           {/* Error Message */}
           {error && (
-            <div style={{
-              padding: '0.75rem',
-              backgroundColor: '#f8d7da',
-              color: '#721c24',
-              borderRadius: '4px',
-              marginBottom: '1rem',
-              border: '1px solid #f5c6cb'
-            }}>
+            <div
+              style={{
+                padding: '0.75rem',
+                backgroundColor: '#f8d7da',
+                color: '#721c24',
+                borderRadius: '4px',
+                marginBottom: '1rem',
+                border: '1px solid #f5c6cb',
+              }}
+            >
               {error}
             </div>
           )}
 
           {/* Action Buttons */}
-          <div style={{ 
-            display: 'flex', 
-            gap: '0.5rem', 
-            justifyContent: 'flex-end' 
-          }}>
-            <button 
-              type="button" 
-              onClick={onCancel}
-              className="btn btn-outline"
-              disabled={loading}
-            >
+          <div
+            style={{
+              display: 'flex',
+              gap: '0.5rem',
+              justifyContent: 'flex-end',
+            }}
+          >
+            <button type="button" onClick={onCancel} className="btn btn-outline" disabled={loading}>
               Annuler
             </button>
-            <button 
-              type="submit" 
-              className="btn btn-primary"
-              disabled={loading}
-            >
+            <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? (
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <div className="loading-spinner" style={{ width: '16px', height: '16px', marginRight: '0.5rem' }}></div>
+                  <div
+                    className="loading-spinner"
+                    style={{ width: '16px', height: '16px', marginRight: '0.5rem' }}
+                  ></div>
                   Sauvegarde...
                 </div>
               ) : (
@@ -386,4 +389,3 @@ export default function WaterAnalysisForm({ type, analysis, department, workplac
     </div>
   );
 }
-

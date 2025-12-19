@@ -12,14 +12,16 @@ export default function Settings({ currentPin, onPinChange }) {
   const [backupStatus, setBackupStatus] = useState('');
   const [backupThreshold, setBackupThreshold] = useState(10);
   const [autoImportEnabled, setAutoImportEnabled] = useState(false);
-  const [backupProgress, setBackupProgress] = useState({ counter: 0, threshold: 10, progress: '0/10' });
-  
+  const [backupProgress, setBackupProgress] = useState({
+    counter: 0,
+    threshold: 10,
+    progress: '0/10',
+  });
 
   // Departments management
   const [departments, setDepartments] = useState([]);
   const [newDepartmentName, setNewDepartmentName] = useState('');
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
-
 
   // Water Departments management (séparés)
 
@@ -38,30 +40,23 @@ export default function Settings({ currentPin, onPinChange }) {
     setTimeout(() => setMsg(''), 3000);
   };
 
-
-
-
-
-
-
-
   const handleExportEncrypted = async () => {
     try {
       const pw = prompt("Entrez un mot de passe pour chiffrer l'export:");
       if (!pw) return;
-      
+
       console.log('Starting encrypted export...');
-      setMsg('Génération de l\'export chiffré...');
+      setMsg("Génération de l'export chiffré...");
       const enc = await db.exportDataEncrypted(pw);
       console.log('Export data generated, using backup service...');
-      
+
       // Use backup service directly for Android native export
       await backupService.saveBackupJSON(enc, 'medical-export-encrypted.json');
       setMsg('Export chiffré réussi ! Sauvegardé dans Documents/copro-watch/');
       setTimeout(() => setMsg(''), 5000);
     } catch (e) {
       console.error('Encrypted export failed:', e);
-      setMsg('Échec de l\'export chiffré: ' + (e.message || e));
+      setMsg("Échec de l'export chiffré: " + (e.message || e));
       setTimeout(() => setMsg(''), 5000);
     }
   };
@@ -69,17 +64,17 @@ export default function Settings({ currentPin, onPinChange }) {
   const handleExportPlain = async () => {
     try {
       console.log('Starting plain export...');
-      setMsg('Génération de l\'export...');
+      setMsg("Génération de l'export...");
       const plain = await db.exportData();
       console.log('Export data generated, using backup service...');
-      
+
       // Use backup service directly for Android native export
       await backupService.saveBackupJSON(plain, 'medical-export.json');
       setMsg('Export réussi ! Sauvegardé dans Documents/copro-watch/');
       setTimeout(() => setMsg(''), 5000);
     } catch (e) {
       console.error('Plain export failed:', e);
-      setMsg('Échec de l\'export: ' + (e.message || e));
+      setMsg("Échec de l'export: " + (e.message || e));
       setTimeout(() => setMsg(''), 5000);
     }
   };
@@ -91,7 +86,7 @@ export default function Settings({ currentPin, onPinChange }) {
     if (!pw) return;
     const text = await file.text();
     const ok = await db.importDataEncrypted(text, pw);
-    setMsg(ok ? "Données importées (chiffrées)." : "Échec de l'import chiffré");
+    setMsg(ok ? 'Données importées (chiffrées).' : "Échec de l'import chiffré");
     setTimeout(() => setMsg(''), 3000);
   };
 
@@ -110,11 +105,11 @@ export default function Settings({ currentPin, onPinChange }) {
       try {
         await backupService.init();
         // Initialize threshold from service (get the current threshold value, not the counter)
-        const currentThreshold = await backupService.getCurrentThreshold?.() || 10;
+        const currentThreshold = (await backupService.getCurrentThreshold?.()) || 10;
         setBackupThreshold(currentThreshold);
         setAutoImportEnabled(await backupService.getAutoImport());
         setBackupDir(backupService.getBackupDirName());
-        
+
         // Load backup progress
         const status = await backupService.getBackupStatus();
         setBackupProgress(status);
@@ -122,7 +117,6 @@ export default function Settings({ currentPin, onPinChange }) {
         console.warn('backup init failed', e);
       }
     })();
-    
 
     // Load departments
     loadDepartments();
@@ -153,7 +147,9 @@ export default function Settings({ currentPin, onPinChange }) {
       setTimeout(() => setBackupStatus(''), 3000);
     } catch (e) {
       if (e.message.includes('Android') || e.message.includes('permission')) {
-        setBackupStatus('Storage permission required. Please allow storage access in Android settings.');
+        setBackupStatus(
+          'Storage permission required. Please allow storage access in Android settings.'
+        );
       } else {
         setBackupStatus('Directory access not available. Using download fallback.');
       }
@@ -165,17 +161,17 @@ export default function Settings({ currentPin, onPinChange }) {
     try {
       setBackupStatus('Creating backup...');
       console.log('Starting manual backup...');
-      
+
       const json = await db.exportData();
       console.log('Export data generated, length:', json.length);
-      
+
       // Use unique filename generation (will create timestamped filename)
       const success = await backupService.saveBackupJSON(json);
       console.log('Backup save result:', success);
-      
+
       if (success) {
         setBackupStatus('Backup saved successfully with unique filename!');
-        
+
         // Refresh backup progress
         const status = await backupService.getBackupStatus();
         setBackupProgress(status);
@@ -201,7 +197,6 @@ export default function Settings({ currentPin, onPinChange }) {
     }
   };
 
-
   const handleImportFromBackup = async () => {
     setBackupStatus('Importing...');
     try {
@@ -214,7 +209,6 @@ export default function Settings({ currentPin, onPinChange }) {
       setBackupStatus(ok ? 'Imported from backup folder.' : 'Import failed.');
       setTimeout(() => setBackupStatus(''), 3000);
     } catch (e) {
-
       setBackupStatus('Import failed: ' + (e.message || e));
     }
   };
@@ -279,11 +273,10 @@ export default function Settings({ currentPin, onPinChange }) {
       setTimeout(() => setMsg(''), 3000);
     } catch (error) {
       console.error('Error adding department:', error);
-      setMsg('Erreur lors de l\'ajout du service.');
+      setMsg("Erreur lors de l'ajout du service.");
       setTimeout(() => setMsg(''), 3000);
     }
   };
-
 
   const deleteDepartment = async (id) => {
     if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce service ?')) {
@@ -316,7 +309,7 @@ export default function Settings({ currentPin, onPinChange }) {
 
   const addWaterDepartment = async () => {
     if (!newWaterDepartmentName.trim()) {
-      setMsg('Veuillez saisir un nom de service d\'eau.');
+      setMsg("Veuillez saisir un nom de service d'eau.");
       setTimeout(() => setMsg(''), 3000);
       return;
     }
@@ -326,28 +319,28 @@ export default function Settings({ currentPin, onPinChange }) {
       await db.saveWaterDepartment(newDept);
       setNewWaterDepartmentName('');
       await loadWaterDepartments();
-      setMsg('Service d\'eau ajouté avec succès !');
+      setMsg("Service d'eau ajouté avec succès !");
       setTimeout(() => setMsg(''), 3000);
     } catch (error) {
       console.error('Error adding water department:', error);
-      setMsg('Erreur lors de l\'ajout du service d\'eau.');
+      setMsg("Erreur lors de l'ajout du service d'eau.");
       setTimeout(() => setMsg(''), 3000);
     }
   };
 
   const deleteWaterDepartment = async (id) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce service d\'eau ?')) {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce service d'eau ?")) {
       return;
     }
 
     try {
       await db.deleteWaterDepartment(id);
       await loadWaterDepartments();
-      setMsg('Service d\'eau supprimé avec succès !');
+      setMsg("Service d'eau supprimé avec succès !");
       setTimeout(() => setMsg(''), 3000);
     } catch (error) {
       console.error('Error deleting water department:', error);
-      setMsg('Erreur lors de la suppression du service d\'eau.');
+      setMsg("Erreur lors de la suppression du service d'eau.");
       setTimeout(() => setMsg(''), 3000);
     }
   };
@@ -362,7 +355,9 @@ export default function Settings({ currentPin, onPinChange }) {
           <FaLock /> Sécurité
         </h3>
         <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Code PIN (4 chiffres)</label>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+            Code PIN (4 chiffres)
+          </label>
           <input
             type="text"
             maxLength="4"
@@ -375,7 +370,7 @@ export default function Settings({ currentPin, onPinChange }) {
               width: '100%',
               fontSize: '1.2rem',
               letterSpacing: '0.2rem',
-              textAlign: 'center'
+              textAlign: 'center',
             }}
           />
         </div>
@@ -389,16 +384,29 @@ export default function Settings({ currentPin, onPinChange }) {
             <FaDownload /> Exporter
           </button>
 
-          <button className="btn btn-outline" onClick={handleExportEncrypted} title="Exporter (chiffré)">
+          <button
+            className="btn btn-outline"
+            onClick={handleExportEncrypted}
+            title="Exporter (chiffré)"
+          >
             <FaDownload /> Exporter chiffré
           </button>
 
           <label className="btn btn-outline" style={{ cursor: 'pointer' }} title="Importer (plain)">
             <FaUpload /> Importer
-            <input type="file" ref={fileRef} onChange={handleImportPlain} style={{ display: 'none' }} />
+            <input
+              type="file"
+              ref={fileRef}
+              onChange={handleImportPlain}
+              style={{ display: 'none' }}
+            />
           </label>
 
-          <label className="btn btn-outline" style={{ cursor: 'pointer' }} title="Importer (chiffré)">
+          <label
+            className="btn btn-outline"
+            style={{ cursor: 'pointer' }}
+            title="Importer (chiffré)"
+          >
             <FaUpload /> Importer chiffré
             <input type="file" onChange={handleImportEncrypted} style={{ display: 'none' }} />
           </label>
@@ -410,7 +418,7 @@ export default function Settings({ currentPin, onPinChange }) {
         <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <FaBuilding /> Gestion des Services
         </h3>
-        
+
         <div style={{ marginBottom: '1rem' }}>
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
             <input
@@ -423,11 +431,11 @@ export default function Settings({ currentPin, onPinChange }) {
                 flex: 1,
                 padding: '0.5rem',
                 borderRadius: '4px',
-                border: '1px solid var(--border)'
+                border: '1px solid var(--border)',
               }}
             />
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={addDepartment}
               disabled={departmentsLoading || !newDepartmentName.trim()}
             >
@@ -440,31 +448,33 @@ export default function Settings({ currentPin, onPinChange }) {
               Chargement des services...
             </div>
           ) : (
-            <div style={{ 
-              maxHeight: '300px', 
-              overflowY: 'auto',
-              border: '1px solid var(--border)',
-              borderRadius: '4px',
-              padding: '0.5rem'
-            }}>
+            <div
+              style={{
+                maxHeight: '300px',
+                overflowY: 'auto',
+                border: '1px solid var(--border)',
+                borderRadius: '4px',
+                padding: '0.5rem',
+              }}
+            >
               {departments.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
                   Aucun service configuré.
                 </div>
               ) : (
-                departments.map(dept => (
-                  <div 
-                    key={dept.id} 
+                departments.map((dept) => (
+                  <div
+                    key={dept.id}
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       padding: '0.5rem',
-                      borderBottom: '1px solid var(--border)'
+                      borderBottom: '1px solid var(--border)',
                     }}
                   >
                     <span style={{ fontWeight: '500' }}>{dept.name}</span>
-                    <button 
+                    <button
                       className="btn btn-sm btn-outline"
                       onClick={() => deleteDepartment(dept.id)}
                       style={{ color: 'var(--danger)' }}
@@ -477,7 +487,6 @@ export default function Settings({ currentPin, onPinChange }) {
               )}
             </div>
           )}
-
         </div>
       </div>
 
@@ -486,7 +495,7 @@ export default function Settings({ currentPin, onPinChange }) {
         <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <FaBuilding /> Services d'Eau
         </h3>
-        
+
         <div style={{ marginBottom: '1rem' }}>
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
             <input
@@ -499,11 +508,11 @@ export default function Settings({ currentPin, onPinChange }) {
                 flex: 1,
                 padding: '0.5rem',
                 borderRadius: '4px',
-                border: '1px solid var(--border)'
+                border: '1px solid var(--border)',
               }}
             />
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={addWaterDepartment}
               disabled={waterDepartmentsLoading || !newWaterDepartmentName.trim()}
             >
@@ -516,31 +525,33 @@ export default function Settings({ currentPin, onPinChange }) {
               Chargement des services d'eau...
             </div>
           ) : (
-            <div style={{ 
-              maxHeight: '300px', 
-              overflowY: 'auto',
-              border: '1px solid var(--border)',
-              borderRadius: '4px',
-              padding: '0.5rem'
-            }}>
+            <div
+              style={{
+                maxHeight: '300px',
+                overflowY: 'auto',
+                border: '1px solid var(--border)',
+                borderRadius: '4px',
+                padding: '0.5rem',
+              }}
+            >
               {waterDepartments.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
                   Aucun service d'eau configuré.
                 </div>
               ) : (
-                waterDepartments.map(dept => (
-                  <div 
-                    key={dept.id} 
+                waterDepartments.map((dept) => (
+                  <div
+                    key={dept.id}
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       padding: '0.5rem',
-                      borderBottom: '1px solid var(--border)'
+                      borderBottom: '1px solid var(--border)',
                     }}
                   >
                     <span style={{ fontWeight: '500' }}>{dept.name}</span>
-                    <button 
+                    <button
                       className="btn btn-sm btn-outline"
                       onClick={() => deleteWaterDepartment(dept.id)}
                       style={{ color: 'var(--danger)' }}
@@ -559,15 +570,19 @@ export default function Settings({ currentPin, onPinChange }) {
       {/* Auto Backup Section */}
       <div className="card" style={{ maxWidth: '800px', marginTop: '2rem' }}>
         <h3 style={{ marginTop: 0 }}>Auto Backup</h3>
-        
-        <div style={{ 
-          padding: '0.75rem', 
-          backgroundColor: 'var(--bg-secondary)', 
-          borderRadius: '8px', 
-          marginBottom: '1rem',
-          border: '1px solid var(--border)'
-        }}>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+
+        <div
+          style={{
+            padding: '0.75rem',
+            backgroundColor: 'var(--bg-secondary)',
+            borderRadius: '8px',
+            marginBottom: '1rem',
+            border: '1px solid var(--border)',
+          }}
+        >
+          <div
+            style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}
+          >
             <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>📱 Android Mode:</span>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
               Auto-backup to Documents/copro-watch folder
@@ -575,44 +590,84 @@ export default function Settings({ currentPin, onPinChange }) {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: '0.5rem',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            marginBottom: '1rem',
+          }}
+        >
           <button className="btn btn-outline" onClick={handleChooseBackupDir}>
             📁 Setup Backup Folder
           </button>
           <button className="btn btn-outline" onClick={handleGetBackupNow}>
             💾 Backup Now
           </button>
-          <button className="btn btn-outline" onClick={handleImportFromBackup} title="Import from backup folder">
+          <button
+            className="btn btn-outline"
+            onClick={handleImportFromBackup}
+            title="Import from backup folder"
+          >
             📂 Import from Backup
           </button>
-          <button className="btn btn-outline" onClick={handleRefreshBackupProgress} title="Refresh backup progress">
+          <button
+            className="btn btn-outline"
+            onClick={handleRefreshBackupProgress}
+            title="Refresh backup progress"
+          >
             🔄 Refresh Progress
           </button>
         </div>
 
-        <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
-          <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Auto Export Threshold (exams):</label>
-          <input 
-            type="number" 
-            value={backupThreshold} 
-            onChange={(e) => setBackupThreshold(Number(e.target.value))} 
-            style={{ 
-              width: '5rem', 
-              padding: '0.4rem', 
-              borderRadius: '4px', 
+        <div
+          style={{
+            marginTop: '0.75rem',
+            display: 'flex',
+            gap: '0.5rem',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            marginBottom: '1rem',
+          }}
+        >
+          <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>
+            Auto Export Threshold (exams):
+          </label>
+          <input
+            type="number"
+            value={backupThreshold}
+            onChange={(e) => setBackupThreshold(Number(e.target.value))}
+            style={{
+              width: '5rem',
+              padding: '0.4rem',
+              borderRadius: '4px',
               border: '1px solid var(--border)',
-              fontSize: '0.9rem'
-            }} 
+              fontSize: '0.9rem',
+            }}
           />
-          <button className="btn btn-outline" onClick={handleThresholdSave} style={{ fontSize: '0.9rem' }}>
+          <button
+            className="btn btn-outline"
+            onClick={handleThresholdSave}
+            style={{ fontSize: '0.9rem' }}
+          >
             💾 Save
           </button>
         </div>
 
-        <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
+        <div
+          style={{
+            marginTop: '0.75rem',
+            display: 'flex',
+            gap: '0.5rem',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            marginBottom: '1rem',
+          }}
+        >
           <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Auto Import:</label>
-          <button 
-            className={`btn ${autoImportEnabled ? 'btn-primary' : 'btn-outline'}`} 
+          <button
+            className={`btn ${autoImportEnabled ? 'btn-primary' : 'btn-outline'}`}
             onClick={handleToggleAutoImport}
             style={{ fontSize: '0.9rem' }}
           >
@@ -621,39 +676,59 @@ export default function Settings({ currentPin, onPinChange }) {
         </div>
 
         <div style={{ marginTop: '0.75rem' }}>
-          <div style={{ 
-            padding: '0.75rem', 
-            backgroundColor: 'var(--bg-secondary)', 
-            borderRadius: '8px',
-            border: '1px solid var(--border)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>📊 Auto Backup Progress:</span>
+          <div
+            style={{
+              padding: '0.75rem',
+              backgroundColor: 'var(--bg-secondary)',
+              borderRadius: '8px',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '0.5rem',
+              }}
+            >
+              <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>
+                📊 Auto Backup Progress:
+              </span>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                 {backupProgress.progress} exams
               </span>
             </div>
-            <div style={{ 
-              width: '100%', 
-              height: '8px', 
-              backgroundColor: 'var(--border)',
-              borderRadius: '4px',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                width: `${(backupProgress.counter / backupProgress.threshold) * 100}%`,
-                height: '100%',
-                backgroundColor: backupProgress.counter >= backupProgress.threshold ? 'var(--success)' : 'var(--primary)',
-                transition: 'width 0.3s ease'
-              }} />
+            <div
+              style={{
+                width: '100%',
+                height: '8px',
+                backgroundColor: 'var(--border)',
+                borderRadius: '4px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: `${(backupProgress.counter / backupProgress.threshold) * 100}%`,
+                  height: '100%',
+                  backgroundColor:
+                    backupProgress.counter >= backupProgress.threshold
+                      ? 'var(--success)'
+                      : 'var(--primary)',
+                  transition: 'width 0.3s ease',
+                }}
+              />
             </div>
             {backupProgress.counter >= backupProgress.threshold && (
-              <div style={{ 
-                marginTop: '0.5rem',
-                fontSize: '0.8rem',
-                color: 'var(--success)',
-                fontWeight: '500'
-              }}>
+              <div
+                style={{
+                  marginTop: '0.5rem',
+                  fontSize: '0.8rem',
+                  color: 'var(--success)',
+                  fontWeight: '500',
+                }}
+              >
                 ⚠️ Auto backup will trigger on next exam change
               </div>
             )}
@@ -662,14 +737,16 @@ export default function Settings({ currentPin, onPinChange }) {
 
         <div style={{ marginTop: '0.75rem' }}>
           {backupStatus && (
-            <div style={{ 
-              padding: '0.5rem', 
-              backgroundColor: 'var(--bg-secondary)', 
-              borderRadius: '4px',
-              fontSize: '0.9rem',
-              border: '1px solid var(--border)',
-              marginBottom: '0.5rem'
-            }}>
+            <div
+              style={{
+                padding: '0.5rem',
+                backgroundColor: 'var(--bg-secondary)',
+                borderRadius: '4px',
+                fontSize: '0.9rem',
+                border: '1px solid var(--border)',
+                marginBottom: '0.5rem',
+              }}
+            >
               {backupStatus}
             </div>
           )}
@@ -679,8 +756,8 @@ export default function Settings({ currentPin, onPinChange }) {
             </div>
           )}
           {backupDir && (
-            <button 
-              className="btn btn-outline" 
+            <button
+              className="btn btn-outline"
               onClick={handleClearBackupDir}
               style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}
             >
@@ -691,11 +768,19 @@ export default function Settings({ currentPin, onPinChange }) {
       </div>
 
       {msg && (
-        <p style={{ 
-          color: msg.includes('import') || msg.includes('sauvegardé') || msg.includes('ajouté') || msg.includes('supprimé') ? 'var(--success)' : 'var(--danger)',
-          fontSize: '0.9rem',
-          marginTop: '0.5rem'
-        }}>
+        <p
+          style={{
+            color:
+              msg.includes('import') ||
+              msg.includes('sauvegardé') ||
+              msg.includes('ajouté') ||
+              msg.includes('supprimé')
+                ? 'var(--success)'
+                : 'var(--danger)',
+            fontSize: '0.9rem',
+            marginTop: '0.5rem',
+          }}
+        >
           {msg}
         </p>
       )}

@@ -1,5 +1,8 @@
 // Minimal cross-runtime webcrypto helpers for symmetric AES-GCM encryption.
-const subtle = (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) ? window.crypto.subtle : (globalThis.crypto && globalThis.crypto.subtle) || require('crypto').webcrypto.subtle;
+const subtle =
+  typeof window !== 'undefined' && window.crypto && window.crypto.subtle
+    ? window.crypto.subtle
+    : (globalThis.crypto && globalThis.crypto.subtle) || require('crypto').webcrypto.subtle;
 
 function toUint8Array(str) {
   return new TextEncoder().encode(str);
@@ -27,16 +30,30 @@ function base64Decode(str) {
 }
 
 async function deriveKey(password, salt, iterations = 250000) {
-  const pwKey = await subtle.importKey('raw', toUint8Array(password), { name: 'PBKDF2' }, false, ['deriveKey']);
-  return subtle.deriveKey({ name: 'PBKDF2', salt: salt, iterations, hash: 'SHA-256' }, pwKey, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  const pwKey = await subtle.importKey('raw', toUint8Array(password), { name: 'PBKDF2' }, false, [
+    'deriveKey',
+  ]);
+  return subtle.deriveKey(
+    { name: 'PBKDF2', salt: salt, iterations, hash: 'SHA-256' },
+    pwKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
 }
 
 export async function encryptString(password, plaintext) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKey(password, salt);
-  const cipherBytes = new Uint8Array(await subtle.encrypt({ name: 'AES-GCM', iv }, key, toUint8Array(plaintext)));
-  return JSON.stringify({ salt: base64Encode(salt), iv: base64Encode(iv), data: base64Encode(cipherBytes) });
+  const cipherBytes = new Uint8Array(
+    await subtle.encrypt({ name: 'AES-GCM', iv }, key, toUint8Array(plaintext))
+  );
+  return JSON.stringify({
+    salt: base64Encode(salt),
+    iv: base64Encode(iv),
+    data: base64Encode(cipherBytes),
+  });
 }
 
 export async function decryptString(password, payload) {

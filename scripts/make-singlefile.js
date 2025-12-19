@@ -27,8 +27,14 @@ if (fs.existsSync(iconPath)) {
   const svg = fs.readFileSync(iconPath, 'utf8');
   const encoded = encodeURIComponent(svg.replace(/\n|\r/g, ''));
   // Replace icon links with data URI
-  html = html.replace(/<link[^>]*rel="icon"[^>]*href="[^"]*app-icon.svg"[^>]*>/g, `<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,${encoded}" />`);
-  html = html.replace(/<link[^>]*rel="apple-touch-icon"[^>]*href="[^"]*app-icon.svg"[^>]*>/g, `<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,${encoded}" />`);
+  html = html.replace(
+    /<link[^>]*rel="icon"[^>]*href="[^"]*app-icon.svg"[^>]*>/g,
+    `<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,${encoded}" />`
+  );
+  html = html.replace(
+    /<link[^>]*rel="apple-touch-icon"[^>]*href="[^"]*app-icon.svg"[^>]*>/g,
+    `<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,${encoded}" />`
+  );
 }
 
 // Remove any references to sw.js and registerSW.js in the HTML

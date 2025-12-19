@@ -5,7 +5,7 @@
   /* Cartoon / Flat Vector Palette */
   --primary: #6366f1; /* Indigo */
   --primary-light: #e0e7ff;
-  
+
   --danger: #ef4444; /* Red */
   --danger-light: #fee2e2;
 
@@ -15,23 +15,27 @@
   --warning: #f59e0b; /* Orange/Amber */
   --warning-light: #fef3c7;
 
-  /* Surfaces & Borders */
-  --bg-app: #f0f9ff; /* Light Sky Blue */
+  /* --- NEW COLORS START HERE --- */
+
+  /* Background: Cool Gray (Slate 100) instead of Sky Blue */
+  --bg-app: #f1f5f9;
+
+  /* Surface: Pure White */
   --surface: #ffffff;
-  
-  /* The "Thick Outline" Look */
-  --border-color: #1e293b; /* Dark Slate / Almost Black */
+
+  /* Text: Slate 700 (Softer than pure black) */
+  --text-main: #334155;
+  --text-muted: #64748b;
+
+  /* Borders: Dark Slate */
+  --border-color: #334155;
   --border-width: 3px;
   --radius: 16px;
-  
+
   /* Hard Shadows */
   --shadow-hard: 4px 4px 0px var(--border-color);
   --shadow-hover: 6px 6px 0px var(--border-color);
   --shadow-active: 0px 0px 0px var(--border-color);
-
-  /* Text */
-  --text-main: #1e293b;
-  --text-muted: #64748b;
 }
 
 body {
@@ -40,19 +44,11 @@ body {
   color: var(--text-main);
   line-height: 1.5;
   margin: 0;
-  
+
   min-height: 100vh;
 }
 
 /* Semi-transparent white overlay to ensure readability over cartoon background */
-body::before {
-  content: "";
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(255, 255, 255, 0.85);
-  z-index: -1;
-  pointer-events: none;
-}
 
 /* Layout */
 #root {
@@ -68,7 +64,6 @@ body::before {
   overflow: hidden;
 }
 
-
 /* Sidebar */
 .sidebar {
   width: 260px;
@@ -79,11 +74,6 @@ body::before {
   padding: 1.5rem 1rem;
   flex-shrink: 0;
 }
-
-
-
-
-
 
 /* Simple Brand Container - No Bander */
 .brand {
@@ -120,18 +110,15 @@ body::before {
   display: none;
 }
 
-
 .sidebar-closed .credit-title,
 .sidebar-closed .credit-author {
   display: none;
 }
 
-
 .sidebar-closed .credit {
   padding: 0.5rem 0.25rem;
   margin: 0;
 }
-
 
 .sidebar-closed .credit-version {
   font-size: 0.8rem;
@@ -143,14 +130,12 @@ body::before {
   gap: 0;
 }
 
-
 .sidebar-closed .nav-item {
   justify-content: center;
   align-items: center;
   padding: 1rem 0.5rem;
   text-align: center;
 }
-
 
 .sidebar-closed .brand {
   padding: 1rem 0.5rem;
@@ -176,7 +161,6 @@ body::before {
 .sidebar-closed .nav {
   gap: 0.5rem;
 }
-
 
 /* Toggle button styles - visible on all devices */
 .toggle-sidebar {
@@ -248,7 +232,6 @@ body::before {
   }
 }
 
-
 /* Desktop toggle button behavior */
 @media (min-width: 821px) {
   .toggle-sidebar {
@@ -256,7 +239,7 @@ body::before {
     top: 1rem;
     left: 1rem;
   }
-  
+
   /* Always keep toggle button visible on desktop */
   .toggle-sidebar {
     opacity: 1;
@@ -280,13 +263,17 @@ body::before {
 }
 
 /* Typography */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   margin: 0 0 1rem 0;
   font-weight: 700;
   color: var(--text-main);
   letter-spacing: -0.02em;
 }
-
 
 /* Card Component - Enhanced Neobrutalist Style */
 .card {
@@ -308,7 +295,7 @@ h1, h2, h3, h4, h5, h6 {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
   transition: left 0.5s;
 }
 
@@ -323,11 +310,16 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes cardBounce {
-  0% { transform: translate(-3px, -3px); }
-  50% { transform: translate(-1px, -1px); }
-  100% { transform: translate(-3px, -3px); }
+  0% {
+    transform: translate(-3px, -3px);
+  }
+  50% {
+    transform: translate(-1px, -1px);
+  }
+  100% {
+    transform: translate(-3px, -3px);
+  }
 }
-
 
 /* Buttons - Enhanced Neobrutalist Pop Style */
 .btn {
@@ -374,19 +366,41 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes buttonPress {
-  0% { transform: translate(4px, 4px); }
-  100% { transform: translate(4px, 4px); }
+  0% {
+    transform: translate(4px, 4px);
+  }
+  100% {
+    transform: translate(4px, 4px);
+  }
 }
 
-.btn-primary { background-color: var(--primary); color: white; border-color: var(--border-color); }
-.btn-primary:hover { filter: brightness(1.1); }
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+  border-color: var(--border-color);
+}
+.btn-primary:hover {
+  filter: brightness(1.1);
+}
 
-.btn-outline { background-color: white; color: var(--text-main); }
-.btn-outline:hover { background-color: #f8fafc; }
+.btn-outline {
+  background-color: white;
+  color: var(--text-main);
+}
+.btn-outline:hover {
+  background-color: #f8fafc;
+}
 
-.btn-sm { padding: 0.4rem 0.8rem; font-size: 0.8rem; border-width: 2px; box-shadow: 2px 2px 0px var(--border-color); }
-.btn-sm:active { transform: translate(2px, 2px); box-shadow: none; }
-
+.btn-sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  border-width: 2px;
+  box-shadow: 2px 2px 0px var(--border-color);
+}
+.btn-sm:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
 
 /* Inputs - Enhanced Neobrutalist Style */
 .input {
@@ -397,7 +411,7 @@ h1, h2, h3, h4, h5, h6 {
   background-color: white;
   border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius);
-  box-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.1);
   box-sizing: border-box;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -413,19 +427,19 @@ h1, h2, h3, h4, h5, h6 {
 
 .input:hover {
   transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0px rgba(0,0,0,0.15);
+  box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.15);
 }
 
 @keyframes inputFocus {
-  0% { 
+  0% {
     border-color: var(--border-color);
     transform: translate(0, 0);
   }
-  50% { 
+  50% {
     border-color: var(--primary);
     transform: translate(-2px, -2px);
   }
-  100% { 
+  100% {
     border-color: var(--primary);
     transform: translate(-1px, -1px);
   }
@@ -445,7 +459,6 @@ h1, h2, h3, h4, h5, h6 {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-
 
 /* Table - Enhanced Neobrutalist Style */
 .table-container {
@@ -477,7 +490,7 @@ th {
   font-weight: 700;
   text-transform: uppercase;
   color: var(--primary);
-  border-right: 1px solid rgba(0,0,0,0.1);
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
   position: relative;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -503,8 +516,6 @@ tr:hover td {
   transform: translate(-1px, 0);
   box-shadow: 2px 0px 0px var(--border-color);
 }
-
-
 
 tr:nth-child(even) td {
   background-color: #fafafa;
@@ -538,11 +549,23 @@ tr:nth-child(even):hover td {
   border: 2px solid var(--border-color);
   text-transform: uppercase;
 }
-.badge-red { background-color: var(--danger); color: white; }
-.badge-green { background-color: var(--success); color: white; }
-.badge-yellow { background-color: var(--warning); color: black; }
-.badge-blue { background-color: var(--primary-light); color: var(--primary); border-color: var(--primary); }
-
+.badge-red {
+  background-color: var(--danger);
+  color: white;
+}
+.badge-green {
+  background-color: var(--success);
+  color: white;
+}
+.badge-yellow {
+  background-color: var(--warning);
+  color: black;
+}
+.badge-blue {
+  background-color: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+}
 
 /* Navigation - Enhanced Neobrutalist Style */
 .nav-item {
@@ -568,7 +591,7 @@ tr:nth-child(even):hover td {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   transition: left 0.3s ease;
 }
 
@@ -594,9 +617,15 @@ tr:nth-child(even):hover td {
 }
 
 @keyframes navBounce {
-  0% { transform: translate(-2px, -2px); }
-  50% { transform: translate(0, 0); }
-  100% { transform: translate(-2px, -2px); }
+  0% {
+    transform: translate(-2px, -2px);
+  }
+  50% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(-2px, -2px);
+  }
 }
 
 /* Dashboard Specifics */
@@ -613,13 +642,15 @@ tr:nth-child(even):hover td {
   -webkit-text-stroke: 1px var(--text-main);
 }
 
-
 /* Modal - Enhanced Neobrutalist Style */
 .modal-overlay {
-  position: fixed; inset: 0;
+  position: fixed;
+  inset: 0;
   background-color: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
-  display: flex; justify-content: center; align-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   z-index: 50;
   animation: modalOverlayFadeIn 0.2s ease;
 }
@@ -627,9 +658,10 @@ tr:nth-child(even):hover td {
 .modal {
   background: white;
   border: var(--border-width) solid var(--border-color);
-  box-shadow: 8px 8px 0px rgba(0,0,0,0.5);
+  box-shadow: 8px 8px 0px rgba(0, 0, 0, 0.5);
   border-radius: var(--radius);
-  width: 90%; max-width: 600px;
+  width: 90%;
+  max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
   padding: 1.5rem;
@@ -637,35 +669,38 @@ tr:nth-child(even):hover td {
 }
 
 @keyframes modalOverlayFadeIn {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 @keyframes modalSlideIn {
-  0% { 
+  0% {
     transform: scale(0.9) translateY(-20px);
     opacity: 0;
   }
-  100% { 
+  100% {
     transform: scale(1) translateY(0);
     opacity: 1;
   }
 }
 
-
 /* Mobile - Enhanced Neobrutalist Style */
 @media (max-width: 768px) {
-  .app-shell { 
-    flex-direction: column; 
+  .app-shell {
+    flex-direction: column;
   }
-  
+
   .sidebar {
-    position: fixed; 
-    bottom: 0; 
-    left: 0; 
-    width: 100%; 
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
     height: auto;
-    flex-direction: row; 
+    flex-direction: row;
     justify-content: space-around;
     padding: 0.5rem;
     border-right: none;
@@ -674,14 +709,15 @@ tr:nth-child(even):hover td {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
   }
-  
-  .brand, .sidebar > div:last-child { 
-    display: none; 
+
+  .brand,
+  .sidebar > div:last-child {
+    display: none;
   }
-  
-  .main-content { 
-    padding: 1rem; 
-    padding-bottom: 120px; 
+
+  .main-content {
+    padding: 1rem;
+    padding-bottom: 120px;
   }
 
   /* Mobile-specific button styles */
@@ -702,7 +738,8 @@ tr:nth-child(even):hover td {
     border-radius: 8px;
   }
 
-  th, td {
+  th,
+  td {
     padding: 0.75rem 0.5rem;
     font-size: 0.85rem;
   }
@@ -746,7 +783,9 @@ tr:nth-child(even):hover td {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Better focus states for accessibility */
@@ -772,15 +811,11 @@ html {
   color: var(--primary);
 }
 
-
-
-
-
 /* Credit Section - Artistic Styling */
 .credit {
   text-align: center;
   padding: 0.75rem;
-  background: linear-gradient(135deg, #C8C0E8 0%, #B8A8E8 100%);
+  background: linear-gradient(135deg, #c8c0e8 0%, #b8a8e8 100%);
   border-radius: var(--radius);
   border: 2px solid var(--border-color);
   box-shadow: var(--shadow-hard);
@@ -796,14 +831,13 @@ html {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
   transition: left 0.5s ease;
 }
 
 .credit:hover::before {
   left: 100%;
 }
-
 
 .credit-title {
   font-size: 0.8rem;
@@ -812,33 +846,30 @@ html {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 0.5rem;
-  text-shadow: 1px 1px 0px rgba(255,255,255,0.8);
+  text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.8);
 }
-
-
 
 .credit-author {
   font-size: 1.1rem;
   font-weight: 600;
   color: #000000;
   margin-bottom: 0.5rem;
-  text-shadow: 1px 1px 0px rgba(0,0,0,0.2);
+  text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.2);
   line-height: 1.2;
   font-family: 'Brush Script MT', 'Lucida Handwriting', 'Segoe Script', cursive;
   letter-spacing: 0.05em;
 }
 
-
 .credit-version {
   font-size: 0.9rem;
   font-weight: 600;
   color: #5a5a5a;
-  background-color: rgba(255,255,255,0.4);
+  background-color: rgba(255, 255, 255, 0.4);
   padding: 0.3rem 0.8rem;
   border-radius: 50px;
-  border: 2px solid rgba(255,255,255,0.6);
+  border: 2px solid rgba(255, 255, 255, 0.6);
   display: inline-block;
-  text-shadow: 1px 1px 0px rgba(255,255,255,0.5);
+  text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.5);
 }
 
 /* Enhanced credit hover effects */
@@ -849,9 +880,80 @@ html {
 }
 
 @keyframes creditBounce {
-  0% { transform: translate(-3px, -3px); }
-  50% { transform: translate(-1px, -1px); }
-  100% { transform: translate(-3px, -3px); }
+  0% {
+    transform: translate(-3px, -3px);
+  }
+  50% {
+    transform: translate(-1px, -1px);
+  }
+  100% {
+    transform: translate(-3px, -3px);
+  }
 }
 
 /* Printing disabled - removed special print CSS to avoid print output */
+
+/* --- HYBRID SIDEBAR (Comfortable + Identity) --- */
+
+.sidebar {
+  /* 1. OFF-WHITE BACKGROUND (Comfort) */
+  background-color: #f8fafc;      /* Slate 50 - Softer than pure white */
+  
+  /* 2. THICK BORDER (Identity) */
+  /* We changed this from 02px gray to 3px Dark Slate to match the app style */
+  border-right: 3px solid var(--border-color); 
+  
+  color: var(--text-main);
+}
+
+.brand-text {
+  color: var(--primary); 
+}
+
+/* Nav Items: Clean by default, but ready to pop */
+.nav-item {
+  color: #64748b;       
+  background: transparent;
+  
+  /* Reserve space for the border so it doesn't jump when hovered */
+  border: 2px solid transparent; 
+  margin-bottom: 8px;
+}
+
+/* Hover: The Neobrutalism appears! */
+.nav-item:hover {
+  background-color: #ffffff; 
+  color: var(--primary);
+  
+  /* Identity: Bring back the border and shadow on interaction */
+  border-color: var(--border-color);
+  box-shadow: 2px 2px 0px var(--border-color);
+  transform: translate(-2px, -2px);
+}
+
+/* Active: Full Neobrutalist "Pop" */
+.nav-item.active {
+  background-color: var(--primary); /* Solid Blue */
+  color: white;                     /* White Text */
+  font-weight: 700;          
+  
+  /* Identity: Thick border + Hard shadow */
+  border: 2px solid var(--border-color);
+  box-shadow: 2px 2px 0px var(--border-color);
+  transform: translate(-2px, -2px);
+}
+
+/* Credit Box: Kept subtle/grey as requested */
+.credit {
+  background: #f1f5f9;       /* Blends with the new off-white bg */
+  border: 2px dashed #cbd5e1; /* Dashed line fits the cartoon style but stays soft */
+  box-shadow: none;
+}
+.credit-title { color: #94a3b8; text-shadow: none; }
+.credit-author { color: #334155; text-shadow: none; }
+.credit-version { 
+  background-color: #e2e8f0; 
+  color: #64748b; 
+  border: none; 
+  text-shadow: none; 
+}
