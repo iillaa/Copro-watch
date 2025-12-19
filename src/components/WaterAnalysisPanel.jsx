@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { db } from '../services/db';
-import { FaSave, FaCheckCircle } from 'react-icons/fa';
+import { FaSave, FaCheckCircle, FaTrash, FaUndo } from 'react-icons/fa';
 
 export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
   // 1. Find the relevant analysis for the CURRENT MONTH
-  // We sort by date descending to get the latest interaction
   const history = [...analyses].sort(
     (a, b) => new Date(b.request_date || b.sample_date) - new Date(a.request_date || a.sample_date)
   );
@@ -24,10 +23,9 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
     notes: '',
   });
 
-  // 3. Load Data whenever the Department changes
+  // 3. Load Data
   useEffect(() => {
     if (currentMonthAnalysis) {
-      // Load existing data
       setFormData({
         id: currentMonthAnalysis.id,
         request_date: currentMonthAnalysis.request_date || '',
@@ -35,9 +33,9 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
         result_date: currentMonthAnalysis.result_date || '',
         result: currentMonthAnalysis.result || 'pending',
         notes: currentMonthAnalysis.notes || '',
+        department_id: department.id, // Ensure ID is kept
       });
     } else {
-      // Reset form for a new entry (defaults to Today for request)
       setFormData({
         department_id: department.id,
         request_date: new Date().toISOString().split('T')[0],
@@ -52,20 +50,63 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
   // 4. Save Handler
   const handleSave = async (step) => {
     let dataToSave = { ...formData, department_id: department.id };
-
-    // Auto-fill dates logic (Smart defaults)
     const today = new Date().toISOString().split('T')[0];
+    
+    // Auto-fill dates logic
     if (step === 'sample' && !dataToSave.sample_date) dataToSave.sample_date = today;
     if (step === 'result' && !dataToSave.result_date) dataToSave.result_date = today;
 
     await db.saveWaterAnalysis(dataToSave);
-    onUpdate(); // Trigger refresh in parent
+    onUpdate();
+  };
+
+  // 5. Undo/Reset Handler
+  const handleUndo = async (step) => {
+    if(!window.confirm("Voulez-vous vraiment annuler cette étape ?")) return;
+
+    let dataToSave = { ...formData };
+    
+    if (step === 'result') {
+      dataToSave.result_date = '';
+      dataToSave.result = 'pending';
+    } else if (step === 'sample') {
+      dataToSave.sample_date = '';
+      // Also reset result if we go back this far
+      dataToSave.result_date = '';
+      dataToSave.result = 'pending';
+    } else if (step === 'request') {
+      // Deleting the request essentially deletes the analysis for this month
+      if(dataToSave.id) {
+        await db.deleteWaterAnalysis(dataToSave.id);
+        onUpdate();
+        return; 
+      }
+    }
+
+    setFormData(dataToSave); // Update UI immediately
+    await db.saveWaterAnalysis(dataToSave); // Sync DB
+    onUpdate();
+  };
+
+  // Helper to determine status color
+  const getResultColor = () => {
+    if (!formData.result_date) return 'var(--border-color)'; // Not done
+    if (formData.result === 'potable') return 'var(--success)';
+    if (formData.result === 'non_potable') return 'var(--danger)';
+    return 'var(--warning)'; // Pending but has date?
   };
 
   return (
     <div
       className="card"
-      style={{ height: '100%', margin: 0, display: 'flex', flexDirection: 'column' }}
+      style={{ 
+        height: 'auto', // Fix: Allow auto height
+        minHeight: '400px',
+        margin: 0, 
+        display: 'flex', 
+        flexDirection: 'column',
+        border: '3px solid var(--border-color)', // Explicit border
+      }}
     >
       {/* Header */}
       <div
@@ -78,10 +119,10 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
         <h1 style={{ margin: 0, fontSize: '1.8rem', color: 'var(--primary)' }}>
           {department.name}
         </h1>
-        <p style={{ margin: 0, color: 'var(--text-muted)' }}>Gestion mensuelle</p>
+        <p style={{ margin: 0, color: 'var(--text-muted)' }}>Suivi Mensuel</p>
       </div>
 
-      {/* Visual Progress Bar */}
+      {/* Visual Timeline */}
       <div
         style={{
           display: 'flex',
@@ -91,7 +132,7 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
           padding: '0 2rem',
         }}
       >
-        {/* The gray line background */}
+        {/* Background Line */}
         <div
           style={{
             position: 'absolute',
@@ -104,9 +145,21 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
           }}
         ></div>
 
-        <StepIndicator active={!!formData.request_date} label="Demandé" />
-        <StepIndicator active={!!formData.sample_date} label="Prélevé" />
-        <StepIndicator active={!!formData.result_date} label="Résultat" />
+        <StepIndicator 
+          active={!!formData.request_date} 
+          label="Demandé" 
+          color="var(--primary)" 
+        />
+        <StepIndicator 
+          active={!!formData.sample_date} 
+          label="Prélevé" 
+          color="var(--warning)" // YELLOW
+        />
+        <StepIndicator 
+          active={!!formData.result_date} 
+          label="Résultat" 
+          color={getResultColor()} // DYNAMIC (Green/Red)
+        />
       </div>
 
       {/* Steps Form Container */}
@@ -115,16 +168,22 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
           display: 'flex',
           flexDirection: 'column',
           gap: '1.5rem',
-          overflowY: 'auto',
-          paddingRight: '0.5rem',
         }}
       >
         {/* STEP 1: REQUEST */}
         <div
           className={`card ${formData.sample_date ? 'completed' : ''}`}
-          style={{ border: '1px solid var(--border-color)', margin: 0, padding: '1rem' }}
+          style={{ border: '2px solid var(--border-color)', margin: 0, padding: '1rem' }}
         >
-          <h4 style={{ marginTop: 0 }}>1. Demande d'analyse</h4>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.5rem'}}>
+             <h4 style={{ margin: 0 }}>1. Demande d'analyse</h4>
+             {formData.request_date && !formData.sample_date && (
+                <button className="btn btn-sm btn-outline" onClick={() => handleUndo('request')} style={{color:'var(--danger)', borderColor:'var(--danger)'}}>
+                  <FaTrash size={12}/> Annuler
+                </button>
+             )}
+          </div>
+          
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
               <label className="label">Date de la demande</label>
@@ -133,9 +192,9 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
                 className="input"
                 value={formData.request_date}
                 onChange={(e) => setFormData({ ...formData, request_date: e.target.value })}
+                disabled={!!formData.sample_date} 
               />
             </div>
-            {/* Show Create button only if not yet created */}
             {!formData.id && (
               <button className="btn btn-primary" onClick={() => handleSave('request')}>
                 <FaSave /> Créer
@@ -144,13 +203,27 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
           </div>
         </div>
 
-        {/* STEP 2: SAMPLE (Visible if Requested) */}
+        {/* STEP 2: SAMPLE */}
         {formData.id && (
           <div
             className={`card ${formData.result_date ? 'completed' : ''}`}
-            style={{ border: '1px solid var(--border-color)', margin: 0, padding: '1rem' }}
+            style={{ 
+              border: '2px solid var(--border-color)', 
+              margin: 0, 
+              padding: '1rem',
+              // Visual cue for active step
+              borderColor: (!formData.sample_date) ? 'var(--warning)' : 'var(--border-color)'
+            }}
           >
-            <h4 style={{ marginTop: 0 }}>2. Prélèvement</h4>
+             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.5rem'}}>
+                <h4 style={{ margin: 0 }}>2. Prélèvement</h4>
+                {formData.sample_date && !formData.result_date && (
+                  <button className="btn btn-sm btn-outline" onClick={() => handleUndo('sample')} style={{color:'var(--danger)', borderColor:'var(--danger)'}}>
+                    <FaUndo size={12}/> Corriger
+                  </button>
+                )}
+             </div>
+
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
               <div style={{ flex: 1 }}>
                 <label className="label">Date du prélèvement</label>
@@ -159,30 +232,39 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
                   className="input"
                   value={formData.sample_date}
                   onChange={(e) => setFormData({ ...formData, sample_date: e.target.value })}
+                  disabled={!!formData.result_date}
                 />
               </div>
-              {/* Show Confirm button only if date not set */}
               {!formData.sample_date && (
-                <button className="btn btn-primary" onClick={() => handleSave('sample')}>
-                  <FaCheckCircle /> Confirmer
+                <button className="btn btn-warning" onClick={() => handleSave('sample')} style={{color:'black'}}>
+                  <FaCheckCircle /> Confirmer Prélèvement
                 </button>
               )}
             </div>
           </div>
         )}
 
-        {/* STEP 3: RESULT (Visible if Sampled) */}
+        {/* STEP 3: RESULT */}
         {formData.sample_date && (
           <div
             className="card"
             style={{
-              border: '1px solid var(--border-color)',
+              border: '2px solid var(--border-color)',
               margin: 0,
               padding: '1rem',
-              background: 'var(--primary-light)',
+              background: formData.result_date ? 'white' : '#f0f9ff', // Light blue highlight when active
+              borderColor: (!formData.result_date) ? 'var(--primary)' : 'var(--border-color)'
             }}
           >
-            <h4 style={{ marginTop: 0 }}>3. Résultat Laboratoire</h4>
+             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.5rem'}}>
+                <h4 style={{ margin: 0 }}>3. Résultat Laboratoire</h4>
+                {formData.result_date && (
+                   <button className="btn btn-sm btn-outline" onClick={() => handleUndo('result')} style={{color:'var(--danger)', borderColor:'var(--danger)'}}>
+                     <FaUndo size={12}/> Corriger
+                   </button>
+                )}
+             </div>
+
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <div style={{ flex: 1 }}>
                 <label className="label">Date Résultat</label>
@@ -199,14 +281,28 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
                   className="input"
                   value={formData.result}
                   onChange={(e) => setFormData({ ...formData, result: e.target.value })}
-                  style={{ fontWeight: 'bold' }}
+                  style={{ 
+                    fontWeight: 'bold',
+                    color: formData.result === 'potable' ? 'var(--success)' : (formData.result === 'non_potable' ? 'var(--danger)' : 'inherit')
+                  }}
                 >
                   <option value="pending">En attente</option>
-                  <option value="potable">EAU POTABLE</option>
-                  <option value="non_potable">NON POTABLE</option>
+                  <option value="potable">✅ EAU POTABLE</option>
+                  <option value="non_potable">⚠️ EAU NON POTABLE</option>
                 </select>
               </div>
             </div>
+            
+            <div style={{ marginTop: '1rem' }}>
+               <label className="label">Mesures / Notes</label>
+               <input 
+                  className="input"
+                  placeholder="Ex: Chloration effectuée..."
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+               />
+            </div>
+
             <div style={{ marginTop: '1rem', textAlign: 'right' }}>
               <button className="btn btn-primary" onClick={() => handleSave('result')}>
                 <FaSave /> Enregistrer le résultat
@@ -219,8 +315,11 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
   );
 }
 
-// Visual Helper for the timeline bubbles
-function StepIndicator({ active, label }) {
+// Updated Visual Helper with Color Prop
+function StepIndicator({ active, label, color }) {
+  const finalColor = active ? (color || 'var(--primary)') : 'white';
+  const borderColor = active ? 'var(--border-color)' : '#cbd5e1';
+  
   return (
     <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <div
@@ -228,12 +327,12 @@ function StepIndicator({ active, label }) {
           width: '32px',
           height: '32px',
           borderRadius: '50%',
-          background: active ? 'var(--primary)' : 'white',
-          border: '3px solid var(--border-color)',
+          background: finalColor,
+          border: `3px solid ${borderColor}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'white',
+          color: active ? 'white' : '#cbd5e1',
           marginBottom: '0.5rem',
           boxShadow: active ? 'var(--shadow-hard)' : 'none',
           transition: 'all 0.3s',
@@ -252,4 +351,4 @@ function StepIndicator({ active, label }) {
       </div>
     </div>
   );
-}
+               }
