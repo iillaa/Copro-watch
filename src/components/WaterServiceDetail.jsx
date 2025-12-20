@@ -16,7 +16,7 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
     const all = await db.getWaterAnalyses();
     // Use the logic helper to get sorted history
     const deptHistory = logic.getDepartmentWaterHistory(department.id, all);
-    
+
     setAnalyses(deptHistory);
     setAllAnalyses(all);
   };
@@ -41,7 +41,7 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette analyse ?')) {
       await db.deleteWaterAnalysis(analysisId);
       loadData();
-      if(onSave) onSave(); // Refresh parent dashboard if needed
+      if (onSave) onSave(); // Refresh parent dashboard if needed
     }
   };
 
@@ -54,7 +54,8 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
   };
 
   const renderStatusBadge = (result) => {
-    if (!result || result === 'pending') return <span className="badge badge-yellow">En attente</span>;
+    if (!result || result === 'pending')
+      return <span className="badge badge-yellow">En attente</span>;
     if (result === 'potable') return <span className="badge badge-green">Potable</span>;
     if (result === 'non_potable') return <span className="badge badge-red">Non Potable</span>;
     return '-';
@@ -66,7 +67,7 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
   const statusColor = logic.getServiceWaterStatusColor(currentStatus.status);
 
   return (
-    <div style={{animation: 'fadeIn 0.3s ease'}}>
+    <div style={{ animation: 'fadeIn 0.3s ease' }}>
       <div style={{ marginBottom: '1rem' }}>
         <button className="btn btn-outline" onClick={onBack}>
           <FaArrowLeft /> Retour
@@ -85,7 +86,13 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
             <FaFlask /> Nouvelle Analyse
           </button>
         </div>
-        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+        <div
+          style={{
+            marginTop: '1rem',
+            paddingTop: '1rem',
+            borderTop: '1px solid var(--border-color)',
+          }}
+        >
           <strong>Statut ce mois-ci:</strong>
           <span style={{ color: statusColor, fontWeight: 'bold', marginLeft: '0.5rem' }}>
             {statusLabel}
@@ -95,7 +102,10 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
 
       <h3>Historique</h3>
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div className="table-container" style={{boxShadow:'none', border:'none', borderRadius:0}}>
+        <div
+          className="table-container"
+          style={{ boxShadow: 'none', border: 'none', borderRadius: 0 }}
+        >
           <table>
             <thead>
               <tr>
@@ -105,7 +115,7 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
                 <th>Date Résultat</th>
                 <th>Verdict</th>
                 <th>Notes</th>
-                <th style={{textAlign:'right'}}>Actions</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -115,15 +125,22 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
                   <td>{a.request_date ? logic.formatDate(new Date(a.request_date)) : '-'}</td>
 
                   {/* 2. Date Prélèvement */}
-                  <td style={{fontWeight:600}}>
+                  <td style={{ fontWeight: 600 }}>
                     {a.sample_date ? logic.formatDate(new Date(a.sample_date)) : '-'}
                   </td>
 
                   {/* 3. Date Résultat */}
                   <td>{a.result_date ? logic.formatDate(new Date(a.result_date)) : '-'}</td>
-                  
+
                   <td>{renderStatusBadge(a.result)}</td>
-                  <td style={{maxWidth:'150px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                  <td
+                    style={{
+                      maxWidth: '150px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
                     {a.notes || '-'}
                   </td>
 
@@ -149,7 +166,10 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
               ))}
               {analyses.length === 0 && (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                  <td
+                    colSpan="6"
+                    style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}
+                  >
                     Aucune analyse enregistrée.
                   </td>
                 </tr>

@@ -89,9 +89,10 @@ function App() {
           </div>
           <div
             className={`nav-item ${view === 'water-analyses' ? 'active' : ''}`}
-            onClick={() => setView('water-analyses')}
-            setWaterResetKey(prev => prev + 1);
-          }}
+            onClick={() => {
+              setView('water-analyses');
+              setWaterResetKey((prev) => prev + 1);
+            }}
             title="Analyses d'eau"
           >
             <FaFlask className="nav-icon" />

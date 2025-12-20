@@ -41,7 +41,7 @@ export default function WaterAnalysisForm({
   useEffect(() => {
     // Logic for new entries (not editing)
     if (type === 'edit') {
-       // Handled above in analysisToEdit effect
+      // Handled above in analysisToEdit effect
     } else if (type === 'launch') {
       setFormData((prev) => ({
         ...prev,
@@ -62,7 +62,7 @@ export default function WaterAnalysisForm({
         ...prev,
         department_id: department?.id || workplace?.id,
         request_date: new Date().toISOString().split('T')[0],
-        sample_date: '', 
+        sample_date: '',
       }));
     }
   }, [type, analysis, department, workplace]);
@@ -81,17 +81,17 @@ export default function WaterAnalysisForm({
       setError('Veuillez sélectionner un service.');
       return false;
     }
-    
+
     // 1. Validate Request Date
     if (!formData.request_date) {
-        setError("Veuillez saisir la date de demande.");
-        return false;
+      setError('Veuillez saisir la date de demande.');
+      return false;
     }
-    
+
     // 2. Validate Sample Date (if result is present)
     if (formData.result && formData.result !== 'pending' && !formData.sample_date) {
-        setError("Une date de prélèvement est requise pour enregistrer un résultat.");
-        return false;
+      setError('Une date de prélèvement est requise pour enregistrer un résultat.');
+      return false;
     }
 
     if ((type === 'result' || type === 'retest') && !formData.result) {
@@ -114,14 +114,14 @@ export default function WaterAnalysisForm({
 
       // Ensure 'pending' status if launching without a result
       if (type === 'launch') {
-        if(!analysisData.result) analysisData.result = 'pending';
-      } 
-      
+        if (!analysisData.result) analysisData.result = 'pending';
+      }
+
       await db.saveWaterAnalysis(analysisData);
       onSuccess(analysisData);
     } catch (error) {
       console.error('Error saving water analysis:', error);
-      setError("Erreur lors de la sauvegarde. Veuillez réessayer.");
+      setError('Erreur lors de la sauvegarde. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
@@ -129,24 +129,61 @@ export default function WaterAnalysisForm({
 
   const getFormTitle = () => {
     switch (type) {
-      case 'launch': return "Nouvelle analyse (Historique)";
-      case 'result': return "Saisir le résultat";
-      case 'retest': return 'Nouvelle analyse (Contre-visite)';
-      case 'edit': return "Détails / Modifier l'analyse";
-      default: return "Analyse d'eau";
+      case 'launch':
+        return 'Nouvelle analyse (Historique)';
+      case 'result':
+        return 'Saisir le résultat';
+      case 'retest':
+        return 'Nouvelle analyse (Contre-visite)';
+      case 'edit':
+        return "Détails / Modifier l'analyse";
+      default:
+        return "Analyse d'eau";
     }
   };
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-      <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '2rem', maxWidth: '500px', width: '90%', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-        
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          padding: '2rem',
+          maxWidth: '500px',
+          width: '90%',
+          maxHeight: '90vh',
+          overflow: 'auto',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+        }}
+      >
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1.5rem',
+          }}
+        >
           <h3 style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
             <FaFlask style={{ marginRight: '0.5rem' }} /> {getFormTitle()}
           </h3>
-          <button onClick={onCancel} className="btn btn-outline" style={{ padding: '0.5rem' }}><FaTimes /></button>
+          <button onClick={onCancel} className="btn btn-outline" style={{ padding: '0.5rem' }}>
+            <FaTimes />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -180,7 +217,15 @@ export default function WaterAnalysisForm({
           </div>
 
           {/* 3. RESULTAT + DATE RESULTAT */}
-          <div style={{ marginBottom: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <div
+            style={{
+              marginBottom: '1rem',
+              padding: '1rem',
+              background: '#f8fafc',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+            }}
+          >
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
               Résultat Laboratoire
             </label>
@@ -196,7 +241,14 @@ export default function WaterAnalysisForm({
               <option value="non_potable">⚠️ Non Potable</option>
             </select>
 
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
+            <label
+              style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: '500',
+                fontSize: '0.9rem',
+              }}
+            >
               Date du résultat
             </label>
             <input
@@ -211,7 +263,9 @@ export default function WaterAnalysisForm({
 
           {/* Notes */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Notes</label>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+              Notes
+            </label>
             <textarea
               name="notes"
               value={formData.notes}
@@ -222,12 +276,27 @@ export default function WaterAnalysisForm({
             />
           </div>
 
-          {error && <div style={{ padding: '0.75rem', backgroundColor: '#f8d7da', color: '#721c24', borderRadius: '4px', marginBottom: '1rem' }}>{error}</div>}
+          {error && (
+            <div
+              style={{
+                padding: '0.75rem',
+                backgroundColor: '#f8d7da',
+                color: '#721c24',
+                borderRadius: '4px',
+                marginBottom: '1rem',
+              }}
+            >
+              {error}
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-            <button type="button" onClick={onCancel} className="btn btn-outline" disabled={loading}>Annuler</button>
+            <button type="button" onClick={onCancel} className="btn btn-outline" disabled={loading}>
+              Annuler
+            </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              <FaSave style={{ marginRight: '0.5rem' }} /> {loading ? 'Sauvegarde...' : 'Sauvegarder'}
+              <FaSave style={{ marginRight: '0.5rem' }} />{' '}
+              {loading ? 'Sauvegarde...' : 'Sauvegarder'}
             </button>
           </div>
         </form>
