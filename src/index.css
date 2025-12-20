@@ -956,9 +956,3 @@ html {
   background-color: white;
   border-color: var(--primary);
 }
-
-/* Optional: Make the active step pop a bit more */
-.card:not(.completed) {
-  border: 2px solid var(--primary);
-  box-shadow: var(--shadow-hard);
-}
