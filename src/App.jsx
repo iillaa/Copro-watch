@@ -17,6 +17,7 @@ function App() {
   const [selectedWorkerId, setSelectedWorkerId] = useState(null);
   const [isLocked, setIsLocked] = useState(true);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [waterResetKey, setWaterResetKey] = useState(0);
   const [pin, setPin] = useState('0011'); // Default PIN
 
   const initApp = async () => {
@@ -89,6 +90,8 @@ function App() {
           <div
             className={`nav-item ${view === 'water-analyses' ? 'active' : ''}`}
             onClick={() => setView('water-analyses')}
+            setWaterResetKey(prev => prev + 1);
+          }}
             title="Analyses d'eau"
           >
             <FaFlask className="nav-icon" />
