@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { db } from '../services/db';
-import { FaSave, FaCheckCircle, FaTrash, FaUndo, FaExclamationTriangle, FaNotesMedical } from 'react-icons/fa';
+import {
+  FaSave,
+  FaCheckCircle,
+  FaTrash,
+  FaUndo,
+  FaExclamationTriangle,
+  FaNotesMedical,
+} from 'react-icons/fa';
 
 export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
   // 1. Find the relevant analysis for the CURRENT MONTH
@@ -62,7 +69,7 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
   const handleSave = async (step) => {
     let dataToSave = { ...formData, department_id: department.id };
     const today = new Date().toISOString().split('T')[0];
-    
+
     // Auto-fill dates logic if missing
     if (step === 'sample' && !dataToSave.sample_date) dataToSave.sample_date = today;
     if (step === 'result' && !dataToSave.result_date) dataToSave.result_date = today;
@@ -74,10 +81,10 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
 
   // 5. Undo/Reset Handler
   const handleUndo = async (step) => {
-    if(!window.confirm("Voulez-vous vraiment annuler cette étape ?")) return;
+    if (!window.confirm('Voulez-vous vraiment annuler cette étape ?')) return;
 
     let dataToSave = { ...formData };
-    
+
     if (step === 'result') {
       dataToSave.result_date = '';
       dataToSave.result = 'pending';
@@ -87,10 +94,10 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
       dataToSave.result = 'pending';
     } else if (step === 'request') {
       // Deleting the request deletes the analysis for this month
-      if(dataToSave.id) {
+      if (dataToSave.id) {
         await db.deleteWaterAnalysis(dataToSave.id);
         onUpdate();
-        return; 
+        return;
       }
     }
 
@@ -103,12 +110,12 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
   const handleStartRetest = () => {
     setIsCreatingRetest(true); // Lock the effect from reloading old data
     setFormData({
-        department_id: department.id,
-        request_date: new Date().toISOString().split('T')[0], // New Request Today
-        sample_date: '',
-        result_date: '',
-        result: 'pending',
-        notes: 'Contre-visite : ', // Pre-fill notes
+      department_id: department.id,
+      request_date: new Date().toISOString().split('T')[0], // New Request Today
+      sample_date: '',
+      result_date: '',
+      result: 'pending',
+      notes: 'Contre-visite : ', // Pre-fill notes
     });
   };
 
@@ -123,11 +130,11 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
   return (
     <div
       className="card"
-      style={{ 
+      style={{
         height: 'auto',
         minHeight: '400px',
-        margin: 0, 
-        display: 'flex', 
+        margin: 0,
+        display: 'flex',
         flexDirection: 'column',
         border: '3px solid var(--border-color)',
       }}
@@ -148,22 +155,26 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
 
       {/* ALERT: CONTRE-VISITE (Shows when creating a retest) */}
       {isCreatingRetest && (
-         <div style={{
-             background: 'var(--danger-light)', 
-             padding: '1rem', 
-             borderRadius: '8px', 
-             marginBottom: '1.5rem',
-             border: '2px dashed var(--danger)',
-             display: 'flex',
-             alignItems: 'center',
-             gap: '1rem'
-         }}>
-             <FaExclamationTriangle color="var(--danger)" size={24} />
-             <div>
-                 <strong>CONTRE-VISITE EN COURS</strong>
-                 <div style={{fontSize:'0.9rem'}}>Suite à une non-conformité. Veuillez documenter la nouvelle demande.</div>
-             </div>
-         </div>
+        <div
+          style={{
+            background: 'var(--danger-light)',
+            padding: '1rem',
+            borderRadius: '8px',
+            marginBottom: '1.5rem',
+            border: '2px dashed var(--danger)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+          }}
+        >
+          <FaExclamationTriangle color="var(--danger)" size={24} />
+          <div>
+            <strong>CONTRE-VISITE EN COURS</strong>
+            <div style={{ fontSize: '0.9rem' }}>
+              Suite à une non-conformité. Veuillez documenter la nouvelle demande.
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Visual Timeline */}
@@ -195,17 +206,30 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
 
       {/* Steps Form Container */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        
         {/* STEP 1: REQUEST */}
-        <div className={`card ${formData.sample_date ? 'completed' : ''}`} style={{ border: '2px solid var(--border-color)', margin: 0, padding: '1rem' }}>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.5rem'}}>
-             <h4 style={{ margin: 0 }}>1. Demande d'analyse</h4>
-             {/* Show delete button only if we are NOT in the middle of a confirmed retest flow (optional check) */}
-             {formData.request_date && !formData.sample_date && !isCreatingRetest && (
-                <button className="btn btn-sm btn-outline" onClick={() => handleUndo('request')} style={{color:'var(--danger)', borderColor:'var(--danger)'}}>
-                  <FaTrash size={12}/> Annuler
-                </button>
-             )}
+        <div
+          className={`card ${formData.sample_date ? 'completed' : ''}`}
+          style={{ border: '2px solid var(--border-color)', margin: 0, padding: '1rem' }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '0.5rem',
+            }}
+          >
+            <h4 style={{ margin: 0 }}>1. Demande d'analyse</h4>
+            {/* Show delete button only if we are NOT in the middle of a confirmed retest flow (optional check) */}
+            {formData.request_date && !formData.sample_date && !isCreatingRetest && (
+              <button
+                className="btn btn-sm btn-outline"
+                onClick={() => handleUndo('request')}
+                style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+              >
+                <FaTrash size={12} /> Annuler
+              </button>
+            )}
           </div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
@@ -215,7 +239,7 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
                 className="input"
                 value={formData.request_date}
                 onChange={(e) => setFormData({ ...formData, request_date: e.target.value })}
-                disabled={!!formData.sample_date} 
+                disabled={!!formData.sample_date}
               />
             </div>
             {(!formData.id || isCreatingRetest) && (
@@ -228,15 +252,34 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
 
         {/* STEP 2: SAMPLE */}
         {formData.id && !isCreatingRetest && (
-          <div className={`card ${formData.result_date ? 'completed' : ''}`} style={{ border: '2px solid var(--border-color)', margin: 0, padding: '1rem', borderColor: (!formData.sample_date) ? 'var(--warning)' : 'var(--border-color)' }}>
-             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.5rem'}}>
-                <h4 style={{ margin: 0 }}>2. Prélèvement</h4>
-                {formData.sample_date && !formData.result_date && (
-                  <button className="btn btn-sm btn-outline" onClick={() => handleUndo('sample')} style={{color:'var(--danger)', borderColor:'var(--danger)'}}>
-                    <FaUndo size={12}/> Corriger
-                  </button>
-                )}
-             </div>
+          <div
+            className={`card ${formData.result_date ? 'completed' : ''}`}
+            style={{
+              border: '2px solid var(--border-color)',
+              margin: 0,
+              padding: '1rem',
+              borderColor: !formData.sample_date ? 'var(--warning)' : 'var(--border-color)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '0.5rem',
+              }}
+            >
+              <h4 style={{ margin: 0 }}>2. Prélèvement</h4>
+              {formData.sample_date && !formData.result_date && (
+                <button
+                  className="btn btn-sm btn-outline"
+                  onClick={() => handleUndo('sample')}
+                  style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                >
+                  <FaUndo size={12} /> Corriger
+                </button>
+              )}
+            </div>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
               <div style={{ flex: 1 }}>
                 <label className="label">Date de prélèvement</label>
@@ -249,7 +292,11 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
                 />
               </div>
               {!formData.sample_date && (
-                <button className="btn btn-warning" onClick={() => handleSave('sample')} style={{color:'black'}}>
+                <button
+                  className="btn btn-warning"
+                  onClick={() => handleSave('sample')}
+                  style={{ color: 'black' }}
+                >
                   <FaCheckCircle /> Confirmer
                 </button>
               )}
@@ -259,20 +306,45 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
 
         {/* STEP 3: RESULT */}
         {formData.sample_date && !isCreatingRetest && (
-          <div className="card" style={{ border: '2px solid var(--border-color)', margin: 0, padding: '1rem', background: formData.result_date ? 'white' : '#f0f9ff', borderColor: (!formData.result_date) ? 'var(--primary)' : 'var(--border-color)' }}>
-             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.5rem'}}>
-                <h4 style={{ margin: 0 }}>3. Résultat Laboratoire</h4>
-                {formData.result_date && formData.result !== 'non_potable' && (
-                   <button className="btn btn-sm btn-outline" onClick={() => handleUndo('result')} style={{color:'var(--danger)', borderColor:'var(--danger)'}}>
-                     <FaUndo size={12}/> Corriger
-                   </button>
-                )}
-             </div>
+          <div
+            className="card"
+            style={{
+              border: '2px solid var(--border-color)',
+              margin: 0,
+              padding: '1rem',
+              background: formData.result_date ? 'white' : '#f0f9ff',
+              borderColor: !formData.result_date ? 'var(--primary)' : 'var(--border-color)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '0.5rem',
+              }}
+            >
+              <h4 style={{ margin: 0 }}>3. Résultat Laboratoire</h4>
+              {formData.result_date && formData.result !== 'non_potable' && (
+                <button
+                  className="btn btn-sm btn-outline"
+                  onClick={() => handleUndo('result')}
+                  style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                >
+                  <FaUndo size={12} /> Corriger
+                </button>
+              )}
+            </div>
 
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <div style={{ flex: 1 }}>
                 <label className="label">Date Résultat</label>
-                <input type="date" className="input" value={formData.result_date} onChange={(e) => setFormData({ ...formData, result_date: e.target.value })} />
+                <input
+                  type="date"
+                  className="input"
+                  value={formData.result_date}
+                  onChange={(e) => setFormData({ ...formData, result_date: e.target.value })}
+                />
               </div>
               <div style={{ flex: 1 }}>
                 <label className="label">Verdict</label>
@@ -280,7 +352,15 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
                   className="input"
                   value={formData.result}
                   onChange={(e) => setFormData({ ...formData, result: e.target.value })}
-                  style={{ fontWeight: 'bold', color: formData.result === 'potable' ? 'var(--success)' : (formData.result === 'non_potable' ? 'var(--danger)' : 'inherit') }}
+                  style={{
+                    fontWeight: 'bold',
+                    color:
+                      formData.result === 'potable'
+                        ? 'var(--success)'
+                        : formData.result === 'non_potable'
+                        ? 'var(--danger)'
+                        : 'inherit',
+                  }}
                 >
                   <option value="pending">En attente</option>
                   <option value="potable">✅ EAU POTABLE</option>
@@ -288,15 +368,15 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
                 </select>
               </div>
             </div>
-            
+
             <div style={{ marginTop: '1rem' }}>
-               <label className="label">Notes / Mesures</label>
-               <input 
-                  className="input"
-                  placeholder="Ex: Chloration effectuée..."
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-               />
+              <label className="label">Notes / Mesures</label>
+              <input
+                className="input"
+                placeholder="Ex: Chloration effectuée..."
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              />
             </div>
 
             <div style={{ marginTop: '1rem', textAlign: 'right' }}>
@@ -309,24 +389,33 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
 
         {/* ACTION: NON POTABLE -> RETEST BUTTON */}
         {formData.result === 'non_potable' && formData.result_date && !isCreatingRetest && (
-            <div className="card" style={{
-                background: 'var(--danger)', 
-                color: 'white', 
-                textAlign: 'center', 
-                border: '3px solid black',
-                animation: 'pulse 2s infinite'
-            }}>
-                <h3 style={{color: 'white', marginBottom: '0.5rem'}}>⚠️ EAU NON POTABLE</h3>
-                <p style={{marginBottom: '1rem'}}>Une contre-visite est requise immédiatement.</p>
-                <button 
-                    className="btn" 
-                    style={{background: 'white', color: 'var(--danger)', border: '2px solid black', fontWeight: 'bold', fontSize: '1.1rem'}}
-                    onClick={handleStartRetest}
-                >
-                    <FaNotesMedical style={{marginRight: '0.5rem'}}/>
-                    Planifier Contre-Visite
-                </button>
-            </div>
+          <div
+            className="card"
+            style={{
+              background: 'var(--danger)',
+              color: 'white',
+              textAlign: 'center',
+              border: '3px solid black',
+              animation: 'pulse 2s infinite',
+            }}
+          >
+            <h3 style={{ color: 'white', marginBottom: '0.5rem' }}>⚠️ EAU NON POTABLE</h3>
+            <p style={{ marginBottom: '1rem' }}>Une contre-visite est requise immédiatement.</p>
+            <button
+              className="btn"
+              style={{
+                background: 'white',
+                color: 'var(--danger)',
+                border: '2px solid black',
+                fontWeight: 'bold',
+                fontSize: '1.1rem',
+              }}
+              onClick={handleStartRetest}
+            >
+              <FaNotesMedical style={{ marginRight: '0.5rem' }} />
+              Planifier Contre-Visite
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -334,14 +423,37 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
 }
 
 function StepIndicator({ active, label, color }) {
-  const finalColor = active ? (color || 'var(--primary)') : 'white';
+  const finalColor = active ? color || 'var(--primary)' : 'white';
   const borderColor = active ? 'var(--border-color)' : '#cbd5e1';
   return (
     <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: finalColor, border: `3px solid ${borderColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: active ? 'white' : '#cbd5e1', marginBottom: '0.5rem', boxShadow: active ? 'var(--shadow-hard)' : 'none', transition: 'all 0.3s' }}>
+      <div
+        style={{
+          width: '32px',
+          height: '32px',
+          borderRadius: '50%',
+          background: finalColor,
+          border: `3px solid ${borderColor}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: active ? 'white' : '#cbd5e1',
+          marginBottom: '0.5rem',
+          boxShadow: active ? 'var(--shadow-hard)' : 'none',
+          transition: 'all 0.3s',
+        }}
+      >
         {active && <FaCheckCircle size={14} />}
       </div>
-      <div style={{ fontWeight: 700, fontSize: '0.8rem', color: active ? 'var(--text-main)' : 'var(--text-muted)' }}>{label}</div>
+      <div
+        style={{
+          fontWeight: 700,
+          fontSize: '0.8rem',
+          color: active ? 'var(--text-main)' : 'var(--text-muted)',
+        }}
+      >
+        {label}
+      </div>
     </div>
   );
 }

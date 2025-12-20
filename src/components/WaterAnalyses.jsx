@@ -71,8 +71,15 @@ export default function WaterAnalyses() {
   return (
     <div style={{ height: '100%' }}>
       {/* Container: Stretches nicely */}
-      <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'stretch', height: '100%' }}>
-        
+      <div
+        style={{
+          display: 'flex',
+          gap: '1.5rem',
+          flexWrap: 'wrap',
+          alignItems: 'stretch',
+          height: '100%',
+        }}
+      >
         {/* LEFT PANEL: LIST */}
         <div
           style={{
@@ -85,7 +92,14 @@ export default function WaterAnalyses() {
         >
           {/* Header & Search */}
           <div>
-            <h2 style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h2
+              style={{
+                marginBottom: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}
+            >
               <FaList /> Services
             </h2>
             <div
@@ -103,7 +117,10 @@ export default function WaterAnalyses() {
           </div>
 
           {/* List Card - Added flex: 1 to stretch */}
-          <div className="card" style={{ padding: 0, overflowY: 'auto', flex: 1, maxHeight: '80vh' }}>
+          <div
+            className="card"
+            style={{ padding: 0, overflowY: 'auto', flex: 1, maxHeight: '80vh' }}
+          >
             {filteredDepartments.map((dept) => {
               const isSelected = dept.id === selectedDeptId;
               const statusColor = logic.getServiceWaterStatusColor(dept.waterStatus);
@@ -136,9 +153,9 @@ export default function WaterAnalyses() {
                         color: 'white',
                         border: 'none',
                         // FIX: Bigger Font & Padding
-                        fontSize: '0.9rem', 
+                        fontSize: '0.9rem',
                         padding: '0.35rem 0.7rem',
-                        borderRadius: '6px'
+                        borderRadius: '6px',
                       }}
                     >
                       {logic.getServiceWaterStatusLabel(dept.waterStatus)}
@@ -147,7 +164,9 @@ export default function WaterAnalyses() {
                   <div
                     style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}
                   >
-                    {dept.lastDate ? `Date: ${logic.formatDateDisplay(dept.lastDate)}` : 'Aucune donnée récente'}
+                    {dept.lastDate
+                      ? `Date: ${logic.formatDateDisplay(dept.lastDate)}`
+                      : 'Aucune donnée récente'}
                   </div>
                 </div>
               );
@@ -161,14 +180,15 @@ export default function WaterAnalyses() {
         </div>
 
         {/* RIGHT PANEL: DETAILS */}
-        <div style={{ flex: '3 1 400px', minWidth: '300px', display: 'flex', flexDirection: 'column' }}>
+        <div
+          style={{ flex: '3 1 400px', minWidth: '300px', display: 'flex', flexDirection: 'column' }}
+        >
           {selectedDept ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
-              
               {/* History Button at TOP */}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button className="btn btn-outline" onClick={() => handleViewHistory(selectedDept)}>
-                  <FaHistory style={{ marginRight: '0.5rem' }}/> Voir l'historique complet
+                  <FaHistory style={{ marginRight: '0.5rem' }} /> Voir l'historique complet
                 </button>
               </div>
 
@@ -183,7 +203,15 @@ export default function WaterAnalyses() {
           ) : (
             <div
               className="card"
-              style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{
+                textAlign: 'center',
+                color: 'var(--text-muted)',
+                padding: '3rem',
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
               Sélectionnez un service pour voir les détails.
             </div>
@@ -192,4 +220,4 @@ export default function WaterAnalyses() {
       </div>
     </div>
   );
-                }
+}

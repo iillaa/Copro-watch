@@ -1,7 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { db } from '../services/db';
 import backupService from '../services/backup';
-import { FaSave, FaLock, FaDownload, FaUpload, FaPlus, FaTrash, FaBuilding } from 'react-icons/fa';
+import {
+  FaSave,
+  FaLock,
+  FaDownload,
+  FaUpload,
+  FaPlus,
+  FaTrash,
+  FaBuilding,
+  FaTint,
+} from 'react-icons/fa';
 
 export default function Settings({ currentPin, onPinChange }) {
   const [pin, setPin] = useState(currentPin);
@@ -413,41 +422,46 @@ export default function Settings({ currentPin, onPinChange }) {
         </div>
       </div>
 
-      {/* Department Management */}
-      <div className="card" style={{ maxWidth: '600px', marginTop: '2rem' }}>
-        <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FaBuilding /> Gestion des Services
-        </h3>
+      {/* --- NEW SIDE-BY-SIDE SECTION --- */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '1.5rem',
+          flexWrap: 'wrap',
+          marginTop: '2rem',
+          alignItems: 'flex-start',
+        }}
+      >
+        {/* LEFT: Standard Services */}
+        <div className="card" style={{ flex: '1 1 300px', marginTop: 0 }}>
+          <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <FaBuilding /> Services (RH)
+          </h3>
 
-        <div style={{ marginBottom: '1rem' }}>
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-            <input
-              type="text"
-              placeholder="Nom du nouveau service..."
-              value={newDepartmentName}
-              onChange={(e) => setNewDepartmentName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addDepartment()}
-              style={{
-                flex: 1,
-                padding: '0.5rem',
-                borderRadius: '4px',
-                border: '1px solid var(--border)',
-              }}
-            />
-            <button
-              className="btn btn-primary"
-              onClick={addDepartment}
-              disabled={departmentsLoading || !newDepartmentName.trim()}
-            >
-              <FaPlus /> Ajouter
-            </button>
-          </div>
-
-          {departmentsLoading ? (
-            <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
-              Chargement des services...
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <input
+                type="text"
+                placeholder="Nouveau service..."
+                value={newDepartmentName}
+                onChange={(e) => setNewDepartmentName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && addDepartment()}
+                style={{
+                  flex: 1,
+                  padding: '0.5rem',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border)',
+                }}
+              />
+              <button
+                className="btn btn-primary"
+                onClick={addDepartment}
+                disabled={departmentsLoading || !newDepartmentName.trim()}
+              >
+                <FaPlus />
+              </button>
             </div>
-          ) : (
+
             <div
               style={{
                 maxHeight: '300px',
@@ -455,11 +469,12 @@ export default function Settings({ currentPin, onPinChange }) {
                 border: '1px solid var(--border)',
                 borderRadius: '4px',
                 padding: '0.5rem',
+                background: '#f8fafc',
               }}
             >
               {departments.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
-                  Aucun service configuré.
+                  Aucun service.
                 </div>
               ) : (
                 departments.map((dept) => (
@@ -470,15 +485,17 @@ export default function Settings({ currentPin, onPinChange }) {
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       padding: '0.5rem',
-                      borderBottom: '1px solid var(--border)',
+                      borderBottom: '1px solid #e2e8f0',
+                      background: 'white',
+                      marginBottom: '4px',
+                      borderRadius: '4px',
                     }}
                   >
                     <span style={{ fontWeight: '500' }}>{dept.name}</span>
                     <button
                       className="btn btn-sm btn-outline"
                       onClick={() => deleteDepartment(dept.id)}
-                      style={{ color: 'var(--danger)' }}
-                      title="Supprimer ce service"
+                      style={{ color: 'var(--danger)', borderColor: 'transparent' }}
                     >
                       <FaTrash size={12} />
                     </button>
@@ -486,45 +503,47 @@ export default function Settings({ currentPin, onPinChange }) {
                 ))
               )}
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Water Department Management */}
-      <div className="card" style={{ maxWidth: '600px', marginTop: '2rem' }}>
-        <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FaBuilding /> Services d'Eau
-        </h3>
-
-        <div style={{ marginBottom: '1rem' }}>
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-            <input
-              type="text"
-              placeholder="Nom du nouveau service d'eau..."
-              value={newWaterDepartmentName}
-              onChange={(e) => setNewWaterDepartmentName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addWaterDepartment()}
-              style={{
-                flex: 1,
-                padding: '0.5rem',
-                borderRadius: '4px',
-                border: '1px solid var(--border)',
-              }}
-            />
-            <button
-              className="btn btn-primary"
-              onClick={addWaterDepartment}
-              disabled={waterDepartmentsLoading || !newWaterDepartmentName.trim()}
-            >
-              <FaPlus /> Ajouter
-            </button>
           </div>
+        </div>
 
-          {waterDepartmentsLoading ? (
-            <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
-              Chargement des services d'eau...
+        {/* RIGHT: Water Services */}
+        <div className="card" style={{ flex: '1 1 300px', marginTop: 0 }}>
+          <h3
+            style={{
+              marginTop: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              color: '#0ea5e9',
+            }}
+          >
+            <FaTint /> Services d'Eau
+          </h3>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <input
+                type="text"
+                placeholder="Nouveau point d'eau..."
+                value={newWaterDepartmentName}
+                onChange={(e) => setNewWaterDepartmentName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && addWaterDepartment()}
+                style={{
+                  flex: 1,
+                  padding: '0.5rem',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border)',
+                }}
+              />
+              <button
+                className="btn btn-primary"
+                onClick={addWaterDepartment}
+                disabled={waterDepartmentsLoading || !newWaterDepartmentName.trim()}
+              >
+                <FaPlus />
+              </button>
             </div>
-          ) : (
+
             <div
               style={{
                 maxHeight: '300px',
@@ -532,11 +551,12 @@ export default function Settings({ currentPin, onPinChange }) {
                 border: '1px solid var(--border)',
                 borderRadius: '4px',
                 padding: '0.5rem',
+                background: '#f0f9ff',
               }}
             >
               {waterDepartments.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>
-                  Aucun service d'eau configuré.
+                  Aucun service d'eau.
                 </div>
               ) : (
                 waterDepartments.map((dept) => (
@@ -547,15 +567,17 @@ export default function Settings({ currentPin, onPinChange }) {
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       padding: '0.5rem',
-                      borderBottom: '1px solid var(--border)',
+                      borderBottom: '1px solid #bfdbfe',
+                      background: 'white',
+                      marginBottom: '4px',
+                      borderRadius: '4px',
                     }}
                   >
                     <span style={{ fontWeight: '500' }}>{dept.name}</span>
                     <button
                       className="btn btn-sm btn-outline"
                       onClick={() => deleteWaterDepartment(dept.id)}
-                      style={{ color: 'var(--danger)' }}
-                      title="Supprimer ce service d'eau"
+                      style={{ color: 'var(--danger)', borderColor: 'transparent' }}
                     >
                       <FaTrash size={12} />
                     </button>
@@ -563,10 +585,9 @@ export default function Settings({ currentPin, onPinChange }) {
                 ))
               )}
             </div>
-          )}
+          </div>
         </div>
       </div>
-
       {/* Auto Backup Section */}
       <div className="card" style={{ maxWidth: '800px', marginTop: '2rem' }}>
         <h3 style={{ marginTop: 0 }}>Auto Backup</h3>

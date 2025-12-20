@@ -22,7 +22,7 @@ export const logic = {
   // ==========================================
   // GENERAL DATE HELPERS
   // ==========================================
-// 1. For Inputs (Computer needs this)
+  // 1. For Inputs (Computer needs this)
   formatDate(date) {
     if (!date) return '';
     return format(date, 'yyyy-MM-dd');
