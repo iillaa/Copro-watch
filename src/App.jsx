@@ -130,7 +130,7 @@ function App() {
           {view === 'worker-detail' && selectedWorkerId && (
             <WorkerDetail workerId={selectedWorkerId} onBack={() => setView('workers')} />
           )}
-          {view === 'water-analyses' && <WaterAnalyses />}
+          {view === 'water-analyses' && <WaterAnalyses key={waterResetKey} />}
           {view === 'settings' && <Settings currentPin={pin} onPinChange={setPin} />}
         </div>
       </main>
