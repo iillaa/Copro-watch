@@ -119,62 +119,42 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
               </tr>
             </thead>
             <tbody>
-              {analyses.map((a) => (
-                <tr key={a.id}>
-                  {/* 1. Date Demande */}
-                  <td>{a.request_date ? logic.formatDate(new Date(a.request_date)) : '-'}</td>
+            {analyses.map((a) => (
+              <tr key={a.id}>
+                {/* 1. Date Demande (Safe + European Format) */}
+                <td>{logic.formatDateDisplay(a.request_date)}</td>
+                
+                {/* 2. Date Prélèvement */}
+                <td style={{fontWeight:600}}>
+                  {logic.formatDateDisplay(a.sample_date)}
+                </td>
 
-                  {/* 2. Date Prélèvement */}
-                  <td style={{ fontWeight: 600 }}>
-                    {a.sample_date ? logic.formatDate(new Date(a.sample_date)) : '-'}
-                  </td>
+                {/* 3. Date Résultat */}
+                <td>{logic.formatDateDisplay(a.result_date)}</td>
+                
+                <td>{renderStatusBadge(a.result)}</td>
+                <td style={{maxWidth:'150px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                  {a.notes || '-'}
+                </td>
 
-                  {/* 3. Date Résultat */}
-                  <td>{a.result_date ? logic.formatDate(new Date(a.result_date)) : '-'}</td>
-
-                  <td>{renderStatusBadge(a.result)}</td>
-                  <td
-                    style={{
-                      maxWidth: '150px',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {a.notes || '-'}
-                  </td>
-
-                  <td style={{ textAlign: 'right' }}>
-                    <button
-                      className="btn btn-outline btn-sm"
-                      onClick={() => handleEdit(a)}
-                      style={{ marginRight: '0.5rem' }}
-                      title="Détails"
-                    >
-                      <FaEdit /> Détails
-                    </button>
-                    <button
-                      className="btn btn-outline btn-sm"
-                      onClick={() => handleDeleteAnalysis(a.id)}
-                      style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
-                      title="Supprimer"
-                    >
-                      <FaTrash />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {analyses.length === 0 && (
-                <tr>
-                  <td
-                    colSpan="6"
-                    style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}
-                  >
-                    Aucune analyse enregistrée.
-                  </td>
-                </tr>
-              )}
-            </tbody>
+                <td style={{ textAlign: 'right' }}>
+                  <button className="btn btn-outline btn-sm" onClick={() => handleEdit(a)} style={{ marginRight: '0.5rem' }}>
+                    <FaEdit /> Détails
+                  </button>
+                  <button className="btn btn-outline btn-sm" onClick={() => handleDeleteAnalysis(a.id)} style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}>
+                    <FaTrash />
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {analyses.length === 0 && (
+              <tr>
+                <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                  Aucune analyse enregistrée.
+                </td>
+              </tr>
+            )}
+          </tbody>
           </table>
         </div>
       </div>

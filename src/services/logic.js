@@ -22,9 +22,22 @@ export const logic = {
   // ==========================================
   // GENERAL DATE HELPERS
   // ==========================================
+// 1. For Inputs (Computer needs this)
   formatDate(date) {
     if (!date) return '';
     return format(date, 'yyyy-MM-dd');
+  },
+
+  // 2. For Display (Humans read this)
+  formatDateDisplay(date) {
+    if (!date) return '-';
+    try {
+      // Handle both Date objects and Strings
+      const d = typeof date === 'string' ? parseISO(date) : date;
+      return format(d, 'dd/MM/yyyy');
+    } catch (e) {
+      return '-';
+    }
   },
 
   getCurrentMonthRange() {
