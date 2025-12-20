@@ -130,10 +130,22 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
           <tbody>
             {analyses.map((a) => (
               <tr key={a.id}>
-                <td>{logic.formatDate(new Date(a.sample_date))}</td>
+                {/* FIX: Check if sample_date exists first to avoid crash */}
+                <td>{a.sample_date ? logic.formatDate(new Date(a.sample_date)) : '-'}</td>
+
                 <td>{a.result_date ? logic.formatDate(new Date(a.result_date)) : '-'}</td>
+
                 <td>{renderStatusBadge(a.result)}</td>
-                <td>{a.notes || '-'}</td>
+                <td
+                  style={{
+                    maxWidth: '150px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {a.notes || '-'}
+                </td>
 
                 <td>
                   <button
@@ -156,7 +168,10 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
             ))}
             {analyses.length === 0 && (
               <tr>
-                <td colSpan="5" style={{ textAlign: 'center' }}>
+                <td
+                  colSpan="5"
+                  style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}
+                >
                   Aucune analyse enregistrée.
                 </td>
               </tr>

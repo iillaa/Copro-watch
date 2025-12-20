@@ -111,7 +111,9 @@ export const logic = {
 
   // Worker Dashboard Stats
   getDashboardStats(workers, exams) {
-    const dueSoon = workers.filter((w) => this.isDueSoon(w.next_exam_due) && !this.isOverdue(w.next_exam_due));
+    const dueSoon = workers.filter(
+      (w) => this.isDueSoon(w.next_exam_due) && !this.isOverdue(w.next_exam_due)
+    );
     const overdue = workers.filter((w) => this.isOverdue(w.next_exam_due));
     const activePositive = [];
     const retests = [];
@@ -140,9 +142,12 @@ export const logic = {
   // 1. Get ALL history for a department (New Helper)
   // This allows us to see past activity even if it wasn't this month.
   getDepartmentWaterHistory(departmentId, allAnalyses) {
-     return allAnalyses
-       .filter(a => (a.department_id || a.structure_id) === departmentId)
-       .sort((a, b) => new Date(b.request_date || b.sample_date) - new Date(a.request_date || a.sample_date));
+    return allAnalyses
+      .filter((a) => (a.department_id || a.structure_id) === departmentId)
+      .sort(
+        (a, b) =>
+          new Date(b.request_date || b.sample_date) - new Date(a.request_date || a.sample_date)
+      );
   },
 
   // 2. Get Status (Considers History for "Last Date" but Current Month for "Status")
@@ -153,8 +158,8 @@ export const logic = {
     const deptAnalyses = this.getDepartmentWaterHistory(departmentId, allAnalyses);
 
     // B. Find "Last Date" (The most recent activity EVER, even if months ago)
-    const lastActivity = deptAnalyses[0]; 
-    const lastDate = lastActivity ? (lastActivity.sample_date || lastActivity.request_date) : null;
+    const lastActivity = deptAnalyses[0];
+    const lastDate = lastActivity ? lastActivity.sample_date || lastActivity.request_date : null;
 
     // C. Find "Current Status" (Strictly THIS MONTH for Compliance)
     const currentMonthAnalysis = deptAnalyses.find((analysis) => {
@@ -171,7 +176,8 @@ export const logic = {
 
     // Determine status for the CURRENT analysis
     let status = 'todo';
-    if (currentMonthAnalysis.request_date && !currentMonthAnalysis.sample_date) status = 'requested';
+    if (currentMonthAnalysis.request_date && !currentMonthAnalysis.sample_date)
+      status = 'requested';
     else if (currentMonthAnalysis.result === 'pending') status = 'pending';
     else if (currentMonthAnalysis.result === 'potable') status = 'ok';
     else if (currentMonthAnalysis.result === 'non_potable') status = 'alert';
@@ -179,7 +185,7 @@ export const logic = {
     return {
       status: status,
       analysis: currentMonthAnalysis,
-      lastDate: lastDate // Use the TRUE last date from history
+      lastDate: lastDate, // Use the TRUE last date from history
     };
   },
 
@@ -199,23 +205,35 @@ export const logic = {
   // 4. UI Helpers (Labels & Colors)
   getServiceWaterStatusLabel(status) {
     switch (status) {
-      case 'todo': return 'À Faire';
-      case 'requested': return 'Demandé';
-      case 'pending': return 'En Cours';
-      case 'ok': return 'OK';
-      case 'alert': return 'ALERTE';
-      default: return '-';
+      case 'todo':
+        return 'À Faire';
+      case 'requested':
+        return 'Demandé';
+      case 'pending':
+        return 'En Cours';
+      case 'ok':
+        return 'OK';
+      case 'alert':
+        return 'ALERTE';
+      default:
+        return '-';
     }
   },
 
   getServiceWaterStatusColor(status) {
     switch (status) {
-      case 'todo': return '#94a3b8';
-      case 'requested': return '#3b82f6';
-      case 'pending': return '#f59e0b';
-      case 'ok': return '#22c55e';
-      case 'alert': return '#ef4444';
-      default: return '#94a3b8';
+      case 'todo':
+        return '#94a3b8';
+      case 'requested':
+        return '#3b82f6';
+      case 'pending':
+        return '#f59e0b';
+      case 'ok':
+        return '#22c55e';
+      case 'alert':
+        return '#ef4444';
+      default:
+        return '#94a3b8';
     }
   },
 

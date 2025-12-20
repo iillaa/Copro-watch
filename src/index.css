@@ -300,9 +300,15 @@ h6 {
 }
 
 @keyframes cardBounce {
-  0% { transform: translate(0, 0); }
-  50% { transform: translate(-4px, -4px); }
-  100% { transform: translate(-3px, -3px); }
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-4px, -4px);
+  }
+  100% {
+    transform: translate(-3px, -3px);
+  }
 }
 /* Buttons - Enhanced Neobrutalist Pop Style */
 .btn {
@@ -339,7 +345,7 @@ h6 {
 
 /* FIX: Increased from 200px to 500px to cover wide buttons */
 .btn:hover::before {
-  width: 500px; 
+  width: 500px;
   height: 500px;
 }
 
@@ -765,7 +771,7 @@ tr:nth-child(even):hover td {
 /* Better focus states - Styled to match the Black/White theme */
 *:focus-visible {
   /* Changed from var(--primary) [Blue] to var(--text-main) [Black/Gray] */
-  outline: 3px dashed var(--text-main); 
+  outline: 3px dashed var(--text-main);
   outline-offset: 4px; /* Push it slightly further away from the border */
   border-radius: 4px;
 }
