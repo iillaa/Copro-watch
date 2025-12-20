@@ -70,7 +70,7 @@ export default function WaterAnalyses() {
   // RENDER DASHBOARD VIEW
   return (
     <div style={{ height: '100%' }}>
-      {/* Container: Changed alignItems to 'stretch' so both panels match height */}
+      {/* Container: Stretches nicely */}
       <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'stretch', height: '100%' }}>
         
         {/* LEFT PANEL: LIST */}
@@ -102,7 +102,7 @@ export default function WaterAnalyses() {
             </div>
           </div>
 
-          {/* List Card - Added flex-grow to stretch nicely */}
+          {/* List Card - Added flex: 1 to stretch */}
           <div className="card" style={{ padding: 0, overflowY: 'auto', flex: 1, maxHeight: '80vh' }}>
             {filteredDepartments.map((dept) => {
               const isSelected = dept.id === selectedDeptId;
@@ -128,23 +128,25 @@ export default function WaterAnalyses() {
                       alignItems: 'center',
                     }}
                   >
-                    <span style={{ fontWeight: 600 }}>{dept.name}</span>
+                    <span style={{ fontWeight: 600, fontSize: '1.05rem' }}>{dept.name}</span>
                     <span
                       className="badge"
                       style={{
                         backgroundColor: statusColor,
                         color: 'white',
                         border: 'none',
-                        fontSize: '0.7rem',
+                        // FIX: Bigger Font & Padding
+                        fontSize: '0.9rem', 
+                        padding: '0.35rem 0.7rem',
+                        borderRadius: '6px'
                       }}
                     >
                       {logic.getServiceWaterStatusLabel(dept.waterStatus)}
                     </span>
                   </div>
                   <div
-                    style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}
+                    style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}
                   >
-                    {/* FIX: Use formatDateDisplay for the list as well */}
                     {dept.lastDate ? `Date: ${logic.formatDateDisplay(dept.lastDate)}` : 'Aucune donnée récente'}
                   </div>
                 </div>
@@ -163,7 +165,7 @@ export default function WaterAnalyses() {
           {selectedDept ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
               
-              {/* FIX: Moved History Button to the TOP */}
+              {/* History Button at TOP */}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button className="btn btn-outline" onClick={() => handleViewHistory(selectedDept)}>
                   <FaHistory style={{ marginRight: '0.5rem' }}/> Voir l'historique complet
@@ -190,4 +192,4 @@ export default function WaterAnalyses() {
       </div>
     </div>
   );
-                  }
+                }
