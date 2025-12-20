@@ -154,13 +154,16 @@ export const logic = {
 
   // 1. Get ALL history for a department (New Helper)
   // This allows us to see past activity even if it wasn't this month.
-  getDepartmentWaterHistory(departmentId, allAnalyses) {
+getDepartmentWaterHistory(departmentId, allAnalyses) {
     return allAnalyses
       .filter((a) => (a.department_id || a.structure_id) === departmentId)
-      .sort(
-        (a, b) =>
-          new Date(b.request_date || b.sample_date) - new Date(a.request_date || a.sample_date)
-      );
+      .sort((a, b) => {
+        const dateA = new Date(a.request_date || a.sample_date);
+        const dateB = new Date(b.request_date || b.sample_date);
+        const diff = dateB - dateA;
+        // Same fix: If dates equal, show newest ID first
+        return diff !== 0 ? diff : (b.id - a.id);
+      });
   },
 
   // 2. Get Status (Considers History for "Last Date" but Current Month for "Status")
