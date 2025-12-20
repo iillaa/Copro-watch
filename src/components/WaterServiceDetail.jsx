@@ -14,6 +14,7 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
   const loadData = async () => {
     // Reload all data to ensure sync
     const all = await db.getWaterAnalyses();
+    // Use the logic helper to get sorted history
     const deptHistory = logic.getDepartmentWaterHistory(department.id, all);
     
     setAnalyses(deptHistory);
@@ -27,7 +28,7 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
   const handleNewAnalysis = () => {
     setSelectedAnalysis(null);
     setEditingAnalysis(null);
-    setShowForm(true); // Opens form in 'launch' mode (New Entry)
+    setShowForm(true); // Opens form in 'launch' mode
   };
 
   const handleEdit = (analysis) => {
@@ -40,7 +41,7 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette analyse ?')) {
       await db.deleteWaterAnalysis(analysisId);
       loadData();
-      if(onSave) onSave(); // Refresh parent dashboard
+      if(onSave) onSave(); // Refresh parent dashboard if needed
     }
   };
 
@@ -49,7 +50,7 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
     setSelectedAnalysis(null);
     setEditingAnalysis(null);
     loadData();
-    if (onSave) onSave(); // Refresh parent dashboard
+    if (onSave) onSave();
   };
 
   const renderStatusBadge = (result) => {
@@ -81,7 +82,7 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
             </p>
           </div>
           <button className="btn btn-primary" onClick={handleNewAnalysis}>
-            <FaFlask /> Nouvelle Analyse (Historique)
+            <FaFlask /> Nouvelle Analyse
           </button>
         </div>
         <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
@@ -98,7 +99,7 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
           <table>
             <thead>
               <tr>
-                {/* ADDED: Date Demande */}
+                {/* 3 STATISTICS AS REQUESTED */}
                 <th>Date Demande</th>
                 <th>Date Prélèvement</th>
                 <th>Date Résultat</th>
@@ -112,24 +113,26 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
                 <tr key={a.id}>
                   {/* 1. Date Demande */}
                   <td>{a.request_date ? logic.formatDate(new Date(a.request_date)) : '-'}</td>
-                  
-                  {/* 2. Date Prélèvement (Safe Check) */}
+
+                  {/* 2. Date Prélèvement */}
                   <td style={{fontWeight:600}}>
                     {a.sample_date ? logic.formatDate(new Date(a.sample_date)) : '-'}
                   </td>
-                  
+
                   {/* 3. Date Résultat */}
                   <td>{a.result_date ? logic.formatDate(new Date(a.result_date)) : '-'}</td>
                   
                   <td>{renderStatusBadge(a.result)}</td>
-                  <td style={{maxWidth:'150px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{a.notes || '-'}</td>
+                  <td style={{maxWidth:'150px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                    {a.notes || '-'}
+                  </td>
 
                   <td style={{ textAlign: 'right' }}>
                     <button
                       className="btn btn-outline btn-sm"
                       onClick={() => handleEdit(a)}
                       style={{ marginRight: '0.5rem' }}
-                      title="Détails / Modifier"
+                      title="Détails"
                     >
                       <FaEdit /> Détails
                     </button>
@@ -158,8 +161,8 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
 
       {showForm && (
         <WaterAnalysisForm
-          // FIX: If we are editing, force type 'edit'. If new, type 'launch'.
-          type={editingAnalysis ? 'edit' : 'launch'} 
+          // FIX: Pass 'edit' if we are editing, 'launch' if new
+          type={editingAnalysis ? 'edit' : 'launch'}
           department={department}
           analysis={selectedAnalysis}
           analysisToEdit={editingAnalysis}
