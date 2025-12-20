@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
 import WaterAnalysisForm from './WaterAnalysisForm';
-import { FaArrowLeft, FaFlask, FaTrash } from 'react-icons/fa';
+import { FaArrowLeft, FaFlask, FaTrash, FaEdit } from 'react-icons/fa';
 
 export default function WaterServiceDetail({ department, onBack, onSave }) {
   const [analyses, setAnalyses] = useState([]);
@@ -12,12 +12,12 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
   const [editingAnalysis, setEditingAnalysis] = useState(null);
 
   const loadData = async () => {
-    const [deptAnalyses, allAnalysesData] = await Promise.all([
-      logic.getDepartmentWaterHistory(department.id, await db.getWaterAnalyses()),
-      db.getWaterAnalyses(),
-    ]);
-    setAnalyses(deptAnalyses);
-    setAllAnalyses(allAnalysesData);
+    // Reload all data to ensure sync
+    const all = await db.getWaterAnalyses();
+    const deptHistory = logic.getDepartmentWaterHistory(department.id, all);
+    
+    setAnalyses(deptHistory);
+    setAllAnalyses(all);
   };
 
   useEffect(() => {
@@ -27,19 +27,20 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
   const handleNewAnalysis = () => {
     setSelectedAnalysis(null);
     setEditingAnalysis(null);
-    setShowForm(true);
+    setShowForm(true); // Opens form in 'launch' mode (New Entry)
   };
 
   const handleEdit = (analysis) => {
     setSelectedAnalysis(analysis);
     setEditingAnalysis(analysis);
-    setShowForm(true);
+    setShowForm(true); // Opens form in 'edit' mode
   };
 
   const handleDeleteAnalysis = async (analysisId) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette analyse ?')) {
       await db.deleteWaterAnalysis(analysisId);
       loadData();
+      if(onSave) onSave(); // Refresh parent dashboard
     }
   };
 
@@ -48,40 +49,23 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
     setSelectedAnalysis(null);
     setEditingAnalysis(null);
     loadData();
-    if (onSave) onSave();
+    if (onSave) onSave(); // Refresh parent dashboard
   };
 
   const renderStatusBadge = (result) => {
-    if (!result) return '-';
-    let badgeClass = '';
-    let label = '';
-
-    switch (result) {
-      case 'potable':
-        badgeClass = 'badge badge-green';
-        label = 'Potable';
-        break;
-      case 'non_potable':
-        badgeClass = 'badge badge-red';
-        label = 'Non Potable';
-        break;
-      case 'pending':
-        badgeClass = 'badge badge-yellow';
-        label = 'En attente';
-        break;
-      default:
-        return result;
-    }
-    return <span className={badgeClass}>{label}</span>;
+    if (!result || result === 'pending') return <span className="badge badge-yellow">En attente</span>;
+    if (result === 'potable') return <span className="badge badge-green">Potable</span>;
+    if (result === 'non_potable') return <span className="badge badge-red">Non Potable</span>;
+    return '-';
   };
 
-  // Calculate current status
+  // Calculate current status for the header
   const currentStatus = logic.getServiceWaterStatus(department.id, allAnalyses);
   const statusLabel = logic.getServiceWaterStatusLabel(currentStatus.status);
   const statusColor = logic.getServiceWaterStatusColor(currentStatus.status);
 
   return (
-    <div>
+    <div style={{animation: 'fadeIn 0.3s ease'}}>
       <div style={{ marginBottom: '1rem' }}>
         <button className="btn btn-outline" onClick={onBack}>
           <FaArrowLeft /> Retour
@@ -93,96 +77,89 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
           <div>
             <h2 style={{ margin: 0 }}>{department.name}</h2>
             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-              Service de Copro-Watch
+              Historique complet des analyses
             </p>
-            <div style={{ marginTop: '0.5rem' }}>
-              <span className="badge badge-blue">Suivi qualité de l'eau</span>
-            </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="btn btn-primary" onClick={handleNewAnalysis}>
-              <FaFlask /> Nouvelle Analyse
-            </button>
-          </div>
+          <button className="btn btn-primary" onClick={handleNewAnalysis}>
+            <FaFlask /> Nouvelle Analyse (Historique)
+          </button>
         </div>
-        <div
-          style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}
-        >
-          <strong>Statut actuel:</strong>
+        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+          <strong>Statut ce mois-ci:</strong>
           <span style={{ color: statusColor, fontWeight: 'bold', marginLeft: '0.5rem' }}>
             {statusLabel}
           </span>
         </div>
       </div>
 
-      <h3>Historique des Analyses</h3>
-      <div className="card" style={{ padding: 0 }}>
-        <table>
-          <thead>
-            <tr>
-              <th>Date Prélèvement</th>
-              <th>Date Résultat</th>
-              <th>Résultat</th>
-              <th>Notes</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {analyses.map((a) => (
-              <tr key={a.id}>
-                {/* FIX: Check if sample_date exists first to avoid crash */}
-                <td>{a.sample_date ? logic.formatDate(new Date(a.sample_date)) : '-'}</td>
-
-                <td>{a.result_date ? logic.formatDate(new Date(a.result_date)) : '-'}</td>
-
-                <td>{renderStatusBadge(a.result)}</td>
-                <td
-                  style={{
-                    maxWidth: '150px',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {a.notes || '-'}
-                </td>
-
-                <td>
-                  <button
-                    className="btn btn-outline btn-sm"
-                    onClick={() => handleEdit(a)}
-                    style={{ marginRight: '0.5rem' }}
-                  >
-                    Détails
-                  </button>
-                  <button
-                    className="btn btn-outline btn-sm"
-                    onClick={() => handleDeleteAnalysis(a.id)}
-                    style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
-                    title="Supprimer"
-                  >
-                    <FaTrash />
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {analyses.length === 0 && (
+      <h3>Historique</h3>
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div className="table-container" style={{boxShadow:'none', border:'none', borderRadius:0}}>
+          <table>
+            <thead>
               <tr>
-                <td
-                  colSpan="5"
-                  style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}
-                >
-                  Aucune analyse enregistrée.
-                </td>
+                {/* ADDED: Date Demande */}
+                <th>Date Demande</th>
+                <th>Date Prélèvement</th>
+                <th>Date Résultat</th>
+                <th>Verdict</th>
+                <th>Notes</th>
+                <th style={{textAlign:'right'}}>Actions</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {analyses.map((a) => (
+                <tr key={a.id}>
+                  {/* 1. Date Demande */}
+                  <td>{a.request_date ? logic.formatDate(new Date(a.request_date)) : '-'}</td>
+                  
+                  {/* 2. Date Prélèvement (Safe Check) */}
+                  <td style={{fontWeight:600}}>
+                    {a.sample_date ? logic.formatDate(new Date(a.sample_date)) : '-'}
+                  </td>
+                  
+                  {/* 3. Date Résultat */}
+                  <td>{a.result_date ? logic.formatDate(new Date(a.result_date)) : '-'}</td>
+                  
+                  <td>{renderStatusBadge(a.result)}</td>
+                  <td style={{maxWidth:'150px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{a.notes || '-'}</td>
+
+                  <td style={{ textAlign: 'right' }}>
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => handleEdit(a)}
+                      style={{ marginRight: '0.5rem' }}
+                      title="Détails / Modifier"
+                    >
+                      <FaEdit /> Détails
+                    </button>
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => handleDeleteAnalysis(a.id)}
+                      style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                      title="Supprimer"
+                    >
+                      <FaTrash />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {analyses.length === 0 && (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                    Aucune analyse enregistrée.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {showForm && (
         <WaterAnalysisForm
-          type={selectedAnalysis ? 'result' : 'launch'}
+          // FIX: If we are editing, force type 'edit'. If new, type 'launch'.
+          type={editingAnalysis ? 'edit' : 'launch'} 
           department={department}
           analysis={selectedAnalysis}
           analysisToEdit={editingAnalysis}
