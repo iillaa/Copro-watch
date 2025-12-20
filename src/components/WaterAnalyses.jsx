@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
-import { FaSearch, FaHistory } from 'react-icons/fa';
+import { FaSearch, FaHistory, FaList } from 'react-icons/fa';
 import WaterAnalysisPanel from './WaterAnalysisPanel';
 import WaterServiceDetail from './WaterServiceDetail';
 
@@ -69,15 +69,15 @@ export default function WaterAnalyses() {
 
   // RENDER DASHBOARD VIEW
   return (
-    <div>
-      {/* Responsive Container: Flex wrap allows items to stack on small screens */}
-      <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+    <div style={{ height: '100%' }}>
+      {/* Container: Changed alignItems to 'stretch' so both panels match height */}
+      <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'stretch', height: '100%' }}>
+        
         {/* LEFT PANEL: LIST */}
         <div
           style={{
-            flex: '1 1 300px', // Grow: 1, Shrink: 1, Basis: 300px
+            flex: '1 1 300px',
             minWidth: '280px',
-            maxWidth: '100%', // Allow full width on mobile
             display: 'flex',
             flexDirection: 'column',
             gap: '1rem',
@@ -85,7 +85,9 @@ export default function WaterAnalyses() {
         >
           {/* Header & Search */}
           <div>
-            <h2 style={{ marginBottom: '0.5rem' }}>Analyses d'Eau</h2>
+            <h2 style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FaList /> Services
+            </h2>
             <div
               className="input"
               style={{ display: 'flex', alignItems: 'center', padding: '0.5rem' }}
@@ -100,8 +102,8 @@ export default function WaterAnalyses() {
             </div>
           </div>
 
-          {/* List Card - height adjusts to content (max-height optional) */}
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          {/* List Card - Added flex-grow to stretch nicely */}
+          <div className="card" style={{ padding: 0, overflowY: 'auto', flex: 1, maxHeight: '80vh' }}>
             {filteredDepartments.map((dept) => {
               const isSelected = dept.id === selectedDeptId;
               const statusColor = logic.getServiceWaterStatusColor(dept.waterStatus);
@@ -142,7 +144,8 @@ export default function WaterAnalyses() {
                   <div
                     style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}
                   >
-                    {dept.lastDate ? `Date: ${dept.lastDate}` : 'Aucune donnée récente'}
+                    {/* FIX: Use formatDateDisplay for the list as well */}
+                    {dept.lastDate ? `Date: ${logic.formatDateDisplay(dept.lastDate)}` : 'Aucune donnée récente'}
                   </div>
                 </div>
               );
@@ -156,9 +159,17 @@ export default function WaterAnalyses() {
         </div>
 
         {/* RIGHT PANEL: DETAILS */}
-        <div style={{ flex: '999 1 400px', minWidth: '300px' }}>
+        <div style={{ flex: '3 1 400px', minWidth: '300px', display: 'flex', flexDirection: 'column' }}>
           {selectedDept ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
+              
+              {/* FIX: Moved History Button to the TOP */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button className="btn btn-outline" onClick={() => handleViewHistory(selectedDept)}>
+                  <FaHistory style={{ marginRight: '0.5rem' }}/> Voir l'historique complet
+                </button>
+              </div>
+
               <WaterAnalysisPanel
                 department={selectedDept}
                 analyses={waterAnalyses.filter(
@@ -166,18 +177,11 @@ export default function WaterAnalyses() {
                 )}
                 onUpdate={loadData}
               />
-
-              {/* History Button (Outside the panel, nicely aligned) */}
-              <div style={{ textAlign: 'right' }}>
-                <button className="btn btn-outline" onClick={() => handleViewHistory(selectedDept)}>
-                  <FaHistory /> Voir l'historique complet
-                </button>
-              </div>
             </div>
           ) : (
             <div
               className="card"
-              style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}
+              style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               Sélectionnez un service pour voir les détails.
             </div>
@@ -186,4 +190,4 @@ export default function WaterAnalyses() {
       </div>
     </div>
   );
-}
+                  }
