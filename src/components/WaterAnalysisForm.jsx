@@ -14,7 +14,8 @@ export default function WaterAnalysisForm({
 }) {
   const [formData, setFormData] = useState({
     department_id: department?.id || analysis?.department_id || analysis?.structure_id,
-    sample_date: new Date().toISOString().split('T')[0], // Today's date
+    request_date: new Date().toISOString().split('T')[0], // Default Request to Today
+    sample_date: '',
     result_date: '',
     result: '',
     notes: '',
@@ -26,9 +27,10 @@ export default function WaterAnalysisForm({
   useEffect(() => {
     if (analysisToEdit) {
       setFormData({
-        id: analysisToEdit.id, // Conserver l'ID pour la mise à jour
+        id: analysisToEdit.id,
         department_id: analysisToEdit.department_id || analysisToEdit.structure_id,
-        sample_date: analysisToEdit.sample_date,
+        request_date: analysisToEdit.request_date || '', // Load request date
+        sample_date: analysisToEdit.sample_date || '',
         result_date: analysisToEdit.result_date || '',
         result: analysisToEdit.result || '',
         notes: analysisToEdit.notes || '',
@@ -37,28 +39,30 @@ export default function WaterAnalysisForm({
   }, [analysisToEdit]);
 
   useEffect(() => {
-    // Pre-fill form based on type
+    // Logic for new entries (not editing)
     if (type === 'edit') {
-      // For edit mode, the formData is already set in the analysisToEdit useEffect
-      // Nothing to do here, the edit useEffect above handles it
+       // Handled above in analysisToEdit effect
     } else if (type === 'launch') {
       setFormData((prev) => ({
         ...prev,
         department_id: department?.id || workplace?.id,
-        sample_date: new Date().toISOString().split('T')[0],
+        request_date: new Date().toISOString().split('T')[0],
+        sample_date: new Date().toISOString().split('T')[0], // Default Sample to Today for convenience
       }));
     } else if (type === 'result') {
       setFormData((prev) => ({
         ...prev,
         department_id: analysis?.department_id || analysis?.structure_id,
+        request_date: analysis?.request_date || '',
         sample_date: analysis?.sample_date,
-        result_date: new Date().toISOString().split('T')[0], // Today's date for result entry
+        result_date: new Date().toISOString().split('T')[0],
       }));
     } else if (type === 'retest') {
       setFormData((prev) => ({
         ...prev,
         department_id: department?.id || workplace?.id,
-        sample_date: new Date().toISOString().split('T')[0], // New sample for retest
+        request_date: new Date().toISOString().split('T')[0],
+        sample_date: '', 
       }));
     }
   }, [type, analysis, department, workplace]);
@@ -69,8 +73,6 @@ export default function WaterAnalysisForm({
       ...prev,
       [name]: value,
     }));
-
-    // Clear error when user starts typing
     if (error) setError('');
   };
 
@@ -79,29 +81,30 @@ export default function WaterAnalysisForm({
       setError('Veuillez sélectionner un service.');
       return false;
     }
-
-    if (!formData.sample_date) {
-      setError("Veuillez saisir la date d'échantillonnage.");
-      return false;
+    
+    // 1. Validate Request Date
+    if (!formData.request_date) {
+        setError("Veuillez saisir la date de demande.");
+        return false;
+    }
+    
+    // 2. Validate Sample Date (if result is present)
+    if (formData.result && formData.result !== 'pending' && !formData.sample_date) {
+        setError("Une date de prélèvement est requise pour enregistrer un résultat.");
+        return false;
     }
 
-    // For result entry or retest, result is required
     if ((type === 'result' || type === 'retest') && !formData.result) {
       setError("Veuillez saisir le résultat de l'analyse.");
       return false;
     }
-
-    // For edit mode, result is optional - no additional validation needed
 
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
     setError('');
@@ -109,26 +112,16 @@ export default function WaterAnalysisForm({
     try {
       let analysisData = { ...formData };
 
-      // Set result_date based on result type
+      // Ensure 'pending' status if launching without a result
       if (type === 'launch') {
-        // For launch, result is pending
-        analysisData.result = 'pending';
-        analysisData.result_date = '';
-      } else if (type === 'result' || type === 'retest') {
-        // For result entry, ensure result_date is set
-        if (!analysisData.result_date) {
-          analysisData.result_date = new Date().toISOString().split('T')[0];
-        }
-      }
-      // For edit mode, keep existing data as is - no changes needed
-
-      // Save the analysis
-      const savedAnalysis = await db.saveWaterAnalysis(analysisData);
-
-      onSuccess(savedAnalysis);
+        if(!analysisData.result) analysisData.result = 'pending';
+      } 
+      
+      await db.saveWaterAnalysis(analysisData);
+      onSuccess(analysisData);
     } catch (error) {
       console.error('Error saving water analysis:', error);
-      setError("Erreur lors de la sauvegarde de l'analyse. Veuillez réessayer.");
+      setError("Erreur lors de la sauvegarde. Veuillez réessayer.");
     } finally {
       setLoading(false);
     }
@@ -136,252 +129,105 @@ export default function WaterAnalysisForm({
 
   const getFormTitle = () => {
     switch (type) {
-      case 'launch':
-        return "Lancer une analyse d'eau";
-      case 'result':
-        return "Saisir le résultat d'analyse";
-      case 'retest':
-        return 'Nouvelle analyse (Re-test)';
-      case 'edit':
-        return "Éditer l'analyse d'eau";
-      default:
-        return "Analyse d'eau";
+      case 'launch': return "Nouvelle analyse (Historique)";
+      case 'result': return "Saisir le résultat";
+      case 'retest': return 'Nouvelle analyse (Contre-visite)';
+      case 'edit': return "Détails / Modifier l'analyse";
+      default: return "Analyse d'eau";
     }
-  };
-
-  const getFormDescription = () => {
-    const serviceName = department?.name || workplace?.name || 'le service';
-    switch (type) {
-      case 'launch':
-        return `Enregistrer qu'un échantillon a été prélevé pour ${serviceName}.`;
-      case 'result':
-        return `Saisir le résultat d'analyse pour l'échantillon du ${analysis?.sample_date}.`;
-      case 'retest':
-        return `Lancer une nouvelle analyse pour ${serviceName} suite à un résultat non potable.`;
-      default:
-        return '';
-    }
-  };
-
-  const getServiceName = () => {
-    return department?.name || workplace?.name || 'Service inconnu';
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 1000,
-      }}
-    >
-      <div
-        style={{
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          padding: '2rem',
-          maxWidth: '500px',
-          width: '90%',
-          maxHeight: '90vh',
-          overflow: 'auto',
-        }}
-      >
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '2rem', maxWidth: '500px', width: '90%', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+        
         {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1.5rem',
-          }}
-        >
-          <div>
-            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
-              <FaFlask style={{ marginRight: '0.5rem' }} />
-              {getFormTitle()}
-            </h3>
-            <p
-              style={{
-                margin: '0.5rem 0 0 0',
-                fontSize: '0.9rem',
-                color: 'var(--text-muted)',
-              }}
-            >
-              {getFormDescription()}
-            </p>
-          </div>
-          <button onClick={onCancel} className="btn btn-outline" style={{ padding: '0.5rem' }}>
-            <FaTimes />
-          </button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
+            <FaFlask style={{ marginRight: '0.5rem' }} /> {getFormTitle()}
+          </h3>
+          <button onClick={onCancel} className="btn btn-outline" style={{ padding: '0.5rem' }}><FaTimes /></button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit}>
-          {/* Service (read-only) */}
+          {/* 1. DATE DE DEMANDE */}
           <div style={{ marginBottom: '1rem' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-              Service
+              Date de demande <span style={{ color: 'var(--danger)' }}>*</span>
             </label>
             <input
-              type="text"
-              value={getServiceName()}
-              readOnly
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                border: '1px solid var(--border)',
-                backgroundColor: '#f8f9fa',
-              }}
+              type="date"
+              name="request_date"
+              value={formData.request_date}
+              onChange={handleInputChange}
+              required
+              className="input"
             />
           </div>
 
-          {/* Sample Date */}
+          {/* 2. DATE DE PRÉLÈVEMENT */}
           <div style={{ marginBottom: '1rem' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-              Date d'échantillonnage <span style={{ color: 'var(--danger)' }}>*</span>
+              Date de prélèvement
             </label>
             <input
               type="date"
               name="sample_date"
               value={formData.sample_date}
               onChange={handleInputChange}
-              required
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                border: '1px solid var(--border)',
-              }}
+              className="input"
             />
           </div>
 
-          {/* Result (for result/retest/edit types) */}
-          {(type === 'result' || type === 'retest' || type === 'edit') && (
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                Résultat {type === 'edit' ? '' : <span style={{ color: 'var(--danger)' }}>*</span>}
-              </label>
-              <select
-                name="result"
-                value={formData.result}
-                onChange={handleInputChange}
-                required={type !== 'edit'}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border)',
-                }}
-              >
-                {type === 'edit' && (
-                  <option value="">
-                    Sélectionner le résultat (laisser vide pour "En attente")
-                  </option>
-                )}
-                <option value="pending">En attente</option>
-                <option value="potable">Eau Potable</option>
-                <option value="non_potable">Non Potable</option>
-              </select>
-            </div>
-          )}
+          {/* 3. RESULTAT + DATE RESULTAT */}
+          <div style={{ marginBottom: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+              Résultat Laboratoire
+            </label>
+            <select
+              name="result"
+              value={formData.result}
+              onChange={handleInputChange}
+              className="input"
+              style={{ marginBottom: '1rem' }}
+            >
+              <option value="pending">En attente</option>
+              <option value="potable">✅ Eau Potable</option>
+              <option value="non_potable">⚠️ Non Potable</option>
+            </select>
 
-          {/* Result Date (for result/retest/edit types) */}
-          {(type === 'result' || type === 'retest' || type === 'edit') && (
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                Date du résultat
-              </label>
-              <input
-                type="date"
-                name="result_date"
-                value={formData.result_date}
-                onChange={handleInputChange}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border)',
-                }}
-              />
-              <small style={{ color: 'var(--text-muted)' }}>
-                {type === 'edit'
-                  ? 'Date du résultat (optionnel)'
-                  : "Laissez vide pour utiliser la date d'aujourd'hui"}
-              </small>
-            </div>
-          )}
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', fontSize: '0.9rem' }}>
+              Date du résultat
+            </label>
+            <input
+              type="date"
+              name="result_date"
+              value={formData.result_date}
+              onChange={handleInputChange}
+              className="input"
+              disabled={!formData.result || formData.result === 'pending'}
+            />
+          </div>
 
           {/* Notes */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-              Notes (optionnel)
-            </label>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Notes</label>
             <textarea
               name="notes"
               value={formData.notes}
               onChange={handleInputChange}
               rows={3}
-              placeholder="Ajouter des notes supplémentaires..."
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                borderRadius: '4px',
-                border: '1px solid var(--border)',
-                resize: 'vertical',
-              }}
+              className="input"
+              placeholder="Ex: Taux de chlore..."
             />
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div
-              style={{
-                padding: '0.75rem',
-                backgroundColor: '#f8d7da',
-                color: '#721c24',
-                borderRadius: '4px',
-                marginBottom: '1rem',
-                border: '1px solid #f5c6cb',
-              }}
-            >
-              {error}
-            </div>
-          )}
+          {error && <div style={{ padding: '0.75rem', backgroundColor: '#f8d7da', color: '#721c24', borderRadius: '4px', marginBottom: '1rem' }}>{error}</div>}
 
-          {/* Action Buttons */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '0.5rem',
-              justifyContent: 'flex-end',
-            }}
-          >
-            <button type="button" onClick={onCancel} className="btn btn-outline" disabled={loading}>
-              Annuler
-            </button>
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <button type="button" onClick={onCancel} className="btn btn-outline" disabled={loading}>Annuler</button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? (
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <div
-                    className="loading-spinner"
-                    style={{ width: '16px', height: '16px', marginRight: '0.5rem' }}
-                  ></div>
-                  Sauvegarde...
-                </div>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <FaSave style={{ marginRight: '0.5rem' }} />
-                  Sauvegarder
-                </div>
-              )}
+              <FaSave style={{ marginRight: '0.5rem' }} /> {loading ? 'Sauvegarde...' : 'Sauvegarder'}
             </button>
           </div>
         </form>
