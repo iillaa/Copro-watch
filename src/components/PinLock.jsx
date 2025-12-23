@@ -1,9 +1,18 @@
 import { useState, useEffect } from 'react';
-import { FaLock, FaCheck, FaTimes } from 'react-icons/fa';
+import { FaLock, FaTimes } from 'react-icons/fa';
+
+// 1. Import the Mobile Detector and Mobile View
+// Ensure you have created 'src/hooks/useIsMobile.js'
+import { useIsMobile } from '../hooks/useIsMobile'; 
+// Ensure you have created 'src/components/PinLockMobile.jsx'
+import PinLockMobile from './PinLockMobile'; 
 
 export default function PinLock({ onUnlock, correctPin = '0000' }) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
+  
+  // 2. Detect if we are on a phone
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (pin.length === 4) {
@@ -11,6 +20,9 @@ export default function PinLock({ onUnlock, correctPin = '0000' }) {
         onUnlock();
       } else {
         setError(true);
+        // Haptic feedback (vibration) for better mobile feel
+        if (navigator.vibrate) navigator.vibrate(200);
+        
         setTimeout(() => {
           setPin('');
           setError(false);
@@ -35,6 +47,20 @@ export default function PinLock({ onUnlock, correctPin = '0000' }) {
     setPin((prev) => prev.slice(0, -1));
   };
 
+  // 3. RENDER MOBILE VIEW (New Touch Interface)
+  if (isMobile) {
+    return (
+      <PinLockMobile 
+        pin={pin}
+        error={error}
+        handleDigit={handleDigit}
+        handleClear={handleClear}
+        handleBackspace={handleBackspace}
+      />
+    );
+  }
+
+  // 4. RENDER DESKTOP VIEW (Original "Card" Interface)
   return (
     <div
       style={{
@@ -74,7 +100,8 @@ export default function PinLock({ onUnlock, correctPin = '0000' }) {
                 height: '15px',
                 borderRadius: '50%',
                 background:
-                  i < pin.length ? (error ? 'var(--danger)' : 'var(--primary)') : 'var(--border)',
+                  i < pin.length ? (error ? 'var(--danger)' : 'var(--primary)') : 'var(--border-color)',
+                border: '1px solid var(--border-color)',
                 transition: 'background 0.2s',
               }}
             />
