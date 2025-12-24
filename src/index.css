@@ -23,9 +23,7 @@
   --font-h1: 1.8rem;
   --radius: 16px;
   --border-width: 3px;
-
   --shadow-hard: 4px 4px 0px var(--border-color);
-  --shadow-hover: 6px 6px 0px var(--border-color);
 }
 
 /* MOBILE ADJUSTMENTS */
@@ -44,12 +42,10 @@ body {
   color: var(--text-main);
   margin: 0;
   min-height: 100vh;
-  /* Protect content from Gesture Bar */
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-#root,
-.app-shell {
+#root, .app-shell {
   display: flex;
   height: 100vh;
   width: 100vw;
@@ -57,9 +53,8 @@ body {
 }
 
 /* =========================================
-   SIDEBAR (FIXED FOR SCROLL & LANDSCAPE)
+   SIDEBAR
    ========================================= */
-
 .sidebar {
   width: 260px;
   background-color: #f8fafc;
@@ -70,13 +65,10 @@ body {
   flex-shrink: 0;
   z-index: 50;
   transition: width 0.3s ease;
-
-  /* FIX 1: Enable Scrolling for Sidebar */
-  overflow-y: auto;
+  overflow-y: auto; 
   height: 100vh;
 }
 
-/* Toggle Button */
 .toggle-sidebar {
   position: fixed;
   top: 1rem;
@@ -92,116 +84,43 @@ body {
   cursor: pointer;
 }
 
-/* FIX: Force Slim Sidebar on ANY screen shorter than 600px (Landscape Phones) */
+/* LANDSCAPE PHONE FIXES (Slim Sidebar) */
+/* Trigger: Screen is wide but SHORT (like a phone held sideways) */
 @media (max-height: 600px) {
   .sidebar {
-    width: 70px !important; /* Force tiny width */
+    width: 70px !important;
     padding: 0.5rem 0.2rem;
-    overflow-y: auto;
+    align-items: center; 
   }
-
-  /* Hide all text labels */
-  .brand-text,
-  .nav-text,
-  .credit,
-  .toggle-sidebar {
+  
+  /* Hide labels */
+  .brand-text, .nav-text, .credit, .toggle-sidebar {
     display: none !important;
   }
 
-  /* Center the icons */
-  .brand {
-    margin-bottom: 1rem;
-  }
-  .brand-icon {
-    font-size: 1.8rem;
-  }
-
+  .brand { margin-bottom: 1rem; justify-content: center; }
+  .brand-icon { font-size: 1.8rem; margin: 0; }
+  
   .nav-item {
     justify-content: center;
     padding: 0.8rem;
     margin-bottom: 4px;
+    width: 40px; 
+    height: 40px;
   }
-  .nav-icon {
-    font-size: 1.4rem;
-    margin: 0;
-  }
-
-  /* Fix Main Content Margin */
+  .nav-icon { font-size: 1.4rem; margin: 0; }
+  
+  /* Compact Content */
   .main-content {
-    padding: 1rem;
-    /* Ensure content doesn't get hidden behind the notch/camera */
-    padding-left: calc(1rem + env(safe-area-inset-left));
-    padding-right: calc(1rem + env(safe-area-inset-right));
-  }
-}
-/* =========================================
-   PIN LOCK (RESPONSIVE)
-   ========================================= */
-
-.pin-container {
-  position: fixed;
-  inset: 0;
-  background: var(--bg-app);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 2rem;
-  z-index: 2000;
-  overflow-y: auto;
-}
-
-.pin-header {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-.pin-keypad {
-  padding-bottom: 2rem;
-}
-
-.pin-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem 1rem;
-  max-width: 300px;
-  margin: 0 auto;
-}
-
-/* PIN LOCK LANDSCAPE FIX (Side-by-Side) */
-@media (max-height: 600px) and (orientation: landscape) {
-  .pin-container {
-    flex-direction: row; /* Horizontal Layout */
-    align-items: center;
-    justify-content: center;
-    gap: 3rem;
-    padding: 1rem;
-  }
-  .pin-header {
-    flex: 0 0 auto; /* Stop growing */
-    margin-bottom: 0;
-  }
-  .pin-keypad {
-    padding-bottom: 0;
-    flex: 0 0 auto;
-  }
-  .pin-grid {
-    gap: 0.8rem; /* Tighter grid */
-  }
-  /* Shrink buttons slightly for landscape */
-  .pin-btn {
-    width: 55px !important;
-    height: 55px !important;
-    font-size: 1.4rem !important;
+    padding: 0.5rem 1rem !important;
+    padding-left: calc(1rem + env(safe-area-inset-left)) !important;
+    padding-right: calc(1rem + env(safe-area-inset-right)) !important;
   }
 }
 
 /* =========================================
-   CONTENT & COMPONENTS
+   COMPONENTS
    ========================================= */
-
 .main-content {
   flex: 1;
   overflow-y: auto;
@@ -216,19 +135,10 @@ body {
   box-shadow: var(--shadow-hard);
   padding: var(--space-unit);
   margin-bottom: var(--space-unit);
-  transition: all 0.2s ease;
 }
 
-h1 {
-  font-size: var(--font-h1);
-  margin-bottom: 1rem;
-  font-weight: 700;
-}
-h2 {
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin-bottom: 0.8rem;
-}
+h1 { font-size: var(--font-h1); margin-bottom: 1rem; font-weight: 700; }
+h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.8rem; }
 
 .btn {
   display: inline-flex;
@@ -244,143 +154,86 @@ h2 {
   cursor: pointer;
   background: white;
   color: var(--text-main);
+  white-space: nowrap; 
 }
-.btn-primary {
-  background-color: var(--primary);
-  color: white;
-}
-.btn-outline {
-  background-color: white;
-}
-.btn-sm {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.8rem;
-}
+.btn-primary { background-color: var(--primary); color: white; }
+.btn-outline { background-color: white; }
+.btn-sm { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
 
 .input {
-  display: block;
-  width: 100%;
-  padding: 0.6rem;
-  font-size: 1rem;
+  display: block; width: 100%; padding: 0.6rem; font-size: 1rem;
   border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius);
-  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.1);
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.1);
   box-sizing: border-box;
 }
 
-/* Tables */
+/* TABLE FIXES */
 .table-container {
-  overflow-x: auto;
+  overflow-x: auto; /* CRITICAL: Enables horizontal scroll */
   border-radius: var(--radius);
   border: var(--border-width) solid var(--border-color);
   background: white;
   box-shadow: var(--shadow-hard);
-}
-table {
   width: 100%;
-  border-collapse: collapse;
-  min-width: 500px;
 }
-th {
-  padding: 0.8rem;
-  background: var(--primary-light);
-  text-transform: uppercase;
-  color: var(--primary);
-  text-align: left;
-}
-td {
-  padding: 0.8rem;
-  border-bottom: 1px solid #e2e8f0;
-}
+table { width: 100%; border-collapse: collapse; min-width: 600px; /* Forces table to keep width */ }
+th { padding: 0.8rem; background: var(--primary-light); text-transform: uppercase; color: var(--primary); text-align: left; white-space: nowrap; }
+td { padding: 0.8rem; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
 
-.label {
-  display: block;
-  font-weight: 700;
-  margin-bottom: 0.4rem;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-}
-.badge {
-  display: inline-flex;
-  padding: 0.2rem 0.6rem;
-  border-radius: 50px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  border: 2px solid var(--border-color);
-  text-transform: uppercase;
-}
-.badge-green {
-  background: var(--success);
-  color: white;
-}
-.badge-red {
-  background: var(--danger);
-  color: white;
-}
-.badge-yellow {
-  background: var(--warning);
-  color: black;
-}
+/* DASHBOARD LANDSCAPE FIXES */
+@media (max-height: 600px) {
+  /* 1. Top Stats: Keep side-by-side but smaller */
+  div[style*="grid-template-columns: repeat(auto-fit"] {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  /* 2. Bottom Lists (Exams/Retests): Force FULL WIDTH stacking */
+  .dashboard-grid, 
+  div[style*="grid-template-columns: repeat(auto-fit, minmax(450px"] {
+    grid-template-columns: 1fr !important; /* Stack vertically = Full Width */
+    gap: 1rem !important;
+  }
 
-/* Dashboard Grid Fix */
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--space-unit);
+  header { margin-bottom: 1rem !important; display: flex; align-items: center; justify-content: space-between; }
+  header h2 { margin: 0 !important; font-size: 1.2rem; }
+  header p { display: none; }
+  
+  .card { padding: 0.8rem !important; margin-bottom: 0.8rem !important; }
 }
 
 /* NAV ITEMS */
 .nav-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  border-radius: var(--radius);
-  color: #64748b;
-  text-decoration: none;
-  font-weight: 700;
-  margin-bottom: 8px;
-  border: 2px solid transparent;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
+  display: flex; align-items: center; gap: 1rem; padding: 1rem;
+  border-radius: var(--radius); color: #64748b; text-decoration: none;
+  font-weight: 700; margin-bottom: 8px; border: 2px solid transparent;
+  transition: all 0.2s; cursor: pointer;
 }
-.nav-item:hover {
-  background-color: #ffffff;
-  color: var(--primary);
+.nav-item:hover, .nav-item.active {
+  background-color: #ffffff; color: var(--primary);
   border-color: var(--border-color);
   box-shadow: 2px 2px 0px var(--border-color);
   transform: translate(-2px, -2px);
 }
-.nav-item.active {
-  background-color: var(--primary);
-  color: white;
-  border: 2px solid var(--border-color);
-  box-shadow: 2px 2px 0px var(--border-color);
-  transform: translate(-2px, -2px);
-}
-/* FIX: Dashboard Grid for Landscape Phones */
+.nav-item.active { background-color: var(--primary); color: white; }
+
+/* UTILS */
+.label { display: block; font-weight: 700; margin-bottom: 0.4rem; font-size: 0.85rem; text-transform: uppercase; }
+.badge { display: inline-flex; padding: 0.2rem 0.6rem; border-radius: 50px; font-size: 0.7rem; font-weight: 800; border: 2px solid var(--border-color); text-transform: uppercase; }
+.badge-green { background: var(--success); color: white; }
+.badge-red { background: var(--danger); color: white; }
+.badge-yellow { background: var(--warning); color: black; }
+
+/* Pin Lock Styles (Landscape Adaptive) */
+.pin-container { position: fixed; inset: 0; background: var(--bg-app); display: flex; flex-direction: column; justify-content: space-between; padding: 2rem; z-index: 2000; overflow-y: auto; }
+.pin-header { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem 1rem; max-width: 300px; margin: 0 auto; }
 @media (max-height: 600px) {
-  /* Force grid to be side-by-side but shorter */
-  .dashboard-grid,
-  div[style*='grid-template-columns'] {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important; /* Force 3 columns */
-    gap: 1rem !important;
-  }
-
-  /* Make cards shorter */
-  .card {
-    padding: 1rem !important;
-    margin-bottom: 1rem !important;
-  }
-
-  /* Shrink Icons inside cards */
-  .stat-card-value {
-    font-size: 1.5rem !important;
-  }
-  svg[height='60'],
-  svg[width='60'] {
-    height: 40px;
-    width: 40px;
-  } /* Shrink big icons */
+  .pin-container { flex-direction: row; align-items: center; justify-content: center; gap: 3rem; padding: 1rem; }
+  .pin-header { flex: 0 0 auto; margin-bottom: 0; }
+  .pin-keypad { flex: 0 0 auto; }
+  .pin-grid { gap: 0.8rem; }
+  .pin-btn { width: 55px !important; height: 55px !important; font-size: 1.4rem !important; }
 }
