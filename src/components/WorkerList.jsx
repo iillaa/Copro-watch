@@ -10,7 +10,6 @@ import {
   FaEdit,
   FaTrash,
   FaFilter,
-  FaArchive,
 } from 'react-icons/fa';
 
 export default function WorkerList({ onNavigateWorker }) {
@@ -64,7 +63,7 @@ export default function WorkerList({ onNavigateWorker }) {
       );
     }
     setFilteredWorkers(result);
-  }, [searchTerm, filterDept, workers, showArchived]); // Ajout de showArchived aux dépendances
+  }, [searchTerm, filterDept, workers, showArchived]);
 
   const handleEdit = (e, worker) => {
     e.stopPropagation();
@@ -157,12 +156,17 @@ export default function WorkerList({ onNavigateWorker }) {
 
   return (
     <div>
+      {/* HEADER FIX: Added flexWrap to allow content to wrap on landscape mobile */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          flexWrap: 'wrap', // <--- FIX HERE
+          gap: '1rem',      // <--- FIX HERE (Gap for wrapping)
           marginBottom: '1.5rem',
+          borderBottom: '1px solid var(--border-color)', // <--- Added for clarity
+          paddingBottom: '1rem'
         }}
       >
         <div>
@@ -171,14 +175,14 @@ export default function WorkerList({ onNavigateWorker }) {
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button className="btn btn-outline" onClick={handleExport} title="Exporter les données">
-            <FaFileDownload /> Export
+            <FaFileDownload /> <span className="hide-mobile-landscape">Export</span>
           </button>
           <label
             className="btn btn-outline"
             title="Importer les données"
             style={{ cursor: 'pointer' }}
           >
-            <FaFileUpload /> Import
+            <FaFileUpload /> <span className="hide-mobile-landscape">Import</span>
             <input type="file" onChange={handleImport} style={{ display: 'none' }} accept=".json" />
           </label>
           <button className="btn btn-primary" onClick={handleAddNew}>
@@ -263,7 +267,6 @@ export default function WorkerList({ onNavigateWorker }) {
           </select>
         </div>
 
-        {/* NOUVEAU : Case à cocher pour voir les archives */}
         <label
           style={{
             display: 'flex',
@@ -314,7 +317,6 @@ export default function WorkerList({ onNavigateWorker }) {
               const isOverdue = logic.isOverdue(w.next_exam_due);
               const status = getWorkerLastStatus(w.id);
 
-              // Style spécial pour les archivés (Grisé)
               const rowStyle = w.archived
                 ? {
                     opacity: 0.6,
@@ -334,7 +336,6 @@ export default function WorkerList({ onNavigateWorker }) {
                 >
                   <td style={{ fontWeight: 500 }}>
                     {w.full_name}
-                    {/* Petit badge Archivé */}
                     {w.archived && (
                       <span
                         style={{
@@ -423,4 +424,4 @@ export default function WorkerList({ onNavigateWorker }) {
       )}
     </div>
   );
-}
+                    }
