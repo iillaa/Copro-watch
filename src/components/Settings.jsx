@@ -834,7 +834,7 @@ export default function Settings({ currentPin, onPinChange }) {
         </div>
         <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Version 1.2.0</div>
       </div>
-      n
+      
     </div>
   );
 }
