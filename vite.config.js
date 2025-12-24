@@ -1,31 +1,49 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { viteSingleFile } from 'vite-plugin-singlefile';
-
-// NOTE: VitePWA is removed because Service Workers do not work 
-// when opening index.html directly via file:// (No Server Mode).
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   plugins: [
     react(),
-    viteSingleFile(), // Merges everything into one HTML file
+    viteSingleFile(), // Merges files for Offline Desktop use
+    VitePWA({         // Generates Manifest for Android App
+      registerType: 'autoUpdate',
+      includeAssets: ['app-icon.svg', 'manifest.json'],
+      manifest: {
+        name: 'Copro Watch',
+        short_name: 'CoproWatch',
+        description: 'Gestionnaire de Visites Médicales',
+        theme_color: '#ffffff',
+        background_color: '#ffffff',
+        display: 'standalone',
+        orientation: 'any',
+        icons: [
+          {
+            src: 'app-icon.svg',
+            sizes: '192x192',
+            type: 'image/svg+xml',
+            purpose: 'any maskable'
+          }
+        ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+      }
+    }),
   ],
-  base: './', // Crucial for offline/relative paths
+  base: './',
   build: {
     target: 'esnext',
     outDir: 'dist',
     
-    // 🛑 CRITICAL: Disable Minification to prevent Termux Crash
-    // This makes the file slightly larger (e.g. 3MB vs 1MB) but guarantees it builds.
+    // 🛑 CRITICAL: Disable Minification (Prevents Termux Crash)
     minify: false, 
     
-    // Ensure CSS is inlined
-    cssCodeSplit: false, 
-    
-    // Allow large assets to be inlined (up to 100MB)
+    // Limits
     assetsInlineLimit: 100000000, 
-    
-    // Prevent chunking (we want one file)
+    chunkSizeWarningLimit: 100000000,
+    cssCodeSplit: false, 
     rollupOptions: {
       output: {
         manualChunks: undefined,
@@ -33,4 +51,3 @@ export default defineConfig({
     },
   },
 });
-
