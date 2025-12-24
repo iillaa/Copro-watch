@@ -115,12 +115,18 @@ export default function WorkerDetail({ workerId, onBack }) {
         </button>
       </div>
 
+      {/* HEADER: Added FlexWrap for Landscape Safety */}
       <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+        <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'start', 
+            flexWrap: 'wrap', // <--- FIX HERE
+            gap: '1rem'       // <--- FIX HERE
+        }}>
           <div>
             <h2 style={{ margin: 0 }}>
               {worker.full_name}
-              {/* Indicateur visuel si archivé */}
               {worker.archived && (
                 <span
                   style={{
@@ -150,12 +156,10 @@ export default function WorkerDetail({ workerId, onBack }) {
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {/* Bouton Nouvel Examen */}
             <button className="btn btn-primary" onClick={handleNewExam} disabled={worker.archived}>
               <FaFileMedical /> Nouvel Examen
             </button>
 
-            {/* NOUVEAU BOUTON ARCHIVER / REACTIVER */}
             <button
               className="btn btn-outline"
               onClick={handleToggleArchive}
@@ -180,7 +184,6 @@ export default function WorkerDetail({ workerId, onBack }) {
               )}
             </button>
 
-            {/* Bouton Supprimer (Rouge) */}
             <button
               className="btn btn-outline"
               onClick={handleDeleteWorker}
@@ -217,64 +220,68 @@ export default function WorkerDetail({ workerId, onBack }) {
       </div>
 
       <h3>Historique Médical</h3>
+      
+      {/* TABLE FIX: Wrapped in container for scrolling */}
       <div className="card" style={{ padding: 0 }}>
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Médecin</th>
-              <th>Résultat Labo</th>
-              <th>Statut Final</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {exams.map((e) => (
-              <tr key={e.id}>
-                <td>{e.exam_date}</td>
-                <td>{e.physician_name}</td>
-                <td>
-                  {e.lab_result ? (
-                    <span
-                      className={`badge ${
-                        e.lab_result.result === 'positive' ? 'badge-red' : 'badge-green'
-                      }`}
+        <div className="table-container" style={{ overflowX: 'auto' }}> {/* <--- FIX HERE */}
+            <table style={{ minWidth: '600px' }}> {/* <--- FIX HERE (Force min width) */}
+            <thead>
+                <tr>
+                <th>Date</th>
+                <th>Médecin</th>
+                <th>Résultat Labo</th>
+                <th>Statut Final</th>
+                <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {exams.map((e) => (
+                <tr key={e.id}>
+                    <td>{e.exam_date}</td>
+                    <td>{e.physician_name}</td>
+                    <td>
+                    {e.lab_result ? (
+                        <span
+                        className={`badge ${
+                            e.lab_result.result === 'positive' ? 'badge-red' : 'badge-green'
+                        }`}
+                        >
+                        {e.lab_result.result === 'positive' ? 'Positif' : 'Négatif'}
+                        </span>
+                    ) : (
+                        'En attente'
+                    )}
+                    </td>
+                    <td>{renderStatusBadge(e.decision?.status)}</td>
+                    <td>
+                    <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => handleOpenExam(e)}
+                        style={{ marginRight: '0.5rem' }}
                     >
-                      {e.lab_result.result === 'positive' ? 'Positif' : 'Négatif'}
-                    </span>
-                  ) : (
-                    'En attente'
-                  )}
-                </td>
-                <td>{renderStatusBadge(e.decision?.status)}</td>
-                <td>
-                  <button
-                    className="btn btn-outline btn-sm"
-                    onClick={() => handleOpenExam(e)}
-                    style={{ marginRight: '0.5rem' }}
-                  >
-                    Détails
-                  </button>
-                  <button
-                    className="btn btn-outline btn-sm"
-                    onClick={() => handleDeleteExam(e.id)}
-                    style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
-                    title="Supprimer"
-                  >
-                    <FaTrash />
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {exams.length === 0 && (
-              <tr>
-                <td colSpan="5" style={{ textAlign: 'center' }}>
-                  Aucun historique.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                        Détails
+                    </button>
+                    <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => handleDeleteExam(e.id)}
+                        style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                        title="Supprimer"
+                    >
+                        <FaTrash />
+                    </button>
+                    </td>
+                </tr>
+                ))}
+                {exams.length === 0 && (
+                <tr>
+                    <td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>
+                    Aucun historique.
+                    </td>
+                </tr>
+                )}
+            </tbody>
+            </table>
+        </div>
       </div>
 
       {showExamForm && (
