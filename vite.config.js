@@ -1,17 +1,14 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-// REMOVED: import { viteSingleFile } from 'vite-plugin-singlefile'; 
-// (This was causing the crash on Termux)
 import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
-    // REMOVED: viteSingleFile(), 
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['app-icon.svg', 'manifest.json'], // Ensure manifest is included
+      includeAssets: ['app-icon.svg', 'manifest.json'],
       manifest: {
         name: 'Gestionnaire de Visites Médicales',
         short_name: 'MedVisit',
@@ -22,18 +19,21 @@ export default defineConfig({
         display: 'standalone',
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'] // Cache standard files
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
       }
     }),
   ],
-  base: './', // Keep this for Capacitor relative paths
+  base: './', 
   build: {
     target: 'esnext',
-    // REMOVED: assetsInlineLimit: 100000000 (Caused the Memory Crash)
-    assetsInlineLimit: 4096, // Return to default (4kb)
+    // 🛑 CRITICAL FIX FOR TERMUX: Disable Minification
+    // This stops the "terser" crash by skipping code compression.
+    minify: false, 
+    
+    assetsInlineLimit: 4096, 
     chunkSizeWarningLimit: 1000,
-    cssCodeSplit: true, // Allow splitting for better performance
-    sourcemap: false, // Save memory/space
+    cssCodeSplit: true, 
+    sourcemap: false, 
     rollupOptions: {
       output: {
         manualChunks: undefined,
