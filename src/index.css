@@ -237,3 +237,9 @@ td { padding: 0.8rem; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
   .pin-grid { gap: 0.8rem; }
   .pin-btn { width: 55px !important; height: 55px !important; font-size: 1.4rem !important; }
 }
+/* Utility: Hide text on small landscape screens to save space */
+@media (max-height: 600px) {
+  .hide-mobile-landscape {
+    display: none !important;
+  }
+}
