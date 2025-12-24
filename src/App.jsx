@@ -41,18 +41,23 @@ function App() {
     setLoading(false);
   };
 
-  useEffect(() => { initApp(); }, []);
+  useEffect(() => {
+    initApp();
+  }, []);
 
   const navigateToWorker = (id) => {
     setSelectedWorkerId(id);
     setView('worker-detail');
   };
 
-  if (loading) return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      Chargement...
-    </div>
-  );
+  if (loading)
+    return (
+      <div
+        style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
+      >
+        Chargement...
+      </div>
+    );
 
   if (isLocked) {
     return <PinLock correctPin={pin} onUnlock={() => setIsLocked(false)} />;
@@ -60,25 +65,23 @@ function App() {
 
   return (
     <div className={`app-shell ${!isMobile && !isSidebarOpen ? 'sidebar-closed' : ''}`}>
-      
       {/* 1. DESKTOP NAVIGATION (Sidebar) */}
       {!isMobile && isSidebarOpen && (
-        <Sidebar 
-          view={view} 
-          setView={setView} 
-          onResetWater={() => setWaterResetKey((k) => k + 1)} 
+        <Sidebar
+          view={view}
+          setView={setView}
+          onResetWater={() => setWaterResetKey((k) => k + 1)}
         />
       )}
 
       {/* 2. MAIN CONTENT */}
       <main className="main-content" style={{ paddingBottom: isMobile ? '80px' : '2rem' }}>
         <div className="container">
-          
           {/* Toggle Button (Desktop Only) */}
           {!isMobile && (
             <button
               className="btn btn-sm no-print toggle-sidebar"
-              style={{ marginBottom: '1rem', position:'static' }} // Override fixed pos if needed
+              style={{ marginBottom: '1rem', position: 'static' }} // Override fixed pos if needed
               onClick={() => setSidebarOpen(!isSidebarOpen)}
             >
               {isSidebarOpen ? 'Masquer Menu' : 'Afficher Menu'}
@@ -98,10 +101,10 @@ function App() {
 
       {/* 3. MOBILE NAVIGATION (Bottom Bar) */}
       {isMobile && (
-        <MobileNav 
-          view={view} 
-          setView={setView} 
-          onResetWater={() => setWaterResetKey((k) => k + 1)} 
+        <MobileNav
+          view={view}
+          setView={setView}
+          onResetWater={() => setWaterResetKey((k) => k + 1)}
         />
       )}
     </div>

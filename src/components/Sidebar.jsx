@@ -12,32 +12,32 @@ export default function Sidebar({ view, setView, onResetWater }) {
 
       {/* Navigation Menu */}
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <NavItem 
-          active={view === 'dashboard'} 
-          onClick={() => setView('dashboard')} 
-          icon={<FaChartLine />} 
-          label="Tableau de bord" 
+        <NavItem
+          active={view === 'dashboard'}
+          onClick={() => setView('dashboard')}
+          icon={<FaChartLine />}
+          label="Tableau de bord"
         />
-        <NavItem 
-          active={view === 'workers' || view === 'worker-detail'} 
-          onClick={() => setView('workers')} 
-          icon={<FaUsers />} 
-          label="Travailleurs" 
+        <NavItem
+          active={view === 'workers' || view === 'worker-detail'}
+          onClick={() => setView('workers')}
+          icon={<FaUsers />}
+          label="Travailleurs"
         />
-        <NavItem 
-          active={view === 'water-analyses'} 
+        <NavItem
+          active={view === 'water-analyses'}
           onClick={() => {
             setView('water-analyses');
             if (onResetWater) onResetWater();
-          }} 
-          icon={<FaFlask />} 
-          label="Analyses d'eau" 
+          }}
+          icon={<FaFlask />}
+          label="Analyses d'eau"
         />
-        <NavItem 
-          active={view === 'settings'} 
-          onClick={() => setView('settings')} 
-          icon={<FaCog />} 
-          label="Paramètres" 
+        <NavItem
+          active={view === 'settings'}
+          onClick={() => setView('settings')}
+          icon={<FaCog />}
+          label="Paramètres"
         />
       </nav>
 

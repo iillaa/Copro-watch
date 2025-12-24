@@ -3,14 +3,14 @@ import { FaLock, FaTimes } from 'react-icons/fa';
 
 // 1. Import the Mobile Detector and Mobile View
 // Ensure you have created 'src/hooks/useIsMobile.js'
-import { useIsMobile } from '../hooks/useIsMobile'; 
+import { useIsMobile } from '../hooks/useIsMobile';
 // Ensure you have created 'src/components/PinLockMobile.jsx'
-import PinLockMobile from './PinLockMobile'; 
+import PinLockMobile from './PinLockMobile';
 
 export default function PinLock({ onUnlock, correctPin = '0000' }) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
-  
+
   // 2. Detect if we are on a phone
   const isMobile = useIsMobile();
 
@@ -22,7 +22,7 @@ export default function PinLock({ onUnlock, correctPin = '0000' }) {
         setError(true);
         // Haptic feedback (vibration) for better mobile feel
         if (navigator.vibrate) navigator.vibrate(200);
-        
+
         setTimeout(() => {
           setPin('');
           setError(false);
@@ -50,7 +50,7 @@ export default function PinLock({ onUnlock, correctPin = '0000' }) {
   // 3. RENDER MOBILE VIEW (New Touch Interface)
   if (isMobile) {
     return (
-      <PinLockMobile 
+      <PinLockMobile
         pin={pin}
         error={error}
         handleDigit={handleDigit}
@@ -100,7 +100,11 @@ export default function PinLock({ onUnlock, correctPin = '0000' }) {
                 height: '15px',
                 borderRadius: '50%',
                 background:
-                  i < pin.length ? (error ? 'var(--danger)' : 'var(--primary)') : 'var(--border-color)',
+                  i < pin.length
+                    ? error
+                      ? 'var(--danger)'
+                      : 'var(--primary)'
+                    : 'var(--border-color)',
                 border: '1px solid var(--border-color)',
                 transition: 'background 0.2s',
               }}

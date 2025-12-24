@@ -357,7 +357,6 @@ export default function Settings({ currentPin, onPinChange }) {
   return (
     <div>
       <h2 style={{ marginBottom: '1.5rem' }}>Paramètres</h2>
-
       {/* Security Section */}
       <div className="card" style={{ maxWidth: '500px' }}>
         <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -421,7 +420,6 @@ export default function Settings({ currentPin, onPinChange }) {
           </label>
         </div>
       </div>
-
       {/* --- NEW SIDE-BY-SIDE SECTION --- */}
       <div
         style={{
@@ -787,7 +785,6 @@ export default function Settings({ currentPin, onPinChange }) {
           )}
         </div>
       </div>
-
       {msg && (
         <p
           style={{
@@ -805,6 +802,39 @@ export default function Settings({ currentPin, onPinChange }) {
           {msg}
         </p>
       )}
+      {/* Credits Section (Moved from Sidebar) */}
+      <div
+        style={{
+          marginTop: '3rem',
+          padding: '2rem',
+          textAlign: 'center',
+          borderTop: '1px solid var(--border-color)',
+          color: 'var(--text-muted)',
+        }}
+      >
+        <div
+          style={{
+            fontSize: '0.8rem',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            marginBottom: '0.5rem',
+          }}
+        >
+          Développé par
+        </div>
+        <div
+          style={{
+            fontWeight: 'bold',
+            fontSize: '1.1rem',
+            color: 'var(--primary)',
+            marginBottom: '0.2rem',
+          }}
+        >
+          Dr Kibeche Ali Dia Eddine
+        </div>
+        <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Version 1.2.0</div>
+      </div>
+      n
     </div>
   );
 }
