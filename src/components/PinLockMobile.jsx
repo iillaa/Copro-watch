@@ -1,17 +1,11 @@
-import { FaLock, FaTimes, FaBackspace } from 'react-icons/fa';
+import { FaLock, FaBackspace } from 'react-icons/fa';
 
 export default function PinLockMobile({ pin, error, handleDigit, handleClear, handleBackspace }) {
   return (
-    <div style={{
-      position: 'fixed', inset: 0, 
-      background: 'var(--bg-app)', 
-      display: 'flex', flexDirection: 'column', 
-      justifyContent: 'space-between', padding: '2rem',
-      zIndex: 2000
-    }}>
+    <div className="pin-container">
       
-      {/* 1. Top Section: Status */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+      {/* 1. Header Section */}
+      <div className="pin-header">
         <div style={{ 
           width: '60px', height: '60px', 
           background: 'var(--primary-light)', 
@@ -25,7 +19,7 @@ export default function PinLockMobile({ pin, error, handleDigit, handleClear, ha
         <p style={{ color: 'var(--text-muted)' }}>Saisir le code PIN</p>
 
         {/* Dots Indicator */}
-        <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
           {[0, 1, 2, 3].map((i) => (
             <div key={i} style={{
               width: '16px', height: '16px', borderRadius: '50%',
@@ -38,16 +32,16 @@ export default function PinLockMobile({ pin, error, handleDigit, handleClear, ha
         </div>
       </div>
 
-      {/* 2. Bottom Section: Keypad */}
-      <div style={{ paddingBottom: '2rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem 1rem' }}>
+      {/* 2. Keypad Section */}
+      <div className="pin-keypad">
+        <div className="pin-grid">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-            <button key={num} onClick={() => handleDigit(num)} style={{
+            <button key={num} onClick={() => handleDigit(num)} className="pin-btn" style={{
               background: 'transparent', border: '2px solid var(--border-color)',
               borderRadius: '50%', width: '70px', height: '70px',
               fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-main)',
               margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: 'var(--shadow-hard)', active: { transform: 'scale(0.95)' }
+              boxShadow: 'var(--shadow-hard)', cursor: 'pointer'
             }}>
               {num}
             </button>
@@ -55,12 +49,12 @@ export default function PinLockMobile({ pin, error, handleDigit, handleClear, ha
           
           {/* Action Row */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-             <button onClick={handleClear} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1rem' }}>
-               OUBLIÉ ?
+             <button onClick={handleClear} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 'bold' }}>
+               CLR
              </button>
           </div>
           
-          <button onClick={() => handleDigit(0)} style={{
+          <button onClick={() => handleDigit(0)} className="pin-btn" style={{
               background: 'transparent', border: '2px solid var(--border-color)',
               borderRadius: '50%', width: '70px', height: '70px',
               fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-main)',
@@ -72,7 +66,7 @@ export default function PinLockMobile({ pin, error, handleDigit, handleClear, ha
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
              <button onClick={handleBackspace} style={{ background: 'none', border: 'none', color: 'var(--text-main)' }}>
-               <FaBackspace size={28} />
+               <FaBackspace size={24} />
              </button>
           </div>
         </div>
