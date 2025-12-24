@@ -1,39 +1,31 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { VitePWA } from 'vite-plugin-pwa';
+import { viteSingleFile } from 'vite-plugin-singlefile';
 
-// https://vitejs.dev/config/
+// NOTE: VitePWA is removed because Service Workers do not work 
+// when opening index.html directly via file:// (No Server Mode).
+
 export default defineConfig({
   plugins: [
     react(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['app-icon.svg', 'manifest.json'],
-      manifest: {
-        name: 'Gestionnaire de Visites Médicales',
-        short_name: 'MedVisit',
-        description: 'Offline SPA to manage medical visits',
-        icons: [{ src: 'app-icon.svg', sizes: '192x192', type: 'image/svg+xml' }],
-        theme_color: '#ffffff',
-        background_color: '#ffffff',
-        display: 'standalone',
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
-      }
-    }),
+    viteSingleFile(), // Merges everything into one HTML file
   ],
-  base: './', 
+  base: './', // Crucial for offline/relative paths
   build: {
     target: 'esnext',
-    // 🛑 CRITICAL FIX FOR TERMUX: Disable Minification
-    // This stops the "terser" crash by skipping code compression.
+    outDir: 'dist',
+    
+    // 🛑 CRITICAL: Disable Minification to prevent Termux Crash
+    // This makes the file slightly larger (e.g. 3MB vs 1MB) but guarantees it builds.
     minify: false, 
     
-    assetsInlineLimit: 4096, 
-    chunkSizeWarningLimit: 1000,
-    cssCodeSplit: true, 
-    sourcemap: false, 
+    // Ensure CSS is inlined
+    cssCodeSplit: false, 
+    
+    // Allow large assets to be inlined (up to 100MB)
+    assetsInlineLimit: 100000000, 
+    
+    // Prevent chunking (we want one file)
     rollupOptions: {
       output: {
         manualChunks: undefined,
