@@ -335,24 +335,15 @@ export default function WorkerList({ onNavigateWorker }) {
           Voir archives
         </label>
 
-        {(searchTerm || filterDept) && (
+ {(searchTerm || filterDept) && (
           <button
             className="btn btn-outline btn-sm"
             onClick={() => {
               setSearchTerm('');
               setFilterDept('');
+              localStorage.removeItem('worker_filter_dept'); // Nettoyage correct
             }}
           >
-            <button
-              className="btn btn-outline btn-sm"
-              onClick={() => {
-                setSearchTerm('');
-
-                setFilterDept('');
-
-                localStorage.removeItem('worker_filter_dept'); // <--- AJOUTER CECI
-              }}
-            ></button>
             Effacer filtres
           </button>
         )}
