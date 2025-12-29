@@ -6,6 +6,7 @@ import {
   FaClipboardList,
   FaExclamationTriangle,
   FaMicroscope,
+  FaClock
 } from 'react-icons/fa';
 
 export default function Dashboard({ onNavigateWorker }) {
@@ -16,20 +17,19 @@ export default function Dashboard({ onNavigateWorker }) {
     setLoading(true);
     const [workers, exams] = await Promise.all([db.getWorkers(), db.getExams()]);
 
-    // 1. Filtrer les archivés (Important !)
+    // 1. Filtrer les archivés
     const activeWorkers = workers.filter((w) => !w.archived);
 
     // 2. Calculer les stats
     const computed = logic.getDashboardStats(activeWorkers, exams);
 
-    // 3. AJOUTER CE BLOC DE TRI (SORTING) ICI :
-    // Trier par date d'échéance (du plus urgent au moins urgent)
+    // 3. TRI AUTOMATIQUE
+    // A faire bientôt : du plus proche au plus lointain
     computed.dueSoon.sort((a, b) => new Date(a.next_exam_due) - new Date(b.next_exam_due));
+    // En retard : du plus grand retard (date ancienne) au plus petit
     computed.overdue.sort((a, b) => new Date(a.next_exam_due) - new Date(b.next_exam_due));
-
-    // Trier les contre-visites par date
+    // Contre-visites : par date prévue
     computed.retests.sort((a, b) => new Date(a.date) - new Date(b.date));
-    // ----------------------------------------
 
     setStats(computed);
     setLoading(false);
@@ -53,24 +53,6 @@ export default function Dashboard({ onNavigateWorker }) {
       >
         <div className="loading-spinner"></div>
         <div style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Chargement des données...</div>
-        <div
-          style={{
-            width: '200px',
-            height: '4px',
-            backgroundColor: 'var(--bg-app)',
-            borderRadius: '2px',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              backgroundColor: 'var(--primary)',
-              animation: 'shimmer 1.5s infinite',
-            }}
-          ></div>
-        </div>
       </div>
     );
 
@@ -81,6 +63,7 @@ export default function Dashboard({ onNavigateWorker }) {
         <p>Aperçu de la situation médicale.</p>
       </header>
 
+      {/* --- CARTES DE STATISTIQUES --- */}
       <div
         style={{
           display: 'grid',
@@ -89,7 +72,7 @@ export default function Dashboard({ onNavigateWorker }) {
           marginBottom: '2.5rem',
         }}
       >
-        {/* Due Soon - Orange/Yellow */}
+        {/* À faire (Jaune) */}
         <div
           className="card"
           style={{
@@ -114,7 +97,7 @@ export default function Dashboard({ onNavigateWorker }) {
           </div>
         </div>
 
-        {/* Overdue - Red */}
+        {/* En Retard (Rouge) */}
         <div
           className="card"
           style={{
@@ -139,7 +122,7 @@ export default function Dashboard({ onNavigateWorker }) {
           </div>
         </div>
 
-        {/* Positive Cases - Blue/Teal */}
+        {/* Suivi Médical (Bleu) */}
         <div
           className="card"
           style={{
@@ -165,6 +148,7 @@ export default function Dashboard({ onNavigateWorker }) {
         </div>
       </div>
 
+      {/* --- TABLEAUX --- */}
       <div
         style={{
           display: 'grid',
@@ -172,7 +156,7 @@ export default function Dashboard({ onNavigateWorker }) {
           gap: '1.5rem',
         }}
       >
-        {/* Urgent List */}
+        {/* TABLEAU 1 : Examens à prévoir (Retard & Bientôt) */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div
             style={{
@@ -181,18 +165,17 @@ export default function Dashboard({ onNavigateWorker }) {
               background: 'white',
             }}
           >
-            <h3 style={{ marginBottom: 0 }}>Examens à prévoir</h3>
+            <h3 style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FaClock /> Examens à prévoir
+            </h3>
           </div>
 
           {stats.dueSoon.length === 0 && stats.overdue.length === 0 ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              Rien à signaler.
+              Rien à signaler. Tout est à jour !
             </div>
           ) : (
-            <div
-              className="table-container"
-              style={{ border: 'none', boxShadow: 'none', borderRadius: 0 }}
-            >
+            <div className="table-container" style={{ border: 'none', boxShadow: 'none', borderRadius: 0 }}>
               <table>
                 <thead>
                   <tr>
@@ -202,15 +185,20 @@ export default function Dashboard({ onNavigateWorker }) {
                   </tr>
                 </thead>
                 <tbody>
+                  {/* D'abord les retards (Priorité absolue) */}
                   {stats.overdue.map((w) => (
                     <tr key={w.id} className="overdue-worker-row">
                       <td>
-                        <div style={{ fontWeight: 700 }}>{w.full_name}</div>
-                        <span className="badge badge-red" style={{ marginTop: '0.25rem' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--danger-text)' }}>
+                          {w.full_name}
+                        </div>
+                        <span className="badge badge-red" style={{ marginTop: '0.25rem', fontSize: '0.75rem' }}>
                           En Retard
                         </span>
                       </td>
-                      <td>{w.next_exam_due}</td>
+                      <td style={{ color: 'var(--danger)', fontWeight: 'bold' }}>
+                        {logic.formatDate(new Date(w.next_exam_due))}
+                      </td>
                       <td style={{ textAlign: 'right' }}>
                         <button
                           className="btn btn-sm btn-outline"
@@ -221,10 +209,16 @@ export default function Dashboard({ onNavigateWorker }) {
                       </td>
                     </tr>
                   ))}
+
+                  {/* Ensuite les examens à venir */}
                   {stats.dueSoon.map((w) => (
                     <tr key={w.id}>
-                      <td style={{ fontWeight: 600 }}>{w.full_name}</td>
-                      <td>{w.next_exam_due}</td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{w.full_name}</div>
+                      </td>
+                      <td>
+                        {logic.formatDate(new Date(w.next_exam_due))}
+                      </td>
                       <td style={{ textAlign: 'right' }}>
                         <button
                           className="btn btn-sm btn-outline"
@@ -241,7 +235,7 @@ export default function Dashboard({ onNavigateWorker }) {
           )}
         </div>
 
-        {/* Re-tests */}
+        {/* TABLEAU 2 : Contre-visites (Suivi) */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div
             style={{
@@ -250,7 +244,9 @@ export default function Dashboard({ onNavigateWorker }) {
               background: 'white',
             }}
           >
-            <h3 style={{ marginBottom: 0 }}>Contre-visites</h3>
+            <h3 style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FaMicroscope color="var(--primary)" /> Contre-visites
+            </h3>
           </div>
 
           {stats.retests.length === 0 ? (
@@ -258,14 +254,11 @@ export default function Dashboard({ onNavigateWorker }) {
               Aucune contre-visite prévue.
             </div>
           ) : (
-            <div
-              className="table-container"
-              style={{ border: 'none', boxShadow: 'none', borderRadius: 0 }}
-            >
+            <div className="table-container" style={{ border: 'none', boxShadow: 'none', borderRadius: 0 }}>
               <table>
                 <thead>
                   <tr>
-                    <th>Nom</th>
+                    <th>Patient (Suivi)</th>
                     <th>Date Prévue</th>
                     <th></th>
                   </tr>
@@ -273,8 +266,38 @@ export default function Dashboard({ onNavigateWorker }) {
                 <tbody>
                   {stats.retests.map((item) => (
                     <tr key={item.worker.id}>
-                      <td style={{ fontWeight: 600 }}>{item.worker.full_name}</td>
-                      <td>{logic.formatDate(new Date(item.date))}</td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                           {/* ICÔNE DE SUIVI */}
+                           <div style={{
+                             background: 'var(--primary-light)',
+                             padding: '6px',
+                             borderRadius: '50%',
+                             display: 'flex',
+                             alignItems: 'center',
+                             justifyContent: 'center'
+                           }}>
+                             <FaMicroscope size={14} color="var(--primary)" />
+                           </div>
+                           <div>
+                             <div style={{ fontWeight: 600 }}>{item.worker.full_name}</div>
+                             {/* BADGE DISCRET */}
+                             <span style={{
+                               fontSize: '0.7rem',
+                               background: '#e0f2fe',
+                               color: '#0284c7',
+                               padding: '2px 6px',
+                               borderRadius: '4px',
+                               fontWeight: '600'
+                             }}>
+                               Suivi requis
+                             </span>
+                           </div>
+                        </div>
+                      </td>
+                      <td>
+                        {logic.formatDate(new Date(item.date))}
+                      </td>
                       <td style={{ textAlign: 'right' }}>
                         <button
                           className="btn btn-sm btn-outline"
