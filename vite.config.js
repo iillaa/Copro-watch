@@ -24,7 +24,7 @@ export default defineConfig({
   base: './',
   build: {
     target: 'esnext',
-    // REMOVE: assetsInlineLimit: 100000000, 
+    // REMOVE: assetsInlineLimit: 100000000,
     // REMOVE: cssCodeSplit: false,
     rollupOptions: {
       // REMOVE: inlineDynamicImports: true,

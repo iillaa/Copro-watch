@@ -12,6 +12,6 @@ export default defineConfig({
     rollupOptions: {
       inlineDynamicImports: true,
     },
-    outDir: 'dist-standalone' // Keeps it separate from your Android build
+    outDir: 'dist-standalone', // Keeps it separate from your Android build
   },
 });

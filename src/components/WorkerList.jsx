@@ -11,6 +11,9 @@ import {
   FaTrash,
   FaFilter,
   FaArchive,
+  FaSort,
+  FaSortUp,
+  FaSortDown,
 } from 'react-icons/fa';
 
 export default function WorkerList({ onNavigateWorker }) {
@@ -20,7 +23,10 @@ export default function WorkerList({ onNavigateWorker }) {
   const [departments, setDepartments] = useState([]);
   const [exams, setExams] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterDept, setFilterDept] = useState('');
+  const [filterDept, setFilterDept] = useState(
+    () => localStorage.getItem('worker_filter_dept') || ''
+  );
+  const [sortConfig, setSortConfig] = useState({ key: 'full_name', direction: 'asc' });
 
   // NOUVEAU STATE : Pour gérer l'affichage des archives
   const [showArchived, setShowArchived] = useState(false);
@@ -36,6 +42,29 @@ export default function WorkerList({ onNavigateWorker }) {
     setDepartments(d);
     setExams(e);
   };
+  // A. Sauvegarder le choix du service
+  useEffect(() => {
+    localStorage.setItem('worker_filter_dept', filterDept);
+  }, [filterDept]);
+
+  // B. Fonction de gestion du tri
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // C. Helper pour afficher la petite flèche
+  const getSortIcon = (key) => {
+    if (sortConfig.key !== key) return <FaSort style={{ opacity: 0.3, marginLeft: '5px' }} />;
+    return sortConfig.direction === 'asc' ? (
+      <FaSortUp style={{ marginLeft: '5px' }} />
+    ) : (
+      <FaSortDown style={{ marginLeft: '5px' }} />
+    );
+  };
 
   useEffect(() => {
     loadData();
@@ -44,12 +73,10 @@ export default function WorkerList({ onNavigateWorker }) {
   useEffect(() => {
     let result = workers;
 
-    // 1. FILTRE ARCHIVE (Le plus important)
+    // 1. FILTRE ARCHIVE (Gardez votre logique existante ici si elle est différente)
     if (!showArchived) {
-      // Si la case n'est pas cochée, on cache ceux qui sont archivés
       result = result.filter((w) => !w.archived);
     }
-    // (Si elle est cochée, on montre tout le monde)
 
     // 2. Filtre Département
     if (filterDept) {
@@ -63,8 +90,32 @@ export default function WorkerList({ onNavigateWorker }) {
         (w) => w.full_name.toLowerCase().includes(lower) || w.national_id.includes(lower)
       );
     }
+
+    // 4. NOUVEAU : TRI (Sorting)
+    if (sortConfig.key) {
+      result = [...result].sort((a, b) => {
+        let aVal = a[sortConfig.key];
+        let bVal = b[sortConfig.key];
+
+        // Tri spécifique pour le nom du département
+        if (sortConfig.key === 'department_id') {
+          aVal = getDeptName(a.department_id) || ''; // getDeptName doit exister dans votre code
+          bVal = getDeptName(b.department_id) || '';
+        }
+        // Tri insensible à la casse pour le texte
+        else if (typeof aVal === 'string') {
+          aVal = aVal.toLowerCase();
+          bVal = bVal ? bVal.toLowerCase() : '';
+        }
+
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
     setFilteredWorkers(result);
-  }, [searchTerm, filterDept, workers, showArchived]); // Ajout de showArchived aux dépendances
+  }, [searchTerm, filterDept, workers, showArchived, sortConfig]); // N'oubliez pas d'ajouter sortConfig ici
 
   const handleEdit = (e, worker) => {
     e.stopPropagation();
@@ -292,6 +343,16 @@ export default function WorkerList({ onNavigateWorker }) {
               setFilterDept('');
             }}
           >
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => {
+                setSearchTerm('');
+
+                setFilterDept('');
+
+                localStorage.removeItem('worker_filter_dept'); // <--- AJOUTER CECI
+              }}
+            ></button>
             Effacer filtres
           </button>
         )}
@@ -301,11 +362,46 @@ export default function WorkerList({ onNavigateWorker }) {
         <table>
           <thead>
             <tr>
-              <th>Nom</th>
-              <th>Matricule</th>
-              <th>Service</th>
-              <th>Dernier Examen</th>
-              <th>Prochain Dû</th>
+              <th
+                onClick={() => handleSort('full_name')}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  Nom {getSortIcon('full_name')}
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort('national_id')}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  Matricule {getSortIcon('national_id')}
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort('department_id')}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  Service {getSortIcon('department_id')}
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort('last_exam_date')}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  Dernier Examen {getSortIcon('last_exam_date')}
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort('next_exam_due')}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  Prochain Dû {getSortIcon('next_exam_due')}
+                </div>
+              </th>
               <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>

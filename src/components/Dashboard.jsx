@@ -16,13 +16,20 @@ export default function Dashboard({ onNavigateWorker }) {
     setLoading(true);
     const [workers, exams] = await Promise.all([db.getWorkers(), db.getExams()]);
 
-    // --- CORRECTION ICI ---
-    // On filtre les travailleurs : on ne garde que ceux qui NE SONT PAS archivés (!w.archived)
-    // Cela empêche les "jardiniers" ou anciens employés de polluer les statistiques de retard.
+    // 1. Filtrer les archivés (Important !)
     const activeWorkers = workers.filter((w) => !w.archived);
 
-    // On calcule les stats uniquement sur les actifs
+    // 2. Calculer les stats
     const computed = logic.getDashboardStats(activeWorkers, exams);
+
+    // 3. AJOUTER CE BLOC DE TRI (SORTING) ICI :
+    // Trier par date d'échéance (du plus urgent au moins urgent)
+    computed.dueSoon.sort((a, b) => new Date(a.next_exam_due) - new Date(b.next_exam_due));
+    computed.overdue.sort((a, b) => new Date(a.next_exam_due) - new Date(b.next_exam_due));
+
+    // Trier les contre-visites par date
+    computed.retests.sort((a, b) => new Date(a.date) - new Date(b.date));
+    // ----------------------------------------
 
     setStats(computed);
     setLoading(false);

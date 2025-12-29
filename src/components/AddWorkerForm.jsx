@@ -45,6 +45,35 @@ export default function WorkerForm({ workerToEdit, onClose, onSave }) {
       alert('Veuillez sélectionner un lieu de travail.');
       return;
     }
+    // --- LOGIQUE ANTI-DOUBLON ---
+    try {
+      const allWorkers = await db.getWorkers();
+      // On normalise pour comparer proprement (minuscule, sans espaces inutiles)
+      const normalize = (str) => (str ? str.toString().trim().toLowerCase() : '');
+      const currentName = normalize(formData.full_name);
+      const currentMatricule = normalize(formData.national_id);
+      const currentPhone = normalize(formData.phone);
+      const duplicate = allWorkers.find((w) => {
+        // Ignorer le travailleur qu'on modifie actuellement
+        if (workerToEdit && w.id === workerToEdit.id) return false;
+        // Vérifier les doublons
+        const nameMatch = normalize(w.full_name) === currentName;
+        // On ne vérifie matricule/téléphone que s'ils ne sont pas vides
+        const matriculeMatch = currentMatricule && normalize(w.national_id) === currentMatricule;
+        const phoneMatch = currentPhone && normalize(w.phone) === currentPhone;
+        return nameMatch || matriculeMatch || phoneMatch;
+      });
+      if (duplicate) {
+        alert(
+          `Doublon détecté avec le travailleur : ${duplicate.full_name}.\n` +
+            `(Nom, Matricule ou Téléphone identique)`
+        );
+        return; // Arrêter l'enregistrement
+      }
+    } catch (error) {
+      console.error('Erreur lors de la vérification des doublons', error);
+    }
+    // --- FIN LOGIQUE ---
 
     // Date par défaut si nouvelle saisie
     let nextDue = formData.next_exam_due;

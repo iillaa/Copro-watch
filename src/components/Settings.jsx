@@ -258,8 +258,16 @@ export default function Settings({ currentPin, onPinChange }) {
   const loadDepartments = async () => {
     setDepartmentsLoading(true);
     try {
-      const depts = await db.getDepartments();
-      setDepartments(depts);
+      // On charge les services ET les travailleurs
+      const [depts, workers] = await Promise.all([db.getDepartments(), db.getWorkers()]);
+
+      // On ajoute un champ 'count' à chaque département (travailleurs actifs uniquement)
+      const deptsWithCount = depts.map((d) => ({
+        ...d,
+        count: workers.filter((w) => w.department_id === d.id && !w.archived).length,
+      }));
+
+      setDepartments(deptsWithCount);
     } catch (error) {
       console.error('Error loading departments:', error);
     }
@@ -491,7 +499,21 @@ export default function Settings({ currentPin, onPinChange }) {
                       borderRadius: '4px',
                     }}
                   >
-                    <span style={{ fontWeight: '500' }}>{dept.name}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontWeight: '500' }}>{dept.name}</span>
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          background: '#e2e8f0',
+                          color: '#475569',
+                          padding: '2px 6px',
+                          borderRadius: '10px',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        {dept.count || 0}
+                      </span>
+                    </div>
                     <button
                       className="btn btn-sm btn-outline"
                       onClick={() => deleteDepartment(dept.id)}

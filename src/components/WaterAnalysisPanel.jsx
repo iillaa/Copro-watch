@@ -10,15 +10,15 @@ import {
 } from 'react-icons/fa';
 
 export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
- // 1. Find the relevant analysis for the CURRENT MONTH
+  // 1. Find the relevant analysis for the CURRENT MONTH
   // Sort by newest first (Date DESC, then ID DESC for same-day items)
   const history = [...analyses].sort((a, b) => {
     const dateA = new Date(a.request_date || a.sample_date);
     const dateB = new Date(b.request_date || b.sample_date);
     const diff = dateB - dateA;
     // If dates are different, sort by date. If same, sort by ID (newest first).
-    return diff !== 0 ? diff : (b.id - a.id); 
-  });  
+    return diff !== 0 ? diff : b.id - a.id;
+  });
 
   const currentMonthAnalysis = history.find((a) => {
     const d = new Date(a.request_date || a.sample_date);
