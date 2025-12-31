@@ -84,44 +84,48 @@ export const logic = {
 
   recalculateWorkerStatus(exams) {
     if (!exams || exams.length === 0) {
-      // No exams = Due immediately
       return { last_exam_date: null, next_exam_due: this.formatDate(new Date()) };
     }
 
-    // Sort exams by date desc (newest first)
     const sortedExams = [...exams].sort((a, b) => parseISO(b.exam_date) - parseISO(a.exam_date));
+
     const lastExam = sortedExams[0];
+
     const lastExamDate = lastExam.exam_date;
 
-    // Find latest finalized exam (Apte, Apte Partielle, or Inapte)
     const lastValidExam = sortedExams.find(
       (e) => e.decision && ['apte', 'apte_partielle', 'inapte'].includes(e.decision.status)
     );
 
     let nextDue;
+
     if (lastValidExam) {
       const status = lastValidExam.decision.status;
+
+      // MODIFICATION ICI : On utilise la date de décision (retour labo) si elle existe, sinon la date d'examen
+
+      const referenceDate = lastValidExam.decision.date || lastValidExam.exam_date;
+
       if (status === 'apte') {
-        // Standard 6-month cycle
-        nextDue = this.calculateNextExamDue(lastValidExam.exam_date);
+        // 6 mois à partir de la date de validation (résultat vu par le médecin)
+
+        nextDue = this.calculateNextExamDue(referenceDate);
       } else if (['inapte', 'apte_partielle'].includes(status)) {
-        // Use retest date if available, else default 7 days
         if (lastValidExam.treatment && lastValidExam.treatment.retest_date) {
           nextDue = lastValidExam.treatment.retest_date;
         } else {
-          nextDue = this.calculateRetestDate(lastValidExam.exam_date, 7);
+          // Calculer le re-test par rapport à la date de décision aussi
+
+          nextDue = this.calculateRetestDate(referenceDate, 7);
         }
       } else {
-        nextDue = this.calculateNextExamDue(lastValidExam.exam_date);
+        nextDue = this.calculateNextExamDue(referenceDate);
       }
     } else {
-      // If no finalized exam found, due now
       nextDue = this.formatDate(new Date());
     }
-
     return { last_exam_date: lastExamDate, next_exam_due: nextDue };
   },
-
   // Worker Dashboard Stats
   getDashboardStats(workers, exams) {
     const dueSoon = workers.filter(

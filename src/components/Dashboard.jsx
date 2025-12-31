@@ -6,7 +6,7 @@ import {
   FaClipboardList,
   FaExclamationTriangle,
   FaMicroscope,
-  FaClock
+  FaClock,
 } from 'react-icons/fa';
 
 export default function Dashboard({ onNavigateWorker }) {
@@ -175,7 +175,10 @@ export default function Dashboard({ onNavigateWorker }) {
               Rien à signaler. Tout est à jour !
             </div>
           ) : (
-            <div className="table-container" style={{ border: 'none', boxShadow: 'none', borderRadius: 0 }}>
+            <div
+              className="table-container"
+              style={{ border: 'none', boxShadow: 'none', borderRadius: 0 }}
+            >
               <table>
                 <thead>
                   <tr>
@@ -192,7 +195,10 @@ export default function Dashboard({ onNavigateWorker }) {
                         <div style={{ fontWeight: 700, color: 'var(--danger-text)' }}>
                           {w.full_name}
                         </div>
-                        <span className="badge badge-red" style={{ marginTop: '0.25rem', fontSize: '0.75rem' }}>
+                        <span
+                          className="badge badge-red"
+                          style={{ marginTop: '0.25rem', fontSize: '0.75rem' }}
+                        >
                           En Retard
                         </span>
                       </td>
@@ -216,9 +222,7 @@ export default function Dashboard({ onNavigateWorker }) {
                       <td>
                         <div style={{ fontWeight: 600 }}>{w.full_name}</div>
                       </td>
-                      <td>
-                        {logic.formatDate(new Date(w.next_exam_due))}
-                      </td>
+                      <td>{logic.formatDate(new Date(w.next_exam_due))}</td>
                       <td style={{ textAlign: 'right' }}>
                         <button
                           className="btn btn-sm btn-outline"
@@ -254,7 +258,10 @@ export default function Dashboard({ onNavigateWorker }) {
               Aucune contre-visite prévue.
             </div>
           ) : (
-            <div className="table-container" style={{ border: 'none', boxShadow: 'none', borderRadius: 0 }}>
+            <div
+              className="table-container"
+              style={{ border: 'none', boxShadow: 'none', borderRadius: 0 }}
+            >
               <table>
                 <thead>
                   <tr>
@@ -268,36 +275,38 @@ export default function Dashboard({ onNavigateWorker }) {
                     <tr key={item.worker.id}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                           {/* ICÔNE DE SUIVI */}
-                           <div style={{
-                             background: 'var(--primary-light)',
-                             padding: '6px',
-                             borderRadius: '50%',
-                             display: 'flex',
-                             alignItems: 'center',
-                             justifyContent: 'center'
-                           }}>
-                             <FaMicroscope size={14} color="var(--primary)" />
-                           </div>
-                           <div>
-                             <div style={{ fontWeight: 600 }}>{item.worker.full_name}</div>
-                             {/* BADGE DISCRET */}
-                             <span style={{
-                               fontSize: '0.7rem',
-                               background: '#e0f2fe',
-                               color: '#0284c7',
-                               padding: '2px 6px',
-                               borderRadius: '4px',
-                               fontWeight: '600'
-                             }}>
-                               Suivi requis
-                             </span>
-                           </div>
+                          {/* ICÔNE DE SUIVI */}
+                          <div
+                            style={{
+                              background: 'var(--primary-light)',
+                              padding: '6px',
+                              borderRadius: '50%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <FaMicroscope size={14} color="var(--primary)" />
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 600 }}>{item.worker.full_name}</div>
+                            {/* BADGE DISCRET */}
+                            <span
+                              style={{
+                                fontSize: '0.7rem',
+                                background: '#e0f2fe',
+                                color: '#0284c7',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                fontWeight: '600',
+                              }}
+                            >
+                              Suivi requis
+                            </span>
+                          </div>
                         </div>
                       </td>
-                      <td>
-                        {logic.formatDate(new Date(item.date))}
-                      </td>
+                      <td>{logic.formatDate(new Date(item.date))}</td>
                       <td style={{ textAlign: 'right' }}>
                         <button
                           className="btn btn-sm btn-outline"

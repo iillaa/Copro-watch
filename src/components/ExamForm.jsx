@@ -11,22 +11,29 @@ export default function ExamForm({
   deptName,
   workplaceName,
 }) {
+  // 1. État pour la date de validation (Consultation de retour)
+  const [validationDate, setValidationDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+
   const [formData, setFormData] = useState({
     exam_date: format(new Date(), 'yyyy-MM-dd'),
-    physician_name: 'Dr. Principal',
+    physician_name: 'Dr. Kibeche Ali Dia Eddine', // Votre nom par défaut
     notes: '',
     status: 'open',
     // Lab
-    lab_result: null, // { result: 'negative'|'positive', parasite: '', date: '' }
+    lab_result: null,
     // Treatment
-    treatment: null, // { drug: '', dose: '', duration: '', start_date: '', retest_date: '' }
+    treatment: null,
     // Decision
-    decision: null, // { status: 'apte'|'inapte'|'apte_partielle', date: '' }
+    decision: null,
   });
 
   useEffect(() => {
     if (existingExam) {
       setFormData(existingExam);
+      // Si on édite un examen existant qui a déjà une décision, on pourrait vouloir mettre à jour validationDate
+      if (existingExam.decision?.date) {
+        setValidationDate(existingExam.decision.date);
+      }
     }
   }, [existingExam]);
 
@@ -36,22 +43,29 @@ export default function ExamForm({
 
   const handleLabResult = (result) => {
     const labData = {
-      result, // 'positive' or 'negative'
-      date: formData.exam_date, // Use the exam date selected by user (allows back-dating)
+      result,
+      date: formData.exam_date,
       parasite: result === 'positive' ? 'Parasite X' : '',
     };
     updateField('lab_result', labData);
   };
 
   const handleDecision = async (status) => {
-    // 1. Save Decision
-    // Use the exam date for the decision date too, to keep history consistent
-    const decision = { status, date: formData.exam_date };
+    // 1. Sauvegarde de la Décision
+    // On utilise la date de validation (retour labo) si disponible
+    const finalDecisionDate = validationDate || formData.exam_date;
+
+    const decision = {
+      status,
+      date: finalDecisionDate,
+    };
+
+    // On garde formData.exam_date comme date de prescription historique
     const newExamData = { ...formData, decision, status: 'closed' };
 
     await db.saveExam({ ...newExamData, worker_id: worker.id });
 
-    // 2. Recalculate Worker Status based on full history
+    // 2. Recalcul du statut avec la nouvelle logique (date de décision)
     const allExams = await db.getExams();
     const workerExams = allExams.filter((e) => e.worker_id === worker.id);
     const statusUpdate = logic.recalculateWorkerStatus(workerExams);
@@ -64,7 +78,7 @@ export default function ExamForm({
   const saveWithoutDecision = async () => {
     await db.saveExam({ ...formData, worker_id: worker.id });
 
-    // Recalculate status (e.g. update last_exam_date if this is the newest)
+    // Recalcul simple
     const allExams = await db.getExams();
     const workerExams = allExams.filter((e) => e.worker_id === worker.id);
     const statusUpdate = logic.recalculateWorkerStatus(workerExams);
@@ -74,7 +88,7 @@ export default function ExamForm({
     onSave();
   };
 
-  // Render Helpers
+  // Helpers d'affichage
   const isPositive = formData.lab_result?.result === 'positive';
   const isNegative = formData.lab_result?.result === 'negative';
 
@@ -89,10 +103,10 @@ export default function ExamForm({
           {workplaceName || '-'} • <strong>Poste:</strong> {worker.job_role || '-'}
         </p>
 
-        {/* Basic Info */}
+        {/* Info de base (Prescription) */}
         <div className="card" style={{ background: '#f9fafb' }}>
           <div className="form-group">
-            <label className="label">Date de l'examen</label>
+            <label className="label">Date de l'examen (Prescription)</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <input
                 type="date"
@@ -114,7 +128,7 @@ export default function ExamForm({
             />
           </div>
           <div className="form-group">
-            <label className="label">Examen clinique</label>
+            <label className="label">Examen clinique / Notes</label>
             <textarea
               className="input"
               rows="2"
@@ -124,7 +138,7 @@ export default function ExamForm({
           </div>
         </div>
 
-        {/* Lab Section */}
+        {/* Section Labo */}
         <div className="card" style={{ borderLeft: '4px solid #3b82f6' }}>
           <h4>Laboratoire (Copro-parasitologie)</h4>
           {!formData.lab_result ? (
@@ -174,7 +188,7 @@ export default function ExamForm({
           )}
         </div>
 
-        {/* Treatment / Decision Section */}
+        {/* Traitement (Si Positif) */}
         {isPositive && (
           <div className="card" style={{ borderLeft: '4px solid #ef4444' }}>
             <h4>Traitement & Suivi</h4>
@@ -264,18 +278,38 @@ export default function ExamForm({
           </div>
         )}
 
+        {/* Décision Finale (Si Négatif) - AVEC CHAMP DATE */}
         {isNegative && (
           <div className="card" style={{ borderLeft: '4px solid #22c55e' }}>
-            <h4>Décision Finale</h4>
-            <p>Le résultat est négatif. Le travailleur peut être déclaré apte.</p>
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <h4>Décision Finale (Retour Labo)</h4>
+            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+              Le résultat est négatif. Le travailleur peut être déclaré apte.
+            </p>
+
+            {/* Champ date de validation ajouté */}
+            <div className="form-group">
+              <label className="label">Date de validation (Consultation de retour)</label>
+              <input
+                type="date"
+                className="input"
+                value={validationDate}
+                onChange={(e) => setValidationDate(e.target.value)}
+              />
+              <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
+                Cette date servira de point de départ pour les 6 mois. (Prochain examen le :{' '}
+                {logic.formatDateDisplay(logic.calculateNextExamDue(validationDate))})
+              </small>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
               <button className="btn btn-success" onClick={() => handleDecision('apte')}>
-                Déclarer APTE & Sauvegarder
+                Valider APTE & Sauvegarder
               </button>
             </div>
           </div>
         )}
 
+        {/* Boutons de fermeture */}
         <div
           style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem', gap: '1rem' }}
         >
