@@ -13,8 +13,8 @@ import ReloadPrompt from './components/ReloadPrompt'; // <--- PWA Update
 
 // Icons & Styles
 import { FaChartLine, FaUsers, FaFlask, FaCog } from 'react-icons/fa';
-import './index.css'; 
-import './styles/mobile.css'; 
+import './index.css';
+import './styles/mobile.css';
 
 export default function AppMobile() {
   const [view, setView] = useState('dashboard');
@@ -25,24 +25,24 @@ export default function AppMobile() {
 
   useEffect(() => {
     const init = async () => {
-        // 1. Start Database
-        await db.init();
-        
-        // 2. Start Backup Service
-        await backupService.init();
-        
-        // 3. Auto-Import (Restored for Mobile)
-        try {
-          await backupService.checkAndAutoImport(db);
-        } catch (e) {
-          console.warn('Mobile auto-import failed:', e);
-        }
+      // 1. Start Database
+      await db.init();
 
-        // 4. Load Pin
-        const s = await db.getSettings();
-        if(s.pin) setPin(s.pin);
-        
-        setLoading(false);
+      // 2. Start Backup Service
+      await backupService.init();
+
+      // 3. Auto-Import (Restored for Mobile)
+      try {
+        await backupService.checkAndAutoImport(db);
+      } catch (e) {
+        console.warn('Mobile auto-import failed:', e);
+      }
+
+      // 4. Load Pin
+      const s = await db.getSettings();
+      if (s.pin) setPin(s.pin);
+
+      setLoading(false);
     };
     init();
   }, []);
@@ -52,12 +52,12 @@ export default function AppMobile() {
 
   // Navigation Button Helper
   const NavButton = ({ target, icon: Icon, label }) => (
-    <button 
-        className={`bottom-nav-item ${view === target ? 'active' : ''}`} 
-        onClick={() => { 
-            setView(target); 
-            setSelectedWorkerId(null); 
-        }}
+    <button
+      className={`bottom-nav-item ${view === target ? 'active' : ''}`}
+      onClick={() => {
+        setView(target);
+        setSelectedWorkerId(null);
+      }}
     >
       <Icon className="bottom-nav-icon" />
       <span>{label}</span>
@@ -66,41 +66,35 @@ export default function AppMobile() {
 
   return (
     <div className="mobile-app-container">
-      
       {/* PWA UPDATE PROMPT */}
-      <ReloadPrompt /> 
+      <ReloadPrompt />
 
       <main style={{ paddingBottom: '80px' }}>
         {view === 'dashboard' && (
-            <MobileDashboard 
-                onNavigateWorker={(id) => { 
-                    setSelectedWorkerId(id); 
-                    setView('worker-detail'); 
-                }} 
-            />
+          <MobileDashboard
+            onNavigateWorker={(id) => {
+              setSelectedWorkerId(id);
+              setView('worker-detail');
+            }}
+          />
         )}
-        
+
         {view === 'workers' && (
-            <MobileWorkerList 
-                onNavigateWorker={(id) => { 
-                    setSelectedWorkerId(id); 
-                    setView('worker-detail'); 
-                }} 
-            />
+          <MobileWorkerList
+            onNavigateWorker={(id) => {
+              setSelectedWorkerId(id);
+              setView('worker-detail');
+            }}
+          />
         )}
-        
+
         {view === 'worker-detail' && selectedWorkerId && (
-            <MobileWorkerDetail 
-                workerId={selectedWorkerId} 
-                onBack={() => setView('workers')} 
-            />
+          <MobileWorkerDetail workerId={selectedWorkerId} onBack={() => setView('workers')} />
         )}
-        
+
         {view === 'water' && <MobileWaterAnalyses />}
-        
-        {view === 'settings' && (
-            <Settings currentPin={pin} onPinChange={setPin} />
-        )}
+
+        {view === 'settings' && <Settings currentPin={pin} onPinChange={setPin} />}
       </main>
 
       <nav className="bottom-nav">

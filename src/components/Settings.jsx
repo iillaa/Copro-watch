@@ -946,9 +946,21 @@ export default function Settings({ currentPin, onPinChange }) {
         </p>
       )}
       {/* CREDITS SECTION */}
-      <div style={{ marginTop: '3rem', textAlign: 'center', color: 'var(--text-muted)', padding: '1rem', borderTop: '1px solid var(--border)' }}>
-        <div style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.2rem' }}>Développé par</div>
-        <div style={{ fontSize: '1.1rem', marginBottom: '0.2rem', color: 'var(--primary)' }}>Dr Kibeche Ali Dia Eddine</div>
+      <div
+        style={{
+          marginTop: '3rem',
+          textAlign: 'center',
+          color: 'var(--text-muted)',
+          padding: '1rem',
+          borderTop: '1px solid var(--border)',
+        }}
+      >
+        <div style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.2rem' }}>
+          Développé par
+        </div>
+        <div style={{ fontSize: '1.1rem', marginBottom: '0.2rem', color: 'var(--primary)' }}>
+          Dr Kibeche Ali Dia Eddine
+        </div>
         <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Version 1.1</div>
       </div>
     </div>

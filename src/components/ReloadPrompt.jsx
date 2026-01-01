@@ -35,18 +35,18 @@ export default function ReloadPrompt() {
       display: 'flex',
       flexDirection: 'column',
       gap: '8px',
-      maxWidth: '300px'
+      maxWidth: '300px',
     },
     message: {
       marginBottom: '8px',
       color: 'var(--text-main, #333)',
-      fontWeight: '500'
+      fontWeight: '500',
     },
     buttonRow: {
       display: 'flex',
       gap: '8px',
-      justifyContent: 'flex-end'
-    }
+      justifyContent: 'flex-end',
+    },
   };
 
   if (!offlineReady && !needRefresh) return null;
@@ -62,10 +62,7 @@ export default function ReloadPrompt() {
       </div>
       <div style={styles.buttonRow}>
         {needRefresh && (
-          <button 
-            className="btn btn-primary" 
-            onClick={() => updateServiceWorker(true)}
-          >
+          <button className="btn btn-primary" onClick={() => updateServiceWorker(true)}>
             Mettre à jour
           </button>
         )}

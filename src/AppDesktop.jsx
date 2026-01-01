@@ -26,13 +26,13 @@ function AppDesktop() {
   const initApp = async () => {
     try {
       setLoading(true);
-      
+
       // 1. Start the Database
-      await db.init(); 
-      
+      await db.init();
+
       // 2. Start Backup Service
       await backupService.init();
-      
+
       // 3. Auto-import (Desktop Only)
       try {
         await backupService.checkAndAutoImport(db);
@@ -46,7 +46,7 @@ function AppDesktop() {
         setPin(settings.pin);
       }
     } catch (error) {
-      console.error("App Initialization Failed:", error);
+      console.error('App Initialization Failed:', error);
     } finally {
       setLoading(false);
     }
@@ -65,7 +65,15 @@ function AppDesktop() {
   // --- LOADING SCREEN ---
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          flexDirection: 'column',
+        }}
+      >
         <div className="loading-spinner"></div>
         <p style={{ marginTop: '1rem', color: '#666' }}>Chargement...</p>
       </div>
@@ -80,10 +88,9 @@ function AppDesktop() {
   // --- MAIN UI ---
   return (
     <div className={`app-shell ${isSidebarOpen ? '' : 'sidebar-closed'}`}>
-      
       {/* PWA UPDATE PROMPT */}
       <ReloadPrompt />
-      
+
       {/* SIDEBAR */}
       <aside className="sidebar no-print">
         <div className="brand">
@@ -101,7 +108,7 @@ function AppDesktop() {
             <FaChartLine className="nav-icon" />
             <span className="nav-text">Tableau de bord</span>
           </div>
-          
+
           <div
             className={`nav-item ${view === 'workers' || view === 'worker-detail' ? 'active' : ''}`}
             onClick={() => {
@@ -113,7 +120,7 @@ function AppDesktop() {
             <FaUsers className="nav-icon" />
             <span className="nav-text">Travailleurs</span>
           </div>
-          
+
           <div
             className={`nav-item ${view === 'water-analyses' ? 'active' : ''}`}
             onClick={() => {
@@ -125,7 +132,7 @@ function AppDesktop() {
             <FaFlask className="nav-icon" />
             <span className="nav-text">Analyses d'eau</span>
           </div>
-          
+
           <div
             className={`nav-item ${view === 'settings' ? 'active' : ''}`}
             onClick={() => setView('settings')}
