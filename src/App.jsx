@@ -1,24 +1,39 @@
 import { useState, useEffect } from 'react';
-// Import your two distinct interfaces
 import AppDesktop from './AppDesktop';
-import AppMobile from './AppMobile'; // This is the file we fixed earlier
+import AppMobile from './AppMobile';
+import ReloadPrompt from './components/ReloadPrompt';
 
 export default function App() {
-  // Logic: If width is less than 768px (standard tablet breakpoint), it's a phone.
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(true);
 
   useEffect(() => {
-    // Listen for screen resizing (e.g. rotating the tablet)
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+    const checkDevice = () => {
+      // We check the SMALLEST dimension of the screen.
+      // - Phone (Portrait): width is ~400, height ~900. Min is 400.
+      // - Phone (Landscape): width ~900, height ~400. Min is 400.
+      // - Tablet: width ~1200, height ~800. Min is 800.
+      
+      const smallestDimension = Math.min(window.innerWidth, window.innerHeight);
+      
+      // 600px is the standard Android cutoff for 7-inch tablets.
+      // Since your tablet is 12.7" (huge), it will definitely be > 600.
+      setIsMobile(smallestDimension < 600);
+      
+      console.log(`Screen: ${window.innerWidth}x${window.innerHeight} | Smallest: ${smallestDimension}px | Mode: ${smallestDimension < 600 ? 'Mobile' : 'Desktop'}`);
     };
 
-    window.addEventListener('resize', handleResize);
+    // Run on startup
+    checkDevice();
 
-    // Cleanup listener on unmount
-    return () => window.removeEventListener('resize', handleResize);
+    // Run whenever the user rotates the device
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
   }, []);
 
-  // The Switch
-  return isMobile ? <AppMobile /> : <AppDesktop />;
+  return (
+    <>
+      <ReloadPrompt />
+      {isMobile ? <AppMobile /> : <AppDesktop />}
+    </>
+  );
 }

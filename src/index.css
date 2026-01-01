@@ -972,3 +972,13 @@ tr {
   content-visibility: auto;
   contain-intrinsic-size: 50px; /* Approximate height of a row */
 }
+
+/* Fix for PIN Lock on Landscape Phones */
+@media (max-height: 500px) {
+  .pin-lock-container {
+    height: auto !important;
+    min-height: 100vh;
+    padding: 1rem 0;
+    overflow-y: auto; /* Allow scrolling if screen is short */
+  }
+}
