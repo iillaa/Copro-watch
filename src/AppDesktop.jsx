@@ -8,12 +8,11 @@ import WorkerDetail from './components/WorkerDetail';
 import PinLock from './components/PinLock';
 import Settings from './components/Settings';
 import WaterAnalyses from './components/WaterAnalyses';
-import ReloadPrompt from './components/ReloadPrompt'; // <--- PWA Update
+import ReloadPrompt from './components/ReloadPrompt';
 
 import { FaUsers, FaChartLine, FaCog, FaFlask } from 'react-icons/fa';
 
 function AppDesktop() {
-  // --- STATE ---
   const [view, setView] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   const [initError, setInitError] = useState(null);
@@ -21,33 +20,19 @@ function AppDesktop() {
   const [isLocked, setIsLocked] = useState(true);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [waterResetKey, setWaterResetKey] = useState(0);
-  const [pin, setPin] = useState('0011');
+  const [pin, setPin] = useState('0000');
 
-  // --- ENGINE STARTUP ---
   const initApp = async () => {
     try {
       setLoading(true);
-
-      // 1. Start the Database
       await db.init();
-
-      // 2. Start Backup Service
       await backupService.init();
-
-      // 3. Auto-import (Desktop Only)
-      try {
-        await backupService.checkAndAutoImport(db);
-      } catch (e) {
-        console.warn('Auto-import check failed:', e);
-      }
-
-      // 4. Load User Settings
       const settings = await db.getSettings();
-      if (settings.pin) {
+      if (settings && settings.pin) {
         setPin(settings.pin);
       }
     } catch (error) {
-      console.error('App Initialization Failed:', error);
+      setInitError(error.message);
     } finally {
       setLoading(false);
     }
@@ -57,128 +42,47 @@ function AppDesktop() {
     initApp();
   }, []);
 
-  // --- NAVIGATION ---
-  const navigateToWorker = (id) => {
-    setSelectedWorkerId(id);
-    setView('worker-detail');
-  };
+  if (loading) return <div className="loading-container"><div className="loading-spinner"></div></div>;
 
-  // --- LOADING SCREEN ---
-  if (loading) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100vh',
-          flexDirection: 'column',
-        }}
-      >
-        <div className="loading-spinner"></div>
-        <p style={{ marginTop: '1rem', color: '#666' }}>Chargement...</p>
-      </div>
-    );
-  }
-
-  // --- RENDER: CRITICAL ERROR ---
-  if (initError) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', textAlign: 'center' }}>
-        <h2 style={{ color: '#ef4444' }}>Une erreur est survenue</h2>
-        <p style={{ color: '#64748b', marginBottom: '1rem' }}>{initError}</p>
-        <button className="btn btn-primary" onClick={() => window.location.reload()}>Réessayer</button>
-      </div>
-    );
-  }
-
-  // --- PIN LOCK ---
+  // Render PinLock and strictly pass onUnlock
   if (isLocked) {
-    return <PinLock correctPin={pin} onUnlock={() => setIsLocked(false)} />;
+    return (
+      <PinLock 
+        correctPin={pin} 
+        onUnlock={() => setIsLocked(false)} 
+      />
+    );
   }
 
-  // --- MAIN UI ---
   return (
     <div className={`app-shell ${isSidebarOpen ? '' : 'sidebar-closed'}`}>
-      {/* PWA UPDATE PROMPT */}
       <ReloadPrompt />
-
-      {/* SIDEBAR */}
       <aside className="sidebar no-print">
         <div className="brand">
           <span className="brand-text">𝓒𝓸𝓹𝓻𝓸</span>
           <span className="brand-icon">🧪</span>
           <span className="brand-text">𝓦𝓪𝓽𝓬𝓱</span>
         </div>
-
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <div
-            className={`nav-item ${view === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setView('dashboard')}
-            title="Tableau de bord"
-          >
-            <FaChartLine className="nav-icon" />
-            <span className="nav-text">Tableau de bord</span>
+        <nav>
+          <div className={`nav-item ${view === 'dashboard' ? 'active' : ''}`} onClick={() => setView('dashboard')}>
+            <FaChartLine className="nav-icon" /> <span className="nav-text">Dashboard</span>
           </div>
-
-          <div
-            className={`nav-item ${view === 'workers' || view === 'worker-detail' ? 'active' : ''}`}
-            onClick={() => {
-              setView('workers');
-              setSelectedWorkerId(null);
-            }}
-            title="Travailleurs"
-          >
-            <FaUsers className="nav-icon" />
-            <span className="nav-text">Travailleurs</span>
+          <div className={`nav-item ${view === 'workers' ? 'active' : ''}`} onClick={() => setView('workers')}>
+            <FaUsers className="nav-icon" /> <span className="nav-text">Travailleurs</span>
           </div>
-
-          <div
-            className={`nav-item ${view === 'water-analyses' ? 'active' : ''}`}
-            onClick={() => {
-              setView('water-analyses');
-              setWaterResetKey((prev) => prev + 1);
-            }}
-            title="Analyses d'eau"
-          >
-            <FaFlask className="nav-icon" />
-            <span className="nav-text">Analyses d'eau</span>
+          <div className={`nav-item ${view === 'water-analyses' ? 'active' : ''}`} onClick={() => setView('water-analyses')}>
+            <FaFlask className="nav-icon" /> <span className="nav-text">Eau</span>
           </div>
-
-          <div
-            className={`nav-item ${view === 'settings' ? 'active' : ''}`}
-            onClick={() => setView('settings')}
-            title="Paramètres"
-          >
-            <FaCog className="nav-icon" />
-            <span className="nav-text">Paramètres</span>
+          <div className={`nav-item ${view === 'settings' ? 'active' : ''}`} onClick={() => setView('settings')}>
+            <FaCog className="nav-icon" /> <span className="nav-text">Paramètres</span>
           </div>
         </nav>
-
-        <div className="credit" style={{ marginTop: 'auto' }}>
-          <div className="credit-title">Développé par</div>
-          <div className="credit-author">Dr Kibeche Ali Dia Eddine</div>
-          <div className="credit-version">1.1</div>
-        </div>
       </aside>
-
-      {/* MAIN CONTENT */}
       <main className="main-content">
         <div className="container">
-          <button
-            aria-label="Toggle sidebar"
-            className="btn btn-sm no-print toggle-sidebar"
-            style={{ marginBottom: '2.5rem' }}
-            onClick={() => setSidebarOpen(!isSidebarOpen)}
-          >
-            {isSidebarOpen ? 'Masquer' : 'Afficher'}
-          </button>
-
-          {view === 'dashboard' && <Dashboard onNavigateWorker={navigateToWorker} />}
-          {view === 'workers' && <WorkerList onNavigateWorker={navigateToWorker} />}
-          {view === 'worker-detail' && selectedWorkerId && (
-            <WorkerDetail workerId={selectedWorkerId} onBack={() => setView('workers')} />
-          )}
+          {view === 'dashboard' && <Dashboard onNavigateWorker={(id) => { setSelectedWorkerId(id); setView('worker-detail'); }} />}
+          {view === 'workers' && <WorkerList onNavigateWorker={(id) => { setSelectedWorkerId(id); setView('worker-detail'); }} />}
+          {view === 'worker-detail' && <WorkerDetail workerId={selectedWorkerId} onBack={() => setView('workers')} />}
           {view === 'water-analyses' && <WaterAnalyses key={waterResetKey} />}
           {view === 'settings' && <Settings currentPin={pin} onPinChange={setPin} />}
         </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaLock, FaCheck, FaTimes } from 'react-icons/fa';
+import { FaLock, FaTimes } from 'react-icons/fa';
 
 export default function PinLock({ onUnlock, correctPin = '0000' }) {
   const [pin, setPin] = useState('');
@@ -8,7 +8,12 @@ export default function PinLock({ onUnlock, correctPin = '0000' }) {
   useEffect(() => {
     if (pin.length === 4) {
       if (pin === correctPin) {
-        onUnlock();
+        // DEFENSIVE CHECK: Ensure onUnlock exists and is a function
+        if (typeof onUnlock === 'function') {
+          onUnlock();
+        } else {
+          console.error("PinLock Error: 'onUnlock' prop is not a function. Check AppDesktop.jsx.", onUnlock);
+        }
       } else {
         setError(true);
         setTimeout(() => {
@@ -36,83 +41,50 @@ export default function PinLock({ onUnlock, correctPin = '0000' }) {
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'var(--bg-app)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 1000,
-      }}
-    >
-      <div className="card" style={{ width: '300px', textAlign: 'center', padding: '2rem' }}>
-        <div style={{ marginBottom: '1rem', color: 'var(--primary)' }}>
-          <FaLock size={40} />
-        </div>
-        <h2 style={{ marginBottom: '1.5rem' }}>Sécurité</h2>
-        <p style={{ marginBottom: '1rem', color: 'var(--text-muted)' }}>Entrez votre code PIN</p>
+    <div className="pin-lock-container">
+      <div className="card pin-card">
+        <div className="pin-info">
+          <div className="pin-icon-wrapper">
+            <FaLock size={32} />
+          </div>
+          <h2 className="pin-title">Sécurité</h2>
+          <p className="pin-subtitle">Entrez votre code PIN</p>
 
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '10px',
-            marginBottom: '2rem',
-          }}
-        >
-          {[0, 1, 2, 3].map((i) => (
-            <div
-              key={i}
-              style={{
-                width: '15px',
-                height: '15px',
-                borderRadius: '50%',
-                background:
-                  i < pin.length ? (error ? 'var(--danger)' : 'var(--primary)') : 'var(--border)',
-                transition: 'background 0.2s',
-              }}
-            />
-          ))}
+          <div className="pin-dots">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className={`pin-dot ${
+                  i < pin.length ? (error ? 'error' : 'filled') : ''
+                }`}
+              />
+            ))}
+          </div>
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '15px',
-          }}
-        >
+        <div className="pin-pad">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
             <button
               key={num}
-              className="btn btn-outline"
-              style={{ height: '50px', fontSize: '1.2rem', fontWeight: 'bold' }}
+              className="btn btn-outline pin-btn"
               onClick={() => handleDigit(num)}
             >
               {num}
             </button>
           ))}
           <button
-            className="btn btn-outline"
-            style={{ height: '50px', color: 'var(--danger)', borderColor: 'var(--danger)' }}
+            className="btn btn-outline pin-btn btn-danger-outline"
             onClick={handleClear}
           >
             C
           </button>
           <button
-            className="btn btn-outline"
-            style={{ height: '50px', fontSize: '1.2rem', fontWeight: 'bold' }}
+            className="btn btn-outline pin-btn"
             onClick={() => handleDigit(0)}
           >
             0
           </button>
-          <button className="btn btn-outline" style={{ height: '50px' }} onClick={handleBackspace}>
+          <button className="btn btn-outline pin-btn" onClick={handleBackspace}>
             <FaTimes />
           </button>
         </div>
