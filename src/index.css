@@ -982,3 +982,92 @@ tr {
     overflow-y: auto; /* Allow scrolling if screen is short */
   }
 }
+
+/* =========================================
+   SMART MINIFY: LANDSCAPE MOBILE OPTIMIZATION
+   Target: Phones held sideways (Height < 600px)
+   ========================================= */
+
+@media (max-height: 600px) {
+
+  /* 1. SLIM SIDEBAR (Icons Only)
+     Force the sidebar to be thin and hide all text labels */
+  .sidebar {
+    width: 60px !important;
+    padding: 0.5rem 0.25rem !important;
+  }
+
+  .sidebar .brand-text,
+  .sidebar .nav-text,
+  .sidebar .credit {
+    display: none !important;
+  }
+
+  .sidebar .brand {
+    margin-bottom: 1rem;
+  }
+
+  .sidebar .brand-icon {
+    font-size: 1.5rem;
+  }
+
+  .sidebar .nav-item {
+    justify-content: center;
+    padding: 0.75rem 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .sidebar .nav-icon {
+    font-size: 1.4rem; /* Make icons slightly larger for touch targets */
+    margin: 0;
+  }
+
+  /* 2. MAXIMIZE CONTENT AREA
+     Remove huge desktop margins */
+  .main-content {
+    padding: 0.5rem !important; /* Reduced from 2rem */
+    padding-bottom: 1rem !important;
+  }
+
+  .container {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  /* 3. COMPACT DASHBOARD CARDS
+     Make the big stats cards smaller and side-by-side */
+  .stat-card-value {
+    font-size: 2rem !important; /* Shrink big numbers */
+  }
+
+  .stat-card-title {
+    font-size: 0.9rem !important;
+  }
+
+  .card {
+    padding: 0.75rem !important; /* Reduce card internal padding */
+    margin-bottom: 0.75rem !important;
+  }
+
+  /* 4. COMPACT TYPOGRAPHY & BUTTONS */
+  h1 { font-size: 1.25rem !important; }
+  h2 { font-size: 1.1rem !important; margin-bottom: 0.5rem !important; }
+  h3 { font-size: 1rem !important; }
+
+  .btn {
+    padding: 0.4rem 0.75rem !important; /* Smaller buttons */
+    font-size: 0.85rem !important;
+  }
+
+  /* 5. HIDE SIDEBAR TOGGLE
+     We don't need it because the sidebar is now permanently slim */
+  .toggle-sidebar {
+    display: none !important;
+  }
+
+  /* 6. TABLE OPTIMIZATIONS */
+  th, td {
+    padding: 0.5rem !important;
+    font-size: 0.85rem !important;
+  }
+}
