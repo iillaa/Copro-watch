@@ -1071,3 +1071,594 @@ tr {
     font-size: 0.85rem !important;
   }
 }
+
+/* =========================================
+   PHASE 3: DASHBOARD REFACTOR STYLES
+   ========================================= */
+
+/* Default Desktop Grid (Spacious) */
+.dashboard-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.dashboard-tables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 1.5rem;
+}
+
+.dashboard-header { margin-bottom: 2rem; }
+
+/* Stat Cards */
+.stat-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+}
+.stat-icon { font-size: 3.5rem; opacity: 0.8; }
+.stat-subtitle { margin: 0; font-weight: 600; }
+
+/* Colors */
+.stat-card.warning { background: var(--warning-light); }
+.stat-card.danger { background: var(--danger-light); }
+.stat-card.primary { background: var(--primary-light); }
+
+.warning-text { color: #b45309; } /* darken warning for text */
+.warning-val { color: var(--warning); }
+.danger-text { color: var(--danger); }
+.danger-val { color: var(--danger); }
+.primary-text { color: var(--primary); }
+.primary-val { color: var(--primary); }
+.primary-color { color: var(--primary); }
+
+/* Utilities */
+.card-header-clean {
+  padding: 1.5rem;
+  border-bottom: var(--border-width) solid var(--border-color);
+  background: white;
+}
+.card-header-clean h3 { margin: 0; display: flex; align-items: center; gap: 0.5rem; }
+.no-padding { padding: 0 !important; }
+.overflow-hidden { overflow: hidden; }
+.empty-state { padding: 2rem; text-align: center; color: var(--text-muted); }
+.flat { border: none; box-shadow: none; border-radius: 0; }
+.mt-1 { margin-top: 0.25rem; }
+.text-right { text-align: right; }
+.fw-600 { font-weight: 600; }
+.fw-700 { font-weight: 700; }
+.flex-align-center { display: flex; align-items: center; }
+.gap-2 { gap: 0.75rem; }
+
+.icon-circle-sm {
+  background: var(--primary-light);
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+}
+.badge-soft-blue {
+  font-size: 0.7rem;
+  background: #e0f2fe;
+  color: #0284c7;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* Loading */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 60vh;
+  gap: 1rem;
+}
+.loading-text { color: var(--text-muted); font-weight: 600; }
+
+
+/* --- MOBILE LANDSCAPE OVERRIDES (Smart Minify Integration) --- */
+@media (max-height: 600px) {
+
+  /* Shrink Grid Gaps */
+  .dashboard-stats-grid {
+    gap: 0.75rem !important;
+    margin-bottom: 1rem !important;
+    /* Force side-by-side on wider phones */
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  }
+
+  .dashboard-tables-grid {
+    gap: 0.75rem !important;
+    grid-template-columns: 1fr !important; /* Stack tables on short screens if needed */
+  }
+
+  .dashboard-header {
+    margin-bottom: 0.5rem !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .dashboard-header p { display: none; } /* Hide subtitle to save space */
+
+  /* Shrink Stat Cards */
+  .stat-card { padding: 0.75rem !important; }
+  .stat-icon { font-size: 2rem !important; }
+
+  /* Shrink Table headers */
+  .card-header-clean { padding: 0.5rem 0.75rem !important; }
+}
+/* =========================================
+   PHASE 4: WORKER LIST & PIN LOCK STYLES (CORRECTED)
+   ========================================= */
+
+/* --- TABLE RESPONSIVE FIX --- */
+.table-responsive {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* Smooth scroll on mobile */
+}
+
+/* --- WORKER LIST --- */
+.worker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+.subtitle { margin: 0; font-size: 0.875rem; }
+.action-buttons { display: flex; gap: 0.75rem; }
+
+.worker-toolbar {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 250px;
+  position: relative;
+}
+.search-box input {
+  border: none;
+  outline: none;
+  padding: 0.75rem;
+  width: 100%;
+  font-size: 1rem;
+  background: transparent;
+}
+.search-icon, .clear-btn { color: var(--text-muted); }
+.clear-btn {
+  position: absolute; right: 0.5rem;
+  background: none; border: none; cursor: pointer; font-size: 1.2rem;
+}
+
+.toolbar-separator {
+  border-left: 1px solid var(--border-color);
+  height: 2rem;
+  margin: 0 0.5rem;
+}
+
+.filter-group { display: flex; align-items: center; gap: 0.5rem; }
+.dept-select { padding: 0.75rem; width: auto; min-width: 150px; }
+
+.archive-toggle {
+  display: flex; align-items: center; gap: 0.5rem;
+  cursor: pointer; font-size: 0.9rem; color: var(--text-muted);
+  padding-left: 10px; border-left: 1px solid var(--border-color);
+}
+
+.th-content { display: flex; align-items: center; gap: 5px; }
+.sort-icon { margin-left: 5px; }
+.sort-icon.fade { opacity: 0.3; }
+
+.worker-row { cursor: pointer; transition: opacity 0.2s; }
+.worker-row.archived { background: #f9f9f9; }
+.worker-row:hover { background: var(--bg-app); }
+.badge-archived {
+  font-size: 0.7rem; background: #ddd; color: #555;
+  padding: 2px 4px; border-radius: 3px; margin-left: 6px;
+}
+.matricule-tag {
+  font-family: monospace; padding: 2px 6px; border-radius: 4px;
+  background: var(--bg-app);
+}
+
+.ml-2 { margin-left: 0.5rem; }
+.mr-2 { margin-right: 0.5rem; }
+.btn-danger { color: var(--danger); border-color: var(--danger); }
+.btn-danger:hover { background: var(--danger-light); }
+
+.no-results { text-align: center; padding: 4rem 2rem; color: var(--text-muted); }
+.no-results-icon { opacity: 0.5; font-size: 2rem; margin-bottom: 1rem; }
+
+/* Empty State */
+.empty-state-card {
+  text-align: center; padding: 4rem 2rem;
+  border: 2px dashed var(--border-color);
+  background: #f8fafc; margin-top: 2rem; border-radius: var(--radius);
+}
+.empty-icon { font-size: 4rem; margin-bottom: 1rem; }
+
+
+/* --- PIN LOCK --- */
+.pin-lock-container {
+  position: fixed; inset: 0;
+  background: var(--bg-app);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 5000;
+}
+
+.pin-card {
+  width: 320px;
+  text-align: center;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.pin-icon-wrapper { color: var(--primary); margin-bottom: 0.5rem; }
+.pin-title { margin: 0 0 0.5rem 0; font-size: 1.5rem; }
+.pin-subtitle { margin: 0; color: var(--text-muted); }
+
+.pin-dots { display: flex; justify-content: center; gap: 10px; margin: 1rem 0; }
+.pin-dot {
+  width: 15px; height: 15px; border-radius: 50%;
+  background: var(--border-color); transition: background 0.2s;
+}
+.pin-dot.filled { background: var(--primary); }
+.pin-dot.error { background: var(--danger); }
+
+.pin-pad {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+}
+.pin-btn {
+  height: 50px; font-size: 1.25rem; font-weight: bold; padding: 0 !important;
+}
+.btn-danger-outline { color: var(--danger); border-color: var(--danger); }
+
+
+/* --- SMART MINIFY: LANDSCAPE SPECIFIC --- */
+@media (max-height: 600px) {
+
+  /* Worker List Compact */
+  .worker-header h2 { font-size: 1.1rem; }
+  .worker-toolbar { padding: 0.5rem; gap: 0.5rem; }
+  .search-box { min-width: 150px; }
+  .dept-select { padding: 0.4rem; font-size: 0.85rem; }
+  .mobile-hide-text span { display: none; } /* Show only icons in buttons */
+  .hide-sm { display: none; } /* Hide 'Last Exam' column on small screens */
+
+  /* PIN LOCK: SIDE-BY-SIDE LAYOUT */
+  .pin-card {
+    width: 90%;
+    max-width: 500px;
+    flex-direction: row; /* Split into two columns */
+    padding: 1rem;
+    align-items: center;
+    justify-content: space-around;
+  }
+  
+  .pin-info {
+    display: flex; flex-direction: column; justify-content: center;
+    flex: 1; border-right: 1px solid var(--border-color);
+    padding-right: 1rem;
+  }
+  
+  .pin-pad {
+    flex: 1.2;
+    padding-left: 1rem;
+    gap: 8px; /* Tighter keys */
+  }
+  
+  .pin-btn { height: 40px; font-size: 1rem; }
+  .pin-title { font-size: 1.2rem; }
+  .pin-icon-wrapper svg { width: 24px; height: 24px; }
+}
+/* =========================================
+   PHASE 5: DETAILS & WATER UI STYLES
+   ========================================= */
+
+/* --- WORKER DETAIL --- */
+.back-nav { margin-bottom: 1rem; }
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.worker-name { margin: 0; display: flex; align-items: center; gap: 0.5rem; }
+.tag-archived {
+  font-size: 0.5em; background: #eee; padding: 2px 6px;
+  border-radius: 4px; color: #666; vertical-align: middle;
+}
+
+.worker-meta { color: var(--text-muted); margin-top: 0.5rem; }
+.worker-matricule { color: var(--text-muted); font-size: 0.9rem; }
+.worker-status { margin-top: 0.5rem; }
+
+.action-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.btn-label { display: inline-block; }
+.btn-success-outline { color: var(--success); border-color: var(--success); }
+.btn-warning-outline { color: var(--warning); border-color: var(--warning); }
+.btn-danger-outline { color: var(--danger); border-color: var(--danger); }
+
+.archive-notice {
+  margin-top: 1rem; padding: 0.75rem; background: #f8f9fa;
+  border: 1px dashed #ccc; border-radius: 4px; font-size: 0.9rem; color: #666;
+}
+
+.detail-notes {
+  margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);
+}
+.table-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+.text-center { text-align: center; }
+.p-4 { padding: 1.5rem; }
+
+
+/* --- WATER ANALYSIS LAYOUT --- */
+.water-layout {
+  display: flex; gap: 1.5rem; height: 100%; align-items: stretch;
+}
+
+.water-sidebar {
+  flex: 0 0 320px; /* Fixed width sidebar on desktop */
+  display: flex; flex-direction: column; gap: 1rem;
+  min-width: 0; /* Prevent flex overflow */
+}
+
+.water-content {
+  flex: 1; display: flex; flex-direction: column; min-width: 0;
+}
+
+.water-sidebar-header h2 {
+  margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;
+}
+
+.search-input-wrapper { display: flex; align-items: center; padding: 0.5rem; }
+.search-input-wrapper input { border: none; outline: none; width: 100%; background: transparent; }
+
+.water-list-card {
+  padding: 0 !important; overflow-y: auto; flex: 1; max-height: 80vh;
+}
+
+.water-list-item {
+  padding: 1rem; border-bottom: 1px solid var(--border-color);
+  cursor: pointer; border-left: 5px solid transparent; transition: all 0.2s;
+}
+.water-list-item.selected { background-color: var(--primary-light); }
+.water-item-top { display: flex; justify-content: space-between; align-items: center; }
+
+/* FIX: Changed fontWeight (JS) to font-weight (CSS) */
+.water-item-name { font-weight: 600; font-size: 1.05rem; }
+
+.water-item-date { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.4rem; }
+
+.water-no-results { padding: 3rem 1rem; text-align: center; color: var(--text-muted); }
+
+.water-detail-wrapper { display: flex; flex-direction: column; gap: 1rem; height: 100%; }
+.water-detail-actions { display: flex; justify-content: flex-end; }
+.water-select-prompt {
+  text-align: center; color: var(--text-muted); padding: 3rem;
+  flex: 1; display: flex; align-items: center; justify-content: center;
+}
+
+/* Water Empty State */
+.water-empty-state {
+  text-align: center; padding: 4rem 2rem; border: 2px dashed var(--border-color);
+  background: #f8fafc; height: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; min-height: 400px;
+}
+.water-empty-icon {
+  font-size: 4rem; margin-bottom: 1rem; color: var(--primary-light);
+  filter: drop-shadow(2px 2px 0px var(--border-color));
+}
+.water-empty-tip {
+  padding: 1rem; background: #e2e8f0; border-radius: 8px;
+  font-size: 0.9rem; color: #475569; margin-top: 2rem;
+}
+
+
+/* --- SMART MINIFY: LANDSCAPE SPECIFIC --- */
+@media (max-height: 600px) {
+
+  /* Worker Detail */
+  .detail-header { flex-direction: row; align-items: center; }
+  .btn-label { display: none; } /* Hide text in buttons on small screens */
+  .worker-meta { font-size: 0.8rem; }
+  
+  /* Water Layout Compact */
+  .water-layout { gap: 0.75rem; }
+  
+  /* Shrink sidebar width */
+  .water-sidebar { flex: 0 0 240px; } 
+  
+  .water-sidebar-header h2 { font-size: 1.1rem; }
+  .water-list-item { padding: 0.5rem; }
+  .water-item-name { font-size: 0.9rem; }
+  .water-item-date { font-size: 0.75rem; }
+  .badge { font-size: 0.7rem; padding: 0.2rem 0.5rem; }
+  
+  /* Adjust detail panel */
+  .water-detail-actions .btn { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+}
+/* =========================================
+   PHASE 6: SETTINGS & MODALS (LANDSCAPE FIX)
+   ========================================= */
+
+/* --- SETTINGS LAYOUT --- */
+.settings-container { padding-bottom: 2rem; }
+.page-title { margin-bottom: 1.5rem; }
+
+.alert { padding: 1rem; border-radius: 8px; margin-bottom: 1rem; font-weight: 600; }
+.alert-success { background: var(--success-light); color: var(--success); border: 1px solid var(--success); }
+.alert-danger { background: var(--danger-light); color: var(--danger); border: 1px solid var(--danger); }
+
+/* Security Card */
+.security-section { max-width: 600px; }
+.pin-input { font-size: 1.5rem; letter-spacing: 0.5rem; text-align: center; max-width: 200px; }
+.button-group { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+
+/* Grid Layout for Lists */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+  align-items: start;
+}
+
+.settings-card { padding: 1.5rem; }
+.section-title { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+.text-orange { color: #d97706; }
+.text-blue { color: #0ea5e9; }
+.bg-orange-soft { background: #fffbeb; }
+.bg-blue-soft { background: #f0f9ff; }
+
+.add-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.list-container {
+  max-height: 250px; overflow-y: auto;
+  border: 1px solid var(--border-color); border-radius: 4px; padding: 0.5rem;
+  background: #f8fafc;
+}
+
+.list-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.5rem; border-bottom: 1px solid #e2e8f0;
+  background: white; margin-bottom: 4px; border-radius: 4px;
+}
+.item-info { display: flex; align-items: center; gap: 0.5rem; }
+.item-name { font-weight: 500; }
+.item-badge {
+  font-size: 0.75rem; background: #e2e8f0; color: #475569;
+  padding: 2px 6px; border-radius: 10px; font-weight: bold;
+}
+.empty-msg { text-align: center; padding: 1rem; color: var(--text-muted); font-size: 0.9rem; }
+
+/* Backup Section */
+.backup-section { max-width: 800px; margin-top: 2rem; }
+.status-box {
+  padding: 0.75rem; background: var(--bg-app); border-radius: 8px;
+  border: 1px solid var(--border-color); margin-bottom: 1rem;
+  display: flex; flex-direction: column;
+}
+.backup-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.control-group { display: flex; align-items: center; gap: 0.5rem; margin: 0 0.5rem; }
+.number-input { width: 4rem; padding: 0.4rem; }
+
+.progress-bar-container { margin-top: 1rem; }
+.progress-label { margin-bottom: 0.25rem; font-size: 0.85rem; }
+.progress-track {
+  width: 100%; height: 8px; background: var(--border-color);
+  border-radius: 4px; overflow: hidden;
+}
+.progress-fill { height: 100%; background: var(--success); transition: width 0.3s ease; }
+.backup-status { margin-top: 0.5rem; font-size: 0.85rem; padding: 0.5rem; background: #eee; border-radius: 4px; }
+
+.credits { margin-top: 3rem; text-align: center; padding: 1rem; border-top: 1px solid var(--border-color); color: var(--text-muted); }
+.author { color: var(--primary); font-weight: bold; }
+
+
+/* --- GLOBAL MODAL FIX (CRITICAL FOR LANDSCAPE) --- */
+/* Target any modal overlay and content container */
+.modal-overlay {
+  align-items: center; /* Default center */
+  padding: 1rem;
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh; /* Default vertical limit */
+}
+
+.modal-content, .modal-body {
+  overflow-y: auto; /* Ensure scrolling inside */
+  flex: 1;
+}
+
+/* LANDSCAPE OPTIMIZATION:
+   When screen is short (rotated phone), force modal to fill height
+   so buttons aren't cut off. */
+@media (max-height: 500px) {
+  .modal-overlay {
+    align-items: flex-start; /* Align top so we can scroll down if needed */
+    padding: 0; /* Remove padding to maximize space */
+  }
+
+  .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+  
+  /* Make the header compact */
+  .modal h2, .modal h3 { margin-top: 0.5rem; font-size: 1.2rem; }
+  
+  /* Ensure footer/buttons are always visible or scrollable */
+  .modal-footer {
+    padding: 0.5rem;
+    background: white;
+    border-top: 1px solid var(--border-color);
+  }
+  
+  /* Settings Grid compact */
+  .settings-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .list-container { max-height: 150px; }
+}
+/* =========================================
+   PHASE 7: FORM UTILITIES
+   ========================================= */
+
+.modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1rem; border-bottom: 1px solid var(--border-color);
+  background: #f8fafc;
+}
+.modal-header h3 { margin: 0; font-size: 1.25rem; }
+
+.modal-body { padding: 1.5rem; }
+.modal-footer {
+  padding: 1rem; border-top: 1px solid var(--border-color);
+  display: flex; justify-content: flex-end; gap: 0.75rem; background: #f8fafc;
+}
+
+.btn-icon { background: none; border: none; font-size: 1.2rem; color: var(--text-muted); cursor: pointer; }
+
+/* Responsive Form Grid */
+.form-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+}
+.full-width { grid-column: 1 / -1; }
+
+@media (max-width: 600px) {
+  .form-grid { grid-template-columns: 1fr; }
+}
+
+/* Landscape Modal Tweaks */
+@media (max-height: 500px) {
+  .modal-body { padding: 1rem; }
+  .form-grid { gap: 0.5rem; }
+  .form-group { margin-bottom: 0.5rem; }
+  .input { padding: 0.4rem; }
+  label { font-size: 0.8rem; margin-bottom: 0.2rem; }
+}

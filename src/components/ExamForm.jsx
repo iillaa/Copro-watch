@@ -1,324 +1,145 @@
 import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
-import { format } from 'date-fns';
+import { FaCalendar, FaUserMd, FaFlask, FaCheckCircle, FaSave, FaTimes } from 'react-icons/fa';
 
-export default function ExamForm({
-  worker,
-  existingExam,
-  onClose,
-  onSave,
-  deptName,
-  workplaceName,
-}) {
-  // 1. État pour la date de validation (Consultation de retour)
-  const [validationDate, setValidationDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-
+export default function ExamForm({ worker, existingExam, onClose, onSave }) {
   const [formData, setFormData] = useState({
-    exam_date: format(new Date(), 'yyyy-MM-dd'),
-    physician_name: 'Dr. Kibeche Ali Dia Eddine', // Votre nom par défaut
+    exam_date: new Date().toISOString().split('T')[0],
+    physician_name: 'Dr Kibeche',
+    lab_result: 'pending', // 'pending', 'negative', 'positive'
+    status: 'apte', // 'apte', 'inapte', 'apte_partielle'
     notes: '',
-    status: 'open',
-    // Lab
-    lab_result: null,
-    // Treatment
-    treatment: null,
-    // Decision
-    decision: null,
   });
 
   useEffect(() => {
     if (existingExam) {
-      setFormData(existingExam);
-      // Si on édite un examen existant qui a déjà une décision, on pourrait vouloir mettre à jour validationDate
-      if (existingExam.decision?.date) {
-        setValidationDate(existingExam.decision.date);
-      }
+      setFormData({
+        exam_date: existingExam.exam_date,
+        physician_name: existingExam.physician_name,
+        lab_result: existingExam.lab_result?.result || 'pending',
+        status: existingExam.decision?.status || 'apte',
+        notes: existingExam.notes || '',
+      });
     }
   }, [existingExam]);
 
-  const updateField = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const handleLabResult = (result) => {
-    const labData = {
-      result,
-      date: formData.exam_date,
-      parasite: result === 'positive' ? 'Parasite X' : '',
-    };
-    updateField('lab_result', labData);
-  };
-
-  const handleDecision = async (status) => {
-    // 1. Sauvegarde de la Décision
-    // On utilise la date de validation (retour labo) si disponible
-    const finalDecisionDate = validationDate || formData.exam_date;
-
-    const decision = {
-      status,
-      date: finalDecisionDate,
+    const examData = {
+      worker_id: worker.id,
+      exam_date: formData.exam_date,
+      physician_name: formData.physician_name,
+      notes: formData.notes,
+      // Structure specific objects
+      lab_result: formData.lab_result === 'pending' ? null : { 
+        result: formData.lab_result, 
+        date: formData.exam_date 
+      },
+      decision: { 
+        status: formData.status, 
+        date: formData.exam_date, 
+        valid_until: logic.calculateNextDueDate(formData.exam_date, 6) // Default 6 months
+      }
     };
 
-    // On garde formData.exam_date comme date de prescription historique
-    const newExamData = { ...formData, decision, status: 'closed' };
-
-    await db.saveExam({ ...newExamData, worker_id: worker.id });
-
-    // 2. Recalcul du statut avec la nouvelle logique (date de décision)
-    const allExams = await db.getExams();
-    const workerExams = allExams.filter((e) => e.worker_id === worker.id);
-    const statusUpdate = logic.recalculateWorkerStatus(workerExams);
-
-    await db.saveWorker({ ...worker, ...statusUpdate });
-
-    onSave();
+    try {
+      if (existingExam) {
+        await db.saveExam({ ...existingExam, ...examData });
+      } else {
+        await db.saveExam(examData);
+      }
+      
+      // Update worker next due date automatically
+      await logic.updateWorkerStatus(worker.id);
+      
+      onSave();
+    } catch (error) {
+      alert("Erreur: " + error.message);
+    }
   };
-
-  const saveWithoutDecision = async () => {
-    await db.saveExam({ ...formData, worker_id: worker.id });
-
-    // Recalcul simple
-    const allExams = await db.getExams();
-    const workerExams = allExams.filter((e) => e.worker_id === worker.id);
-    const statusUpdate = logic.recalculateWorkerStatus(workerExams);
-
-    await db.saveWorker({ ...worker, ...statusUpdate });
-
-    onSave();
-  };
-
-  // Helpers d'affichage
-  const isPositive = formData.lab_result?.result === 'positive';
-  const isNegative = formData.lab_result?.result === 'negative';
 
   return (
     <div className="modal-overlay">
       <div className="modal">
-        <h3 style={{ marginTop: 0, marginBottom: '0.5rem' }}>
-          Examen Médical - {worker.full_name}
-        </h3>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-          <strong>Service:</strong> {deptName || '-'} • <strong>Lieu:</strong>{' '}
-          {workplaceName || '-'} • <strong>Poste:</strong> {worker.job_role || '-'}
-        </p>
-
-        {/* Info de base (Prescription) */}
-        <div className="card" style={{ background: '#f9fafb' }}>
-          <div className="form-group">
-            <label className="label">Date de l'examen (Prescription)</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <input
-                type="date"
-                className="input"
-                value={formData.exam_date}
-                onChange={(e) => updateField('exam_date', e.target.value)}
-              />
-              {new Date(formData.exam_date) < new Date(new Date().setHours(0, 0, 0, 0)) && (
-                <span className="badge badge-yellow">⚠️ Mode Historique</span>
-              )}
-            </div>
-          </div>
-          <div className="form-group">
-            <label className="label">Médecin</label>
-            <input
-              className="input"
-              value={formData.physician_name}
-              onChange={(e) => updateField('physician_name', e.target.value)}
-            />
-          </div>
-          <div className="form-group">
-            <label className="label">Examen clinique / Notes</label>
-            <textarea
-              className="input"
-              rows="2"
-              value={formData.notes}
-              onChange={(e) => updateField('notes', e.target.value)}
-            />
-          </div>
+        <div className="modal-header">
+          <h3>{existingExam ? 'Modifier Examen' : 'Nouvel Examen'}</h3>
+          <button className="btn-icon" onClick={onClose}><FaTimes /></button>
         </div>
 
-        {/* Section Labo */}
-        <div className="card" style={{ borderLeft: '4px solid #3b82f6' }}>
-          <h4>Laboratoire (Copro-parasitologie)</h4>
-          {!formData.lab_result ? (
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button className="btn btn-success" onClick={() => handleLabResult('negative')}>
-                Résultat Négatif (-)
-              </button>
-              <button className="btn btn-danger" onClick={() => handleLabResult('positive')}>
-                Résultat Positif (+)
-              </button>
-            </div>
-          ) : (
-            <div>
-              <div
-                style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}
-              >
-                <span
-                  className={`badge ${
-                    formData.lab_result.result === 'positive' ? 'badge-red' : 'badge-green'
-                  }`}
-                >
-                  Résultat: {formData.lab_result.result.toUpperCase()}
-                </span>
-                <button
-                  className="btn btn-sm btn-outline"
-                  onClick={() => updateField('lab_result', null)}
-                >
-                  Modifier
-                </button>
-              </div>
-              {isPositive && (
-                <div className="form-group">
-                  <label className="label">Type de Parasite</label>
-                  <input
-                    className="input"
-                    value={formData.lab_result.parasite}
-                    onChange={(e) =>
-                      updateField('lab_result', {
-                        ...formData.lab_result,
-                        parasite: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Traitement (Si Positif) */}
-        {isPositive && (
-          <div className="card" style={{ borderLeft: '4px solid #ef4444' }}>
-            <h4>Traitement & Suivi</h4>
-            <div className="form-group">
-              <label className="label">Médicament & Dose</label>
-              <input
-                className="input"
-                placeholder="Ex: Flagyl 500mg"
-                value={formData.treatment?.drug || ''}
-                onChange={(e) =>
-                  updateField('treatment', { ...(formData.treatment || {}), drug: e.target.value })
-                }
-              />
-            </div>
-            <div className="form-group">
-              <label className="label">Date Début Traitement</label>
-              <input
-                type="date"
-                className="input"
-                value={formData.treatment?.start_date || format(new Date(), 'yyyy-MM-dd')}
-                onChange={(e) =>
-                  updateField('treatment', {
-                    ...(formData.treatment || {}),
-                    start_date: e.target.value,
-                  })
-                }
-              />
-            </div>
-            <div className="form-group">
-              <label className="label">Contre-visite prévue le:</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
-                  className="btn btn-outline btn-sm"
-                  type="button"
-                  onClick={() => {
-                    const start =
-                      formData.treatment?.start_date || format(new Date(), 'yyyy-MM-dd');
-                    const date = logic.calculateRetestDate(start, 7);
-                    updateField('treatment', {
-                      ...(formData.treatment || {}),
-                      start_date: start,
-                      retest_date: date,
-                    });
-                  }}
-                >
-                  +7 Jours
-                </button>
-                <button
-                  className="btn btn-outline btn-sm"
-                  type="button"
-                  onClick={() => {
-                    const start =
-                      formData.treatment?.start_date || format(new Date(), 'yyyy-MM-dd');
-                    const date = logic.calculateRetestDate(start, 10);
-                    updateField('treatment', {
-                      ...(formData.treatment || {}),
-                      start_date: start,
-                      retest_date: date,
-                    });
-                  }}
-                >
-                  +10 Jours
-                </button>
+        <div className="modal-body">
+          <form id="exam-form" onSubmit={handleSubmit}>
+            <div className="form-grid">
+              
+              <div className="form-group">
+                <label><FaCalendar /> Date de l'examen</label>
                 <input
                   type="date"
                   className="input"
-                  style={{ width: 'auto' }}
-                  value={formData.treatment?.retest_date || ''}
-                  onChange={(e) =>
-                    updateField('treatment', {
-                      ...(formData.treatment || {}),
-                      retest_date: e.target.value,
-                    })
-                  }
+                  value={formData.exam_date}
+                  onChange={(e) => setFormData({ ...formData, exam_date: e.target.value })}
+                  required
                 />
               </div>
+
+              <div className="form-group">
+                <label><FaUserMd /> Médecin</label>
+                <input
+                  className="input"
+                  value={formData.physician_name}
+                  onChange={(e) => setFormData({ ...formData, physician_name: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label><FaFlask /> Résultat Labo</label>
+                <select
+                  className="input"
+                  value={formData.lab_result}
+                  onChange={(e) => setFormData({ ...formData, lab_result: e.target.value })}
+                  style={{ 
+                    borderColor: formData.lab_result === 'positive' ? 'var(--danger)' : 
+                                 formData.lab_result === 'negative' ? 'var(--success)' : '' 
+                  }}
+                >
+                  <option value="pending">En attente</option>
+                  <option value="negative">Négatif (Normal)</option>
+                  <option value="positive">Positif (Anormal)</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label><FaCheckCircle /> Décision / Aptitude</label>
+                <select
+                  className="input"
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                >
+                  <option value="apte">Apte</option>
+                  <option value="apte_partielle">Apte Partiel</option>
+                  <option value="inapte">Inapte Temporaire</option>
+                </select>
+              </div>
+
+              <div className="form-group full-width">
+                <label>Observations</label>
+                <textarea
+                  className="input"
+                  rows="3"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Remarques cliniques..."
+                />
+              </div>
+
             </div>
+          </form>
+        </div>
 
-            <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
-              <button className="btn btn-danger" onClick={() => handleDecision('inapte')}>
-                Marquer Inapte Temporaire
-              </button>
-              <button className="btn btn-warning" onClick={() => handleDecision('apte_partielle')}>
-                Apte Partiel (Sous réserve)
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Décision Finale (Si Négatif) - AVEC CHAMP DATE */}
-        {isNegative && (
-          <div className="card" style={{ borderLeft: '4px solid #22c55e' }}>
-            <h4>Décision Finale (Retour Labo)</h4>
-            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
-              Le résultat est négatif. Le travailleur peut être déclaré apte.
-            </p>
-
-            {/* Champ date de validation ajouté */}
-            <div className="form-group">
-              <label className="label">Date de validation (Consultation de retour)</label>
-              <input
-                type="date"
-                className="input"
-                value={validationDate}
-                onChange={(e) => setValidationDate(e.target.value)}
-              />
-              <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
-                Cette date servira de point de départ pour les 6 mois. (Prochain examen le :{' '}
-                {logic.formatDateDisplay(logic.calculateNextExamDue(validationDate))})
-              </small>
-            </div>
-
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-              <button className="btn btn-success" onClick={() => handleDecision('apte')}>
-                Valider APTE & Sauvegarder
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Boutons de fermeture */}
-        <div
-          style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem', gap: '1rem' }}
-        >
-          <button className="btn btn-outline" onClick={onClose}>
-            Fermer
-          </button>
-          <button className="btn btn-primary" onClick={saveWithoutDecision}>
-            Sauvegarder (Sans clôturer)
-          </button>
+        <div className="modal-footer">
+          <button type="button" className="btn btn-outline" onClick={onClose}>Annuler</button>
+          <button type="submit" form="exam-form" className="btn btn-primary"><FaSave /> Enregistrer</button>
         </div>
       </div>
     </div>

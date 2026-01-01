@@ -17,18 +17,15 @@ export default function Dashboard({ onNavigateWorker }) {
     setLoading(true);
     const [workers, exams] = await Promise.all([db.getWorkers(), db.getExams()]);
 
-    // 1. Filtrer les archivés
+    // 1. Filter archived
     const activeWorkers = workers.filter((w) => !w.archived);
 
-    // 2. Calculer les stats
+    // 2. Calculate stats
     const computed = logic.getDashboardStats(activeWorkers, exams);
 
-    // 3. TRI AUTOMATIQUE
-    // A faire bientôt : du plus proche au plus lointain
+    // 3. Auto-sort
     computed.dueSoon.sort((a, b) => new Date(a.next_exam_due) - new Date(b.next_exam_due));
-    // En retard : du plus grand retard (date ancienne) au plus petit
     computed.overdue.sort((a, b) => new Date(a.next_exam_due) - new Date(b.next_exam_due));
-    // Contre-visites : par date prévue
     computed.retests.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     setStats(computed);
@@ -41,144 +38,70 @@ export default function Dashboard({ onNavigateWorker }) {
 
   if (loading)
     return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '60vh',
-          gap: '1rem',
-        }}
-      >
+      <div className="loading-container">
         <div className="loading-spinner"></div>
-        <div style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Chargement des données...</div>
+        <div className="loading-text">Chargement des données...</div>
       </div>
     );
 
   return (
-    <div>
-      <header style={{ marginBottom: '2rem' }}>
+    <div className="dashboard-container">
+      <header className="dashboard-header">
         <h2>Tableau de bord</h2>
         <p>Aperçu de la situation médicale.</p>
       </header>
 
-      {/* --- CARTES DE STATISTIQUES --- */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '2rem',
-          marginBottom: '2.5rem',
-        }}
-      >
-        {/* À faire (Jaune) */}
-        <div
-          className="card"
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: 'var(--warning-light)',
-            padding: '1.5rem',
-          }}
-        >
-          <div>
-            <h3 className="stat-card-title" style={{ color: 'var(--warning-text)' }}>
-              À faire (15 jours)
-            </h3>
-            <div className="stat-card-value" style={{ color: 'var(--warning)' }}>
-              {stats.dueSoon.length}
-            </div>
-            <p style={{ margin: 0, fontWeight: 600, color: 'var(--warning-text)' }}>Travailleurs</p>
+      {/* --- STATS CARDS --- */}
+      <div className="dashboard-stats-grid">
+        {/* Warning Card */}
+        <div className="card stat-card warning">
+          <div className="stat-content">
+            <h3 className="stat-card-title warning-text">À faire (15j)</h3>
+            <div className="stat-card-value warning-val">{stats.dueSoon.length}</div>
+            <p className="stat-subtitle warning-text">Travailleurs</p>
           </div>
-          <div style={{ opacity: 0.8 }}>
-            <FaClipboardList size={60} color="var(--warning)" />
+          <div className="stat-icon">
+            <FaClipboardList />
           </div>
         </div>
 
-        {/* En Retard (Rouge) */}
-        <div
-          className="card"
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: 'var(--danger-light)',
-            padding: '1.5rem',
-          }}
-        >
-          <div>
-            <h3 className="stat-card-title" style={{ color: 'var(--danger-text)' }}>
-              En Retard
-            </h3>
-            <div className="stat-card-value" style={{ color: 'var(--danger)' }}>
-              {stats.overdue.length}
-            </div>
-            <p style={{ margin: 0, fontWeight: 600, color: 'var(--danger-text)' }}>Travailleurs</p>
+        {/* Overdue Card */}
+        <div className="card stat-card danger">
+          <div className="stat-content">
+            <h3 className="stat-card-title danger-text">En Retard</h3>
+            <div className="stat-card-value danger-val">{stats.overdue.length}</div>
+            <p className="stat-subtitle danger-text">Travailleurs</p>
           </div>
-          <div style={{ opacity: 0.8 }}>
-            <FaExclamationTriangle size={60} color="var(--danger)" />
+          <div className="stat-icon">
+            <FaExclamationTriangle />
           </div>
         </div>
 
-        {/* Suivi Médical (Bleu) */}
-        <div
-          className="card"
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: 'var(--primary-light)',
-            padding: '1.5rem',
-          }}
-        >
-          <div>
-            <h3 className="stat-card-title" style={{ color: 'var(--primary)' }}>
-              Suivi Médical
-            </h3>
-            <div className="stat-card-value" style={{ color: 'var(--primary)' }}>
-              {stats.activePositive.length}
-            </div>
-            <p style={{ margin: 0, fontWeight: 600, color: 'var(--primary)' }}>Cas actifs</p>
+        {/* Active Card */}
+        <div className="card stat-card primary">
+          <div className="stat-content">
+            <h3 className="stat-card-title primary-text">Suivi Médical</h3>
+            <div className="stat-card-value primary-val">{stats.activePositive.length}</div>
+            <p className="stat-subtitle primary-text">Cas actifs</p>
           </div>
-          <div style={{ opacity: 0.8 }}>
-            <FaMicroscope size={60} color="var(--primary)" />
+          <div className="stat-icon">
+            <FaMicroscope />
           </div>
         </div>
       </div>
 
-      {/* --- TABLEAUX --- */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
-          gap: '1.5rem',
-        }}
-      >
-        {/* TABLEAU 1 : Examens à prévoir (Retard & Bientôt) */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div
-            style={{
-              padding: '1.5rem',
-              borderBottom: 'var(--border-width) solid var(--border-color)',
-              background: 'white',
-            }}
-          >
-            <h3 style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <FaClock /> Examens à prévoir
-            </h3>
+      {/* --- TABLES --- */}
+      <div className="dashboard-tables-grid">
+        {/* TABLE 1: Exams Needed */}
+        <div className="card no-padding overflow-hidden">
+          <div className="card-header-clean">
+            <h3><FaClock /> Examens à prévoir</h3>
           </div>
 
           {stats.dueSoon.length === 0 && stats.overdue.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              Rien à signaler. Tout est à jour !
-            </div>
+            <div className="empty-state">Rien à signaler. Tout est à jour !</div>
           ) : (
-            <div
-              className="table-container"
-              style={{ border: 'none', boxShadow: 'none', borderRadius: 0 }}
-            >
+            <div className="table-container flat">
               <table>
                 <thead>
                   <tr>
@@ -188,46 +111,31 @@ export default function Dashboard({ onNavigateWorker }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* D'abord les retards (Priorité absolue) */}
+                  {/* Overdue first */}
                   {stats.overdue.map((w) => (
                     <tr key={w.id} className="overdue-worker-row">
                       <td>
-                        <div style={{ fontWeight: 700, color: 'var(--danger-text)' }}>
-                          {w.full_name}
-                        </div>
-                        <span
-                          className="badge badge-red"
-                          style={{ marginTop: '0.25rem', fontSize: '0.75rem' }}
-                        >
-                          En Retard
-                        </span>
+                        <div className="danger-text fw-700">{w.full_name}</div>
+                        <span className="badge badge-red mt-1">En Retard</span>
                       </td>
-                      <td style={{ color: 'var(--danger)', fontWeight: 'bold' }}>
+                      <td className="danger-text fw-700">
                         {logic.formatDate(new Date(w.next_exam_due))}
                       </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <button
-                          className="btn btn-sm btn-outline"
-                          onClick={() => onNavigateWorker(w.id)}
-                        >
+                      <td className="text-right">
+                        <button className="btn btn-sm btn-outline" onClick={() => onNavigateWorker(w.id)}>
                           Voir <FaChevronRight size={10} />
                         </button>
                       </td>
                     </tr>
                   ))}
 
-                  {/* Ensuite les examens à venir */}
+                  {/* Upcoming next */}
                   {stats.dueSoon.map((w) => (
                     <tr key={w.id}>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{w.full_name}</div>
-                      </td>
+                      <td><div className="fw-600">{w.full_name}</div></td>
                       <td>{logic.formatDate(new Date(w.next_exam_due))}</td>
-                      <td style={{ textAlign: 'right' }}>
-                        <button
-                          className="btn btn-sm btn-outline"
-                          onClick={() => onNavigateWorker(w.id)}
-                        >
+                      <td className="text-right">
+                        <button className="btn btn-sm btn-outline" onClick={() => onNavigateWorker(w.id)}>
                           Voir <FaChevronRight size={10} />
                         </button>
                       </td>
@@ -239,29 +147,16 @@ export default function Dashboard({ onNavigateWorker }) {
           )}
         </div>
 
-        {/* TABLEAU 2 : Contre-visites (Suivi) */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div
-            style={{
-              padding: '1.5rem',
-              borderBottom: 'var(--border-width) solid var(--border-color)',
-              background: 'white',
-            }}
-          >
-            <h3 style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <FaMicroscope color="var(--primary)" /> Contre-visites
-            </h3>
+        {/* TABLE 2: Retests */}
+        <div className="card no-padding overflow-hidden">
+          <div className="card-header-clean">
+            <h3><FaMicroscope className="primary-color" /> Contre-visites</h3>
           </div>
 
           {stats.retests.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              Aucune contre-visite prévue.
-            </div>
+            <div className="empty-state">Aucune contre-visite prévue.</div>
           ) : (
-            <div
-              className="table-container"
-              style={{ border: 'none', boxShadow: 'none', borderRadius: 0 }}
-            >
+            <div className="table-container flat">
               <table>
                 <thead>
                   <tr>
@@ -274,44 +169,19 @@ export default function Dashboard({ onNavigateWorker }) {
                   {stats.retests.map((item) => (
                     <tr key={item.worker.id}>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          {/* ICÔNE DE SUIVI */}
-                          <div
-                            style={{
-                              background: 'var(--primary-light)',
-                              padding: '6px',
-                              borderRadius: '50%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <FaMicroscope size={14} color="var(--primary)" />
+                        <div className="flex-align-center gap-2">
+                          <div className="icon-circle-sm">
+                            <FaMicroscope size={14} />
                           </div>
                           <div>
-                            <div style={{ fontWeight: 600 }}>{item.worker.full_name}</div>
-                            {/* BADGE DISCRET */}
-                            <span
-                              style={{
-                                fontSize: '0.7rem',
-                                background: '#e0f2fe',
-                                color: '#0284c7',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                fontWeight: '600',
-                              }}
-                            >
-                              Suivi requis
-                            </span>
+                            <div className="fw-600">{item.worker.full_name}</div>
+                            <span className="badge-soft-blue">Suivi requis</span>
                           </div>
                         </div>
                       </td>
                       <td>{logic.formatDate(new Date(item.date))}</td>
-                      <td style={{ textAlign: 'right' }}>
-                        <button
-                          className="btn btn-sm btn-outline"
-                          onClick={() => onNavigateWorker(item.worker.id)}
-                        >
+                      <td className="text-right">
+                        <button className="btn btn-sm btn-outline" onClick={() => onNavigateWorker(item.worker.id)}>
                           Ouvrir <FaChevronRight size={10} />
                         </button>
                       </td>
