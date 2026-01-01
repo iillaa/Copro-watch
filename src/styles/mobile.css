@@ -1,96 +1,109 @@
-:root {
-  --nav-height: 60px;
-}
+/* --- MOBILE LAYOUT FIXES --- */
 
-.mobile-layout {
-  padding-bottom: calc(var(--nav-height) + 20px);
-  padding-top: 10px;
-  background-color: var(--bg-app);
-  min-height: 100vh;
-}
-
-.mobile-header {
-  padding: 0 1rem 1rem 1rem;
-}
-
-/* CARDS */
-.mobile-card {
-  background: white;
-  border: var(--border-width) solid var(--border-color);
-  border-radius: 12px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  box-shadow: 2px 2px 0px var(--border-color);
-}
-.mobile-card:active {
-  transform: scale(0.98);
-}
-
-.mobile-card-header {
+/* 1. UNLOCK THE SCROLLING (The most important fix) */
+.mobile-app-container {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.5rem;
-}
-.mobile-card-title {
-  font-weight: 700;
-  font-size: 1rem;
-  color: var(--text-main);
-}
-.mobile-card-subtitle {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  font-family: monospace;
-}
-.mobile-card-row {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-}
-.mobile-card-actions {
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px dashed var(--border-color);
-  display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
+  flex-direction: column;
+  height: 100vh; /* Fill the phone screen */
+  width: 100vw;
+  background-color: #f8fafc;
+  overflow: hidden; /* Container stays fixed... */
 }
 
-/* BOTTOM NAV */
+/* 2. MAKE THE CONTENT SCROLLABLE */
+.mobile-app-container main {
+  flex: 1; /* Take all available space */
+  overflow-y: auto; /* ENABLE SCROLLING HERE! */
+  overflow-x: hidden; /* Prevent side-scrolling */
+  
+  /* Add breathing room so it's not "squashed" */
+  padding: 1rem; 
+  padding-bottom: 100px; /* Space for the bottom menu */
+  
+  /* Smooth scrolling feel on iOS/Android */
+  -webkit-overflow-scrolling: touch; 
+}
+
+/* 3. FIX THE BOTTOM MENU */
 .bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
-  height: var(--nav-height);
+  height: 70px; /* Fixed height */
   background: white;
-  border-top: var(--border-width) solid var(--border-color);
+  border-top: 2px solid var(--border-color);
   display: flex;
-  justify-content: space-around;
+  justify-content: space-around; /* Spread icons evenly */
   align-items: center;
   z-index: 1000;
-  padding-bottom: env(safe-area-inset-bottom); /* iPhone Home Bar Support */
+  box-shadow: 0px -4px 10px rgba(0,0,0,0.05);
+  padding-bottom: env(safe-area-inset-bottom); /* Fix for iPhone X/11/12/13/14 bar */
 }
+
+/* 4. BUTTON STYLING (Make them touch-friendly) */
 .bottom-nav-item {
-  flex: 1;
-  height: 100%;
+  background: none;
+  border: none;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: none;
-  background: none;
   color: var(--text-muted);
   font-size: 0.7rem;
   font-weight: 600;
+  padding: 0.5rem;
+  gap: 4px;
+  flex: 1; /* Make touch target big */
 }
+
 .bottom-nav-item.active {
   color: var(--primary);
-  background-color: var(--primary-light);
-  border-top: 2px solid var(--primary);
 }
+
 .bottom-nav-icon {
   font-size: 1.4rem;
   margin-bottom: 2px;
+}
+
+/* 5. CARD & TEXT ADJUSTMENTS (Fix "Not Adjusted to Screen") */
+
+/* Shrink headers on mobile so they don't take up the whole screen */
+.mobile-app-container h1 { font-size: 1.5rem; }
+.mobile-app-container h2 { font-size: 1.25rem; }
+.mobile-app-container h3 { font-size: 1.1rem; }
+
+/* Fix Card Padding (Desktop 1.5rem is too big for phone) */
+.mobile-app-container .card {
+  padding: 1rem !important; 
+  margin-bottom: 1rem;
+  border-width: 2px; /* Thinner border for small screens */
+  box-shadow: 3px 3px 0px var(--border-color); /* Smaller shadow */
+}
+
+/* Fix Tables (Prevent them from breaking the width) */
+.mobile-app-container .table-container {
+  width: 100%;
+  overflow-x: auto; /* Scroll table sideways if too big */
+  display: block;
+}
+.mobile-app-container th, 
+.mobile-app-container td {
+  padding: 0.75rem 0.5rem; /* Smaller cells */
+  font-size: 0.85rem;
+}
+
+/* 6. PIN LOCK FIX (Force it to fit) */
+.pin-lock-container {
+  height: 100vh;
+  width: 100vw;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: #f8fafc;
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-y: auto; /* Allow scrolling if keyboard pops up */
 }
