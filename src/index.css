@@ -956,3 +956,8 @@ html {
   background-color: white;
   border-color: var(--primary);
 }
+/* Helps browser optimize rendering for long lists */
+tr {
+  content-visibility: auto; 
+  contain-intrinsic-size: 50px; /* Approximate height of a row */
+}

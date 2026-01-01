@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
 import { FaSearch, FaHistory, FaList } from 'react-icons/fa';
@@ -8,8 +8,12 @@ import WaterServiceDetail from './WaterServiceDetail';
 export default function WaterAnalyses() {
   const [departments, setDepartments] = useState([]);
   const [waterAnalyses, setWaterAnalyses] = useState([]);
-  const [filteredDepartments, setFilteredDepartments] = useState([]);
+  
+  // 1. REMOVED: const [filteredDepartments, setFilteredDepartments] = useState([]);
+  
   const [searchTerm, setSearchTerm] = useState('');
+  // 2. NEW: Defer the search term to keep typing smooth
+  const deferredSearch = useDeferredValue(searchTerm);
 
   // Selection State
   const [selectedDeptId, setSelectedDeptId] = useState(null);
@@ -28,18 +32,23 @@ export default function WaterAnalyses() {
     loadData();
   }, []);
 
-  useEffect(() => {
+  // 3. OPTIMIZATION: Calculate filtered list on-the-fly
+  const filteredDepartments = useMemo(() => {
     const withStatus = logic.getDepartmentsWaterStatus(departments, waterAnalyses);
-    const filtered = withStatus.filter((d) =>
-      d.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredDepartments(filtered);
+    
+    if (!deferredSearch) return withStatus;
 
-    // Auto-select first item if nothing selected
-    if (!selectedDeptId && filtered.length > 0) {
-      setSelectedDeptId(filtered[0].id);
+    return withStatus.filter((d) =>
+      d.name.toLowerCase().includes(deferredSearch.toLowerCase())
+    );
+  }, [departments, waterAnalyses, deferredSearch]);
+
+  // Auto-select first item if nothing selected (Handled via effect to avoid loop)
+  useEffect(() => {
+    if (!selectedDeptId && filteredDepartments.length > 0) {
+      setSelectedDeptId(filteredDepartments[0].id);
     }
-  }, [searchTerm, departments, waterAnalyses]);
+  }, [filteredDepartments, selectedDeptId]);
 
   const selectedDept =
     filteredDepartments.find((d) => d.id === selectedDeptId) || filteredDepartments[0];
@@ -125,6 +134,9 @@ export default function WaterAnalyses() {
               const isSelected = dept.id === selectedDeptId;
               const statusColor = logic.getServiceWaterStatusColor(dept.waterStatus);
 
+              // Use deferred search for visual feedback (opacity)
+              const isStale = searchTerm !== deferredSearch;
+
               return (
                 <div
                   key={dept.id}
@@ -136,6 +148,7 @@ export default function WaterAnalyses() {
                     backgroundColor: isSelected ? 'var(--primary-light)' : 'transparent',
                     borderLeft: isSelected ? `5px solid var(--primary)` : `5px solid transparent`,
                     transition: 'all 0.2s ease',
+                    opacity: isStale ? 0.6 : 1 
                   }}
                 >
                   <div
@@ -152,7 +165,6 @@ export default function WaterAnalyses() {
                         backgroundColor: statusColor,
                         color: 'white',
                         border: 'none',
-                        // FIX: Bigger Font & Padding
                         fontSize: '0.9rem',
                         padding: '0.35rem 0.7rem',
                         borderRadius: '6px',

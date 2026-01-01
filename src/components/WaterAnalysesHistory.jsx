@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
 import WaterAnalysisForm from './WaterAnalysisForm';
@@ -8,7 +8,9 @@ export default function WaterAnalysesHistory() {
   const [workplaces, setWorkplaces] = useState([]);
   const [waterAnalyses, setWaterAnalyses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filteredAnalyses, setFilteredAnalyses] = useState([]);
+  
+  // 1. REMOVED: const [filteredAnalyses, setFilteredAnalyses] = useState([]);
+  
   const [selectedWorkplace, setSelectedWorkplace] = useState('all');
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedResult, setSelectedResult] = useState('all');
@@ -25,16 +27,7 @@ export default function WaterAnalysesHistory() {
 
       setWorkplaces(workplacesData);
       setWaterAnalyses(analysesData);
-
-      // Sort analyses by date (newest first)
-      const sortedAnalyses = analysesData
-        .map((analysis) => ({
-          ...analysis,
-          workplace: workplacesData.find((w) => w.id === analysis.structure_id),
-        }))
-        .sort((a, b) => new Date(b.sample_date) - new Date(a.sample_date));
-
-      setFilteredAnalyses(sortedAnalyses);
+      // Removed manual setting of filteredAnalyses here
     } catch (error) {
       console.error('Error loading water analyses history:', error);
     }
@@ -45,11 +38,9 @@ export default function WaterAnalysesHistory() {
     loadData();
   }, []);
 
-  useEffect(() => {
-    filterAnalyses();
-  }, [waterAnalyses, selectedWorkplace, selectedMonth, selectedResult]);
-
-  const filterAnalyses = () => {
+  // 2. REMOVED: useEffect(() => { filterAnalyses(); }, [...])
+  // 3. OPTIMIZATION: useMemo replaces the old filterAnalyses function
+  const filteredAnalyses = useMemo(() => {
     let filtered = [...waterAnalyses];
 
     // Filter by workplace
@@ -74,22 +65,21 @@ export default function WaterAnalysesHistory() {
       filtered = filtered.filter((a) => a.result === selectedResult);
     }
 
-    // Sort by date (newest first) and add workplace info
-    const sortedFiltered = filtered
+    // Sort and Join
+    return filtered
       .map((analysis) => ({
         ...analysis,
         workplace: workplaces.find((w) => w.id === analysis.structure_id),
       }))
       .sort((a, b) => new Date(b.sample_date) - new Date(a.sample_date));
-
-    setFilteredAnalyses(sortedFiltered);
-  };
+      
+  }, [waterAnalyses, workplaces, selectedWorkplace, selectedMonth, selectedResult]);
 
   const handleDelete = async (analysisId) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cette analyse ?')) {
       try {
         await db.deleteWaterAnalysis(analysisId);
-        loadData(); // Refresh data
+        loadData(); // This will auto-trigger useMemo recalculation
       } catch (error) {
         console.error('Error deleting analysis:', error);
         alert("Erreur lors de la suppression de l'analyse.");
@@ -105,7 +95,7 @@ export default function WaterAnalysesHistory() {
   const handleFormSuccess = () => {
     setShowForm(false);
     setSelectedAnalysis(null);
-    loadData(); // Refresh data to sync with overview and statistics
+    loadData(); 
   };
 
   const getResultBadge = (result) => {
