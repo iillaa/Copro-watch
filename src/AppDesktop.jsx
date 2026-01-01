@@ -160,4 +160,4 @@ function App() {
   );
 }
 
-export default AppDesktop;
+export default App;
