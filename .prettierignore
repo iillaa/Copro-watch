@@ -1,0 +1,9 @@
+# .prettierignore
+node_modules
+dist
+dist-mobile
+dist-standalone
+.git
+android
+package-lock.json
+*.md

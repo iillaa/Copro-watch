@@ -470,11 +470,11 @@ th {
   font-weight: 700;
   text-transform: uppercase;
   color: var(--primary);
-  
+
   /* FORCE REMOVAL OF LINES */
-  border-right: none !important; 
+  border-right: none !important;
   border-left: none !important;
-  
+
   position: relative;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -490,9 +490,9 @@ th:hover {
 td {
   padding: 1rem;
   /* Horizontal line only */
-  border-bottom: 2px solid #f1f5f9; 
+  border-bottom: 2px solid #f1f5f9;
   /* NO border-right here */
-  
+
   font-weight: 500;
   transition: all 0.2s ease;
   position: relative;
@@ -965,6 +965,6 @@ html {
 }
 /* Helps browser optimize rendering for long lists */
 tr {
-  content-visibility: auto; 
+  content-visibility: auto;
   contain-intrinsic-size: 50px; /* Approximate height of a row */
 }

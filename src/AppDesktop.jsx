@@ -8,11 +8,12 @@ import WorkerDetail from './components/WorkerDetail';
 import PinLock from './components/PinLock';
 import Settings from './components/Settings';
 import WaterAnalyses from './components/WaterAnalyses';
+import ReloadPrompt from './components/ReloadPrompt'; // <--- PWA Update
 
 import { FaUsers, FaChartLine, FaCog, FaFlask } from 'react-icons/fa';
 
-function App() {
-  // --- STATE (Original) ---
+function AppDesktop() {
+  // --- STATE ---
   const [view, setView] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   const [selectedWorkerId, setSelectedWorkerId] = useState(null);
@@ -21,23 +22,25 @@ function App() {
   const [waterResetKey, setWaterResetKey] = useState(0);
   const [pin, setPin] = useState('0011');
 
-  // --- ENGINE STARTUP (The Only Change) ---
+  // --- ENGINE STARTUP ---
   const initApp = async () => {
     try {
       setLoading(true);
       
-      // 1. Start the Database (Triggers Migration to Dexie)
+      // 1. Start the Database
       await db.init(); 
       
       // 2. Start Backup Service
       await backupService.init();
+      
+      // 3. Auto-import (Desktop Only)
       try {
         await backupService.checkAndAutoImport(db);
       } catch (e) {
         console.warn('Auto-import check failed:', e);
       }
 
-      // 3. Load User Settings
+      // 4. Load User Settings
       const settings = await db.getSettings();
       if (settings.pin) {
         setPin(settings.pin);
@@ -74,9 +77,12 @@ function App() {
     return <PinLock correctPin={pin} onUnlock={() => setIsLocked(false)} />;
   }
 
-  // --- MAIN UI (Original Layout Restored) ---
+  // --- MAIN UI ---
   return (
     <div className={`app-shell ${isSidebarOpen ? '' : 'sidebar-closed'}`}>
+      
+      {/* PWA UPDATE PROMPT */}
+      <ReloadPrompt />
       
       {/* SIDEBAR */}
       <aside className="sidebar no-print">
@@ -95,6 +101,7 @@ function App() {
             <FaChartLine className="nav-icon" />
             <span className="nav-text">Tableau de bord</span>
           </div>
+          
           <div
             className={`nav-item ${view === 'workers' || view === 'worker-detail' ? 'active' : ''}`}
             onClick={() => {
@@ -106,6 +113,7 @@ function App() {
             <FaUsers className="nav-icon" />
             <span className="nav-text">Travailleurs</span>
           </div>
+          
           <div
             className={`nav-item ${view === 'water-analyses' ? 'active' : ''}`}
             onClick={() => {
@@ -117,6 +125,7 @@ function App() {
             <FaFlask className="nav-icon" />
             <span className="nav-text">Analyses d'eau</span>
           </div>
+          
           <div
             className={`nav-item ${view === 'settings' ? 'active' : ''}`}
             onClick={() => setView('settings')}
@@ -127,7 +136,6 @@ function App() {
           </div>
         </nav>
 
-        {/* CREDITS: Restored to 1.1 as requested */}
         <div className="credit" style={{ marginTop: 'auto' }}>
           <div className="credit-title">Développé par</div>
           <div className="credit-author">Dr Kibeche Ali Dia Eddine</div>
@@ -160,4 +168,4 @@ function App() {
   );
 }
 
-export default App;
+export default AppDesktop;

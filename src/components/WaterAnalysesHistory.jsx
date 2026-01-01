@@ -8,9 +8,9 @@ export default function WaterAnalysesHistory() {
   const [workplaces, setWorkplaces] = useState([]);
   const [waterAnalyses, setWaterAnalyses] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // 1. REMOVED: const [filteredAnalyses, setFilteredAnalyses] = useState([]);
-  
+
   const [selectedWorkplace, setSelectedWorkplace] = useState('all');
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedResult, setSelectedResult] = useState('all');
@@ -72,7 +72,6 @@ export default function WaterAnalysesHistory() {
         workplace: workplaces.find((w) => w.id === analysis.structure_id),
       }))
       .sort((a, b) => new Date(b.sample_date) - new Date(a.sample_date));
-      
   }, [waterAnalyses, workplaces, selectedWorkplace, selectedMonth, selectedResult]);
 
   const handleDelete = async (analysisId) => {
@@ -95,7 +94,7 @@ export default function WaterAnalysesHistory() {
   const handleFormSuccess = () => {
     setShowForm(false);
     setSelectedAnalysis(null);
-    loadData(); 
+    loadData();
   };
 
   const getResultBadge = (result) => {
