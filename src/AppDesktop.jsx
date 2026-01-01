@@ -16,6 +16,7 @@ function AppDesktop() {
   // --- STATE ---
   const [view, setView] = useState('dashboard');
   const [loading, setLoading] = useState(true);
+  const [initError, setInitError] = useState(null);
   const [selectedWorkerId, setSelectedWorkerId] = useState(null);
   const [isLocked, setIsLocked] = useState(true);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
@@ -76,6 +77,17 @@ function AppDesktop() {
       >
         <div className="loading-spinner"></div>
         <p style={{ marginTop: '1rem', color: '#666' }}>Chargement...</p>
+      </div>
+    );
+  }
+
+  // --- RENDER: CRITICAL ERROR ---
+  if (initError) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', textAlign: 'center' }}>
+        <h2 style={{ color: '#ef4444' }}>Une erreur est survenue</h2>
+        <p style={{ color: '#64748b', marginBottom: '1rem' }}>{initError}</p>
+        <button className="btn btn-primary" onClick={() => window.location.reload()}>Réessayer</button>
       </div>
     );
   }
