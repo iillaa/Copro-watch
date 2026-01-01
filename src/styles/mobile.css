@@ -100,3 +100,39 @@ html, body, #root {
   height: 2px;
   background: red; 
 }
+/* --- FIX POPUP PANELS (MODALS) --- */
+
+/* 1. Force the overlay to fill the screen */
+.modal-overlay {
+  z-index: 10000 !important; /* Always on top */
+  padding: 0 !important;
+  align-items: flex-start !important; /* Start from top, don't center */
+  background-color: white !important; /* Solid background for mobile */
+}
+
+/* 2. Make the Modal window Full Screen */
+.modal {
+  width: 100vw !important;
+  height: 100dvh !important; /* Full dynamic height */
+  max-width: none !important;
+  max-height: none !important;
+  border-radius: 0 !important; /* No rounded corners */
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  
+  /* 3. CRITICAL: Enable Scrolling inside the modal */
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  
+  /* Padding for comfort */
+  padding: 1rem !important;
+  padding-bottom: 150px !important; /* HUGE space at bottom for scrolling past keyboard */
+  
+  display: block !important; /* Stop flex centering issues */
+}
+
+/* 4. Fix Buttons inside Modals sticking to bottom */
+.modal-actions {
+  padding-bottom: 2rem;
+}
