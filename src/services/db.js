@@ -111,6 +111,26 @@ export const db = {
       // await dbInstance.departments.bulkAdd(SEED_DATA.departments);
     }
   },
+  
+  async getSettings() {
+      try {
+            const pinEntry = await dbInstance.settings.get('pin');
+                  return {
+                          pin: pinEntry ? pinEntry.value : '0011' // Default PIN
+                                };
+                                    } catch (e) {
+                                          console.error("Settings load error", e);
+                                                return { pin: '0011' };
+                                                    }
+                                                      },
+
+                                                        async saveSettings(newSettings) {
+                                                            if (newSettings.pin) {
+                                                                  await dbInstance.settings.put({ key: 'pin', value: newSettings.pin });
+                                                                      }
+                                                                          return true;
+                                                                            },
+                                                                        
 
   // --- WORKERS ---
   async getWorkers() {
