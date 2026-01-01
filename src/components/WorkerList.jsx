@@ -335,7 +335,7 @@ export default function WorkerList({ onNavigateWorker }) {
           Voir archives
         </label>
 
- {(searchTerm || filterDept) && (
+        {(searchTerm || filterDept) && (
           <button
             className="btn btn-outline btn-sm"
             onClick={() => {
