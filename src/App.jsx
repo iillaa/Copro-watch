@@ -141,7 +141,7 @@ function App() {
           <button
             aria-label="Toggle sidebar"
             className="btn btn-sm no-print toggle-sidebar"
-            style={{ marginBottom: '1rem' }}
+            style={{ marginBottom: '2.5rem' }}
             onClick={() => setSidebarOpen(!isSidebarOpen)}
           >
             {isSidebarOpen ? 'Masquer' : 'Afficher'}

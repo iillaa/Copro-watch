@@ -10,6 +10,7 @@ import {
   FaTrash,
   FaBuilding,
   FaTint,
+  FaBriefcase
 } from 'react-icons/fa';
 
 export default function Settings({ currentPin, onPinChange }) {
@@ -29,6 +30,9 @@ export default function Settings({ currentPin, onPinChange }) {
 
   // Departments management
   const [departments, setDepartments] = useState([]);
+  // Workplaces State
+  const [workplaces, setWorkplaces] = useState([]);
+  const [newWorkplaceName, setNewWorkplaceName] = useState('');
   const [newDepartmentName, setNewDepartmentName] = useState('');
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
 
@@ -129,6 +133,8 @@ export default function Settings({ currentPin, onPinChange }) {
 
     // Load departments
     loadDepartments();
+
+    loadWorkplaces(); 
     // Load water departments
     loadWaterDepartments();
   }, []);
@@ -253,7 +259,16 @@ export default function Settings({ currentPin, onPinChange }) {
     }
     setTimeout(() => setBackupStatus(''), 3000);
   };
-
+// --- NEW WORKPLACE LOGIC START ---
+  const loadWorkplaces = async () => {
+    try {
+      const places = await db.getWorkplaces();
+      setWorkplaces(places);
+    } catch (error) {
+      console.error('Error loading workplaces:', error);
+    }
+  };
+  // --- NEW WORKPLACE LOGIC END ---
   // Department management functions
   const loadDepartments = async () => {
     setDepartmentsLoading(true);
@@ -310,6 +325,35 @@ export default function Settings({ currentPin, onPinChange }) {
       setMsg('Erreur lors de la suppression du service.');
       setTimeout(() => setMsg(''), 3000);
     }
+    }
+    
+    // --- WORKPLACES HANDLERS ---
+  const addWorkplace = async () => {
+    if (!newWorkplaceName.trim()) return;
+    try {
+      await db.saveWorkplace({ name: newWorkplaceName.trim() });
+      setNewWorkplaceName('');
+      await loadWorkplaces();
+      setMsg('Lieu de travail ajouté !');
+      setTimeout(() => setMsg(''), 3000);
+    } catch (e) {
+      console.error(e);
+      setMsg("Erreur lors de l'ajout.");
+    }
+  };
+
+  const deleteWorkplace = async (id) => {
+    if (window.confirm('Supprimer ce lieu de travail ?')) {
+      try {
+        await db.deleteWorkplace(id);
+        await loadWorkplaces();
+        setMsg('Lieu supprimé.');
+        setTimeout(() => setMsg(''), 3000);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
   };
 
   // Water Departments management functions
@@ -431,17 +475,11 @@ export default function Settings({ currentPin, onPinChange }) {
       </div>
 
       {/* --- NEW SIDE-BY-SIDE SECTION --- */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '1.5rem',
-          flexWrap: 'wrap',
-          marginTop: '2rem',
-          alignItems: 'flex-start',
-        }}
-      >
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginTop: '2rem', alignItems: 'start' }}>
+      
         {/* LEFT: Standard Services */}
-        <div className="card" style={{ flex: '1 1 300px', marginTop: 0 }}>
+        <div className="card" style={{marginTop: 0 }}>
           <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FaBuilding /> Services (RH)
           </h3>
@@ -527,9 +565,55 @@ export default function Settings({ currentPin, onPinChange }) {
             </div>
           </div>
         </div>
+        
+        {/* --- START OF NEW CARD: LIEUX DE TRAVAIL --- */}
+        <div className="card" style={{ marginTop: 0 }}>
+          <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#d97706' }}>
+            <FaBriefcase /> Lieux de Travail
+          </h3>
+          
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+            <input
+              type="text" 
+              placeholder="Nouveau lieu..." 
+              value={newWorkplaceName}
+              onChange={(e) => setNewWorkplaceName(e.target.value)}
+              className="input" 
+              style={{ flex: 1 }}
+            />
+            <button 
+              className="btn btn-primary" 
+              onClick={addWorkplace} 
+              disabled={!newWorkplaceName || !newWorkplaceName.trim()}
+            >
+              <FaPlus />
+            </button>
+          </div>
 
+          <div style={{ maxHeight: '250px', overflowY: 'auto', background: '#fffbeb', padding: '0.5rem', borderRadius: '4px' }}>
+            {(!workplaces || workplaces.length === 0) && (
+              <div style={{textAlign:'center', color:'#999', padding:'1rem'}}>
+                Aucun lieu défini
+              </div>
+            )}
+            
+            {workplaces && workplaces.map((w) => (
+              <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', borderBottom: '1px solid #fef3c7', background: 'white', marginBottom: '4px', borderRadius: '4px' }}>
+                <span style={{ fontWeight: 500 }}>{w.name}</span>
+                <button 
+                  className="btn btn-sm btn-outline" 
+                  onClick={() => deleteWorkplace(w.id)} 
+                  style={{ color: 'var(--danger)', borderColor: 'transparent' }}
+                >
+                  <FaTrash size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+                                                                                                                                 
         {/* RIGHT: Water Services */}
-        <div className="card" style={{ flex: '1 1 300px', marginTop: 0 }}>
+        <div className="card" style={{ marginTop: 0 }}>
           <h3
             style={{
               marginTop: 0,

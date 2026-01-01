@@ -156,6 +156,31 @@ export const db = {
   async getWorkplaces() {
     return await dbInstance.workplaces.toArray();
   },
+  
+ // --- WORKPLACES (Lieux de Travail) 
+
+  async getWorkplaces() {
+
+    return await dbInstance.workplaces.toArray();
+
+  },
+
+  async saveWorkplace(workplace) {
+
+    if (!workplace.id) workplace.id = Date.now();
+
+    await dbInstance.workplaces.put(workplace);
+
+    return workplace;
+
+  },
+
+  async deleteWorkplace(id) {
+
+    await dbInstance.workplaces.delete(id);
+
+  },
+
 
   // --- WATER ---
   async getWaterAnalyses() {
