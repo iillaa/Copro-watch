@@ -1,5 +1,6 @@
 {
   "appId": "com.coprowatch.app",
-  "appName": "Copro Watch",
-  "webDir": "dist"
+  "appName": "Copro-Watch",
+  "webDir": "dist-mobile",  
+  "bundledWebRuntime": false
 }

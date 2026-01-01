@@ -11,7 +11,9 @@
     "lint:fix": "eslint . --ext .js,.jsx --fix",
     "format": "prettier --write .",
     "test": "vitest",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:mobile": "vite build --config vite.mobile.config.js",
+    "sync:mobile": "npm run build:mobile && npx cap sync"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.0",

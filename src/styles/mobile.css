@@ -1,0 +1,47 @@
+:root {
+  --nav-height: 60px;
+}
+
+.mobile-layout {
+  padding-bottom: calc(var(--nav-height) + 20px);
+  padding-top: 10px;
+  background-color: var(--bg-app);
+  min-height: 100vh;
+}
+
+.mobile-header {
+  padding: 0 1rem 1rem 1rem;
+}
+
+/* CARDS */
+.mobile-card {
+  background: white;
+  border: var(--border-width) solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 2px 2px 0px var(--border-color);
+}
+.mobile-card:active { transform: scale(0.98); }
+
+.mobile-card-header {
+  display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;
+}
+.mobile-card-title { font-weight: 700; font-size: 1rem; color: var(--text-main); }
+.mobile-card-subtitle { font-size: 0.85rem; color: var(--text-muted); font-family: monospace; }
+.mobile-card-row { display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.9rem; }
+.mobile-card-actions { margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed var(--border-color); display: flex; gap: 0.5rem; justify-content: flex-end; }
+
+/* BOTTOM NAV */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; width: 100%; height: var(--nav-height);
+  background: white; border-top: var(--border-width) solid var(--border-color);
+  display: flex; justify-content: space-around; align-items: center; z-index: 1000;
+  padding-bottom: env(safe-area-inset-bottom); /* iPhone Home Bar Support */
+}
+.bottom-nav-item {
+  flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: none; background: none; color: var(--text-muted); font-size: 0.7rem; font-weight: 600;
+}
+.bottom-nav-item.active { color: var(--primary); background-color: var(--primary-light); border-top: 2px solid var(--primary); }
+.bottom-nav-icon { font-size: 1.4rem; margin-bottom: 2px; }
