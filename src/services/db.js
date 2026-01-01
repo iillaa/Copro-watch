@@ -152,11 +152,6 @@ export const db = {
     return dept;
   },
 
-  // --- WORKPLACES ---
-  async getWorkplaces() {
-    return await dbInstance.workplaces.toArray();
-  },
-  
  // --- WORKPLACES (Lieux de Travail) 
 
   async getWorkplaces() {
