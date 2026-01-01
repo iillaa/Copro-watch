@@ -471,6 +471,10 @@ th {
   text-transform: uppercase;
   color: var(--primary);
 
+  /* --- FIX START: Force left alignment --- */
+  text-align: left;
+  /* --- FIX END --- */
+
   /* FORCE REMOVAL OF LINES */
   border-right: none !important;
   border-left: none !important;
