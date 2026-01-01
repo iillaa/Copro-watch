@@ -1,47 +1,73 @@
-/* --- MOBILE LAYOUT FIXES --- */
+/* src/styles/mobile.css */
 
-/* 1. UNLOCK THE SCROLLING (The most important fix) */
+/* 1. RESET THE FOUNDATION (Critical for Android) */
+html, body, #root {
+  height: 100dvh !important; /* Use Dynamic Height (ignores address bar issues) */
+  width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important; /* Stop the body from scrolling, we scroll the INSIDE */
+  background-color: #f8fafc !important;
+}
+
+/* 2. THE MAIN CONTAINER */
 .mobile-app-container {
   display: flex;
   flex-direction: column;
-  height: 100vh; /* Fill the phone screen */
-  width: 100vw;
+  height: 100dvh !important; /* Fill the screen exactly */
+  width: 100% !important;
   background-color: #f8fafc;
-  overflow: hidden; /* Container stays fixed... */
+  position: relative;
 }
 
-/* 2. MAKE THE CONTENT SCROLLABLE */
+/* 3. THE SCROLLABLE AREA (Where your content lives) */
 .mobile-app-container main {
-  flex: 1; /* Take all available space */
-  overflow-y: auto; /* ENABLE SCROLLING HERE! */
-  overflow-x: hidden; /* Prevent side-scrolling */
+  flex: 1; /* Take all remaining space */
+  overflow-y: auto !important; /* FORCE SCROLLING */
+  overflow-x: hidden; /* No side scrolling for the page */
   
-  /* Add breathing room so it's not "squashed" */
-  padding: 1rem; 
-  padding-bottom: 100px; /* Space for the bottom menu */
+  padding: 1rem;
+  padding-bottom: 100px !important; /* Extra space for bottom menu */
   
-  /* Smooth scrolling feel on iOS/Android */
+  /* Smooth scrolling for touch screens */
   -webkit-overflow-scrolling: touch; 
 }
 
-/* 3. FIX THE BOTTOM MENU */
+/* 4. FIX THE "SQUASHED" CARDS */
+/* We override index.css to make cards fit small screens */
+.mobile-app-container .card {
+  padding: 1rem !important;
+  margin-bottom: 1rem !important;
+  width: 100% !important;
+  box-sizing: border-box !important; /* Ensure padding doesn't break width */
+  box-shadow: 2px 2px 0px var(--border-color) !important; /* Smaller shadow */
+}
+
+/* 5. FIX THE "CUT OFF" TABLES */
+.mobile-app-container .table-container {
+  display: block !important;
+  width: 100% !important;
+  overflow-x: auto !important; /* Allow table to scroll sideways */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 6. BOTTOM NAVIGATION BAR */
 .bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 70px; /* Fixed height */
+  height: 70px;
   background: white;
   border-top: 2px solid var(--border-color);
   display: flex;
-  justify-content: space-around; /* Spread icons evenly */
+  justify-content: space-around;
   align-items: center;
-  z-index: 1000;
-  box-shadow: 0px -4px 10px rgba(0,0,0,0.05);
-  padding-bottom: env(safe-area-inset-bottom); /* Fix for iPhone X/11/12/13/14 bar */
+  z-index: 9999 !important; /* Always on top */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* 4. BUTTON STYLING (Make them touch-friendly) */
+/* 7. NAVIGATION BUTTONS */
 .bottom-nav-item {
   background: none;
   border: none;
@@ -49,61 +75,28 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: #64748b; /* Slate-500 */
   font-size: 0.7rem;
   font-weight: 600;
-  padding: 0.5rem;
-  gap: 4px;
-  flex: 1; /* Make touch target big */
+  flex: 1;
+  height: 100%;
 }
 
 .bottom-nav-item.active {
-  color: var(--primary);
+  color: #6366f1; /* Indigo (Primary) */
 }
 
 .bottom-nav-icon {
-  font-size: 1.4rem;
-  margin-bottom: 2px;
+  font-size: 1.5rem;
+  margin-bottom: 4px;
 }
 
-/* 5. CARD & TEXT ADJUSTMENTS (Fix "Not Adjusted to Screen") */
-
-/* Shrink headers on mobile so they don't take up the whole screen */
-.mobile-app-container h1 { font-size: 1.5rem; }
-.mobile-app-container h2 { font-size: 1.25rem; }
-.mobile-app-container h3 { font-size: 1.1rem; }
-
-/* Fix Card Padding (Desktop 1.5rem is too big for phone) */
-.mobile-app-container .card {
-  padding: 1rem !important; 
-  margin-bottom: 1rem;
-  border-width: 2px; /* Thinner border for small screens */
-  box-shadow: 3px 3px 0px var(--border-color); /* Smaller shadow */
-}
-
-/* Fix Tables (Prevent them from breaking the width) */
-.mobile-app-container .table-container {
-  width: 100%;
-  overflow-x: auto; /* Scroll table sideways if too big */
+/* 8. DEBUG BORDER (Optional - proves css is loaded) */
+/* If you see a thin red line at the top, the file is loaded! */
+.mobile-app-container::before {
+  content: "";
   display: block;
-}
-.mobile-app-container th, 
-.mobile-app-container td {
-  padding: 0.75rem 0.5rem; /* Smaller cells */
-  font-size: 0.85rem;
-}
-
-/* 6. PIN LOCK FIX (Force it to fit) */
-.pin-lock-container {
-  height: 100vh;
-  width: 100vw;
-  position: fixed;
-  top: 0;
-  left: 0;
-  background: #f8fafc;
-  z-index: 9999;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow-y: auto; /* Allow scrolling if keyboard pops up */
+  width: 100%;
+  height: 2px;
+  background: red; 
 }
