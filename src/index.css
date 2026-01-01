@@ -1661,4 +1661,27 @@ tr {
   .form-group { margin-bottom: 0.5rem; }
   .input { padding: 0.4rem; }
   label { font-size: 0.8rem; margin-bottom: 0.2rem; }
+
+}
+/* --- PREMIUM MODAL STYLES --- */
+.premium-modal {
+  border-top: 8px solid var(--primary) !important; /* Thick top bar for "Premium" look */
+}
+
+.text-muted { 
+  color: var(--text-muted); 
+  font-size: 0.85rem; 
+  margin: 0;
+}
+
+/* Landscape Modal Optimizations */
+@media (max-height: 500px) {
+  .modal-body { padding: 0.75rem 1rem !important; }
+  .form-grid { gap: 0.4rem !important; }
+  .form-group { margin-bottom: 0.4rem !important; }
+  
+  /* Make textareas slightly shorter in landscape but using valid CSS */
+  .modal textarea.input {
+    min-height: 60px;
+  }
 }
