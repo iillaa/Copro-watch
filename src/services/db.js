@@ -151,8 +151,11 @@ export const db = {
     await dbInstance.departments.put(dept);
     return dept;
   },
+  async deleteDepartment(id) {
+    await dbInstance.departments.delete(id);
+  },
 
- // --- WORKPLACES (Lieux de Travail) 
+ // --- WORKPLACES (Lieux de Travail)
 
   async getWorkplaces() {
 
@@ -198,6 +201,9 @@ export const db = {
      if (!dept.id) dept.id = Date.now();
      await dbInstance.water_departments.put(dept);
      return dept;
+  },
+  async deleteWaterDepartment(id) {
+    await dbInstance.water_departments.delete(id);
   },
 
   // --- IMPORT / EXPORT ---

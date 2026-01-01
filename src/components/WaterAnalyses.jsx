@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
-import { FaSearch, FaHistory, FaList } from 'react-icons/fa';
+import { FaSearch, FaHistory, FaList, FaTint } from 'react-icons/fa';
 import WaterAnalysisPanel from './WaterAnalysisPanel';
 import WaterServiceDetail from './WaterServiceDetail';
 
@@ -76,7 +76,42 @@ export default function WaterAnalyses() {
     );
   }
 
+  // --- NEW: Empty State UI (Premium Look) ---
+  const emptyStateUI = (
+    <div className="card" style={{
+      textAlign: 'center',
+      padding: '4rem 2rem',
+      border: '2px dashed var(--border-color)',
+      background: '#f8fafc',
+      boxShadow: 'none',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '400px'
+    }}>
+      <div style={{
+        fontSize: '4rem',
+        marginBottom: '1rem',
+        color: 'var(--primary-light)',
+        filter: 'drop-shadow(2px 2px 0px var(--border-color))'
+      }}>
+        <FaTint />
+      </div>
+      <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem' }}>Aucun service d'eau configuré</h3>
+      <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', maxWidth: '450px', lineHeight: '1.6' }}>
+        Votre tableau de bord est vide. Pour commencer le suivi de la qualité de l'eau, veuillez ajouter vos points d'eau (Robinets, Réservoirs, Bâches) dans l'onglet <strong>Paramètres</strong>.
+      </p>
+      <div style={{ padding: '1rem', background: '#e2e8f0', borderRadius: '8px', fontSize: '0.9rem', color: '#475569' }}>
+        ℹ️ Conseil : Allez dans <strong>Paramètres {'>'} Services d'Eau</strong> pour en ajouter.
+      </div>
+    </div>
+  );
+
   // RENDER DASHBOARD VIEW
+  if (departments.length === 0) return emptyStateUI; // <--- 1. Check for Empty DB
+
   return (
     <div style={{ height: '100%' }}>
       {/* Container: Stretches nicely */}
@@ -183,9 +218,14 @@ export default function WaterAnalyses() {
                 </div>
               );
             })}
+            {/* 2. NO SEARCH RESULTS STATE (New) */}
             {filteredDepartments.length === 0 && (
-              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                Aucun service trouvé.
+              <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <div style={{ opacity: 0.5, fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
+                <p>Aucun service trouvé pour "{searchTerm}"</p>
+                <button className="btn btn-outline btn-sm" onClick={() => setSearchTerm('')} style={{ marginTop: '0.5rem' }}>
+                  Effacer la recherche
+                </button>
               </div>
             )}
           </div>

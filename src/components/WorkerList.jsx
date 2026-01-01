@@ -13,6 +13,7 @@ import {
   FaSort,
   FaSortUp,
   FaSortDown,
+  FaUserPlus,
 } from 'react-icons/fa';
 
 export default function WorkerList({ onNavigateWorker }) {
@@ -198,6 +199,29 @@ export default function WorkerList({ onNavigateWorker }) {
     );
   };
 
+  // --- NEW: Empty State UI Component ---
+  const emptyStateUI = (
+    <div className="card" style={{
+      textAlign: 'center',
+      padding: '4rem 2rem',
+      border: '2px dashed var(--border-color)',
+      background: '#f8fafc',
+      boxShadow: 'none',
+      marginTop: '2rem'
+    }}>
+      <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🌱</div>
+      <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem' }}>Aucun travailleur enregistré</h3>
+      <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', maxWidth: '450px', margin: '0 auto 2rem' }}>
+        Votre base de données est vide. Commencez par ajouter votre premier travailleur.
+      </p>
+      <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+        <button className="btn btn-primary" onClick={() => { setEditingWorker(null); setShowForm(true); }}>
+          <FaUserPlus /> Ajouter le premier travailleur
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div>
       {/* Header */}
@@ -222,8 +246,11 @@ export default function WorkerList({ onNavigateWorker }) {
         </div>
       </div>
 
-      {/* Filters Toolbar */}
-      <div className="card" style={{ display: 'flex', gap: '1rem', padding: '1rem', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      {/* --- LOGIC: Show Empty State OR Table --- */}
+      {workers.length === 0 ? emptyStateUI : (
+        <>
+          {/* Filters Toolbar */}
+          <div className="card" style={{ display: 'flex', gap: '1rem', padding: '1rem', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', minWidth: '250px', position: 'relative' }}>
           <FaSearch style={{ color: 'var(--text-muted)', marginRight: '0.5rem' }} />
           <input
@@ -300,7 +327,7 @@ export default function WorkerList({ onNavigateWorker }) {
             {filteredWorkers.map((w) => {
               const isOverdue = logic.isOverdue(w.next_exam_due);
               const status = getWorkerLastStatus(w.id);
-              
+
               // Dynamic opacity for better visual hierarchy (stale data during search lag appears dimmed)
               const isStale = searchTerm !== deferredSearch;
 
@@ -309,10 +336,10 @@ export default function WorkerList({ onNavigateWorker }) {
                   key={w.id}
                   onClick={() => onNavigateWorker(w.id)}
                   className={!w.archived && isOverdue ? 'overdue-worker-row' : ''}
-                  style={{ 
-                    cursor: 'pointer', 
+                  style={{
+                    cursor: 'pointer',
                     opacity: isStale ? 0.5 : (w.archived ? 0.6 : 1),
-                    background: w.archived ? '#f9f9f9' : undefined 
+                    background: w.archived ? '#f9f9f9' : undefined
                   }}
                 >
                   <td style={{ fontWeight: 500 }}>
@@ -339,11 +366,24 @@ export default function WorkerList({ onNavigateWorker }) {
               );
             })}
             {filteredWorkers.length === 0 && (
-              <tr><td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Aucun travailleur trouvé.</td></tr>
+              <tr>
+                <td colSpan="6" style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-muted)' }}>
+                  <div style={{ opacity: 0.5, fontSize: '2rem', marginBottom: '1rem' }}>🔍</div>
+                  <p style={{ fontWeight: 500, marginBottom: '0.5rem' }}>Aucun résultat trouvé</p>
+                  <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => { setSearchTerm(''); setFilterDept(''); }}
+                  >
+                      Effacer les filtres
+                  </button>
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
       </div>
+        </>
+      )}
 
       {showForm && (
         <AddWorkerForm
