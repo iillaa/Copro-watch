@@ -45,35 +45,38 @@
   --shadow-hover: 6px 6px 0px var(--border-color);
   --shadow-active: 0px 0px 0px var(--border-color);
 }
+html {
+  background-color: var(--bg-app);
+  height: 100%;
+}
 
 body {
-  font-family: 'Fredoka', 'Inter', sans-serif; /* Rounder, friendlier font */
+  font-family: 'Fredoka', 'Inter', sans-serif;
   background-color: var(--bg-app);
   color: var(--text-main);
   line-height: 1.5;
   margin: 0;
-
-  min-height: 100vh;
+  /* FIX: Use 100dvh */
+  min-height: 100dvh;
+  overscroll-behavior: none;
 }
-
-/* --- LAYOUT & SCROLL FIXES --- */
 
 #root {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  /* UNLOCK 1: Allow the root container to scroll if needed */
-  overflow: auto;
+  /* FIX: Use 100dvh */
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .app-shell {
   display: flex;
-  height: 100vh;
-  /* UNLOCK 2: Allow the shell to manage overflow */
+  /* FIX: Use 100% to fill the root */
+  height: 100%;
+  width: 100%;
   overflow: hidden;
   position: relative;
 }
-
 /* Sidebar: Independent Scrolling */
 .sidebar {
   width: 260px;
@@ -701,7 +704,7 @@ tr:nth-child(even):hover td {
   }
 }
 
-/* Mobile - Enhanced Neobrutalist Style */
+
 @media (max-width: 768px) {
   .app-shell {
     flex-direction: column;
@@ -715,7 +718,11 @@ tr:nth-child(even):hover td {
     height: auto;
     flex-direction: row;
     justify-content: space-around;
+    
+    /* FIX: Add Safe Area padding */
     padding: 0.5rem;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+    
     border-right: none;
     border-top: var(--border-width) solid var(--border-color);
     z-index: 1000;
@@ -730,7 +737,8 @@ tr:nth-child(even):hover td {
 
   .main-content {
     padding: 1rem;
-    padding-bottom: 120px;
+    /* FIX: Add padding so content isn't hidden behind the bar */
+    padding-bottom: calc(90px + env(safe-area-inset-bottom));
   }
 
   /* Mobile-specific button styles */
@@ -739,7 +747,7 @@ tr:nth-child(even):hover td {
     font-size: 0.8rem;
     border-radius: 8px;
   }
-
+  
   /* Better mobile card spacing */
   .card {
     padding: 1rem;
@@ -751,8 +759,7 @@ tr:nth-child(even):hover td {
     border-radius: 8px;
   }
 
-  th,
-  td {
+  th, td {
     padding: 0.75rem 0.5rem;
     font-size: 0.85rem;
   }
