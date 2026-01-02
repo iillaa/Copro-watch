@@ -726,6 +726,7 @@ tr:nth-child(even):hover td {
   /* FIX: Reduced from 120px to 85px to kill the white space */
   padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
+}
 /* Enhanced loading states */
 .loading-shimmer {
   background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
@@ -1049,5 +1050,4 @@ tr {
   /* E. MODALS: Centered */
   .modal-overlay { align-items: center; padding: 1rem; }
   .modal { width: 100% !important; height: auto !important; max-height: 90vh !important; margin: 0 !important; }
-}
 }
