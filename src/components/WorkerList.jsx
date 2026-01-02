@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
+import backupService from '../services/backup';
 import AddWorkerForm from './AddWorkerForm';
 import {
   FaPlus,
@@ -137,13 +138,21 @@ export default function WorkerList({ onNavigateWorker }) {
   };
 
   const handleExport = async () => {
-    const json = await db.exportData();
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `medical_backup_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
+    try {
+      const json = await db.exportData();
+      
+      // Use the backup service to ensure it saves to Documents/copro-watch on Android
+      // and handles permissions automatically.
+      await backupService.saveBackupJSON(
+        json, 
+        `medical_backup_${new Date().toISOString().split('T')[0]}.json`
+      );
+      
+      alert("Export réussi ! (Vérifiez le dossier Documents/copro-watch)");
+    } catch (e) {
+      console.error(e);
+      alert("Erreur lors de l'export: " + e.message);
+    }
   };
 
   const handleImport = async (e) => {
