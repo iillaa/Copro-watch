@@ -948,3 +948,12 @@ export default function Settings({ currentPin, onPinChange }) {
     </div>
   );
 }
+{/* --- ADDED CREDITS SECTION --- */}
+      <div className="credit" style={{ marginTop: '3rem', padding: '1rem', textAlign: 'center', opacity: 0.8 }}>
+        <div className="credit-title">Développé par</div>
+        <div className="credit-author">Dr Kibeche Ali Dia Eddine</div>
+        <div className="credit-version">1.1</div>
+      </div>
+    </div>
+  );
+}
