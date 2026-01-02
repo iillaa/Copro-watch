@@ -1096,72 +1096,95 @@ tr {
   border-color: #fee2e2;
 }
 
-/* 2. MOBILE LANDSCAPE OVERRIDES (The Poco F6 Special) */
+/* --- SURGICAL FIX 2: MOBILE LANDSCAPE OVERRIDES --- */
 @media (max-height: 600px) {
-  body {
-    zoom: 0.75;
+  body { zoom: 0.75; }
+
+  /* A. UNLOCK SCROLLING & REMOVE WHITE SPACE */
+  .app-shell { height: auto !important; overflow: visible !important; }
+  .main-content { 
+    height: auto !important; 
+    overflow: visible !important; 
+    padding-bottom: 2rem !important; /* REDUCED from 120px to 2rem */
   }
 
-  /* A. UNLOCK SCROLLING */
-  .app-shell {
-    height: auto !important;
-    overflow: visible !important;
-  }
-  .main-content {
-    height: auto !important;
-    overflow: visible !important;
-    padding-bottom: 120px !important;
-  }
-
-  /* B. SIDEBAR: Centered Icons & No Toggle */
-  .sidebar {
-    height: 100vh !important;
-    position: sticky;
-    top: 0;
-    width: 80px !important;
-    padding: 0.5rem !important;
-    justify-content: center; /* CENTER ICONS VERTICALLY */
-  }
-  .sidebar .brand-text,
-  .sidebar .nav-text,
-  .sidebar .credit {
-    display: none !important;
-  }
-  .toggle-sidebar {
-    display: none !important;
-  } /* HIDE "MASQUER" BUTTON */
-
-  /* C. PINLOCK: Split Side-by-Side */
-  .pin-card {
-    flex-direction: row !important;
-    max-width: 650px !important;
-    padding: 1.5rem !important;
-    gap: 2rem;
-  }
-  .pin-info {
-    flex: 1;
-    border-right: 2px solid #e2e8f0;
-    padding-right: 2rem;
-    justify-content: center;
-  }
-  .pin-pad {
-    flex: 1.2;
-    gap: 0.75rem;
-  }
-  .pin-btn {
-    height: 45px;
-    font-size: 1.25rem;
+  /* B. SIDEBAR: The "Dock" Layout */
+  .sidebar { 
+    height: 100vh !important; 
+    position: sticky; top: 0; 
+    width: 80px !important; 
+    padding: 0 !important; 
+    
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important; /* Vertical Center */
+    align-items: center !important;     /* Horizontal Center */
   }
 
-  /* D. MODALS: Centered on Screen */
-  .modal-overlay {
-    align-items: center;
-    padding: 1rem;
-  } /* CENTER PANELS */
-  .modal {
-    width: 100% !important;
-    height: auto !important;
-    max-height: 90vh !important;
-    margin: 0 !important;
+  /* Hide Text & Clutter */
+  .sidebar .brand-text, .sidebar .nav-text, .sidebar .credit { display: none !important; }
+  .toggle-sidebar { display: none !important; } 
+
+  /* C. ICONS: Geometric Centering (Perfect Squares) */
+  .nav-item { 
+    width: 55px !important;   
+    height: 55px !important;  
+    padding: 0 !important;    
+    
+    /* Force centering using margins */
+    margin-left: auto !important;
+    margin-right: auto !important;
+    margin-bottom: 0.75rem !important;
+    
+    display: flex !important;
+    justify-content: center !important; 
+    align-items: center !important;     
+  }
+  
+  .nav-icon { 
+    margin: 0 !important; 
+    font-size: 1.6rem !important; 
+  }
+
+  /* D. PINLOCK: Split Side-by-Side */
+  .pin-card { flex-direction: row !important; max-width: 650px !important; padding: 1.5rem !important; gap: 2rem; }
+  .pin-info { flex: 1; border-right: 2px solid #e2e8f0; padding-right: 2rem; justify-content: center; }
+  /* --- MISSING DOT STYLES --- */
+.pin-title { margin: 0; font-size: 1.5rem; color: #1e293b; font-weight: bold; }
+.pin-subtitle { margin: 0; color: #64748b; font-size: 0.9rem; }
+
+.pin-dots { 
+  display: flex; 
+  gap: 0.75rem; 
+  justify-content: center; 
+  margin-top: 1rem; 
+  margin-bottom: 1rem;
+}
+
+.pin-dot { 
+  width: 14px; 
+  height: 14px; 
+  border-radius: 50%; 
+  background: #e2e8f0; 
+  transition: all 0.2s; 
+}
+
+.pin-dot.filled { 
+  background: #3b82f6; 
+  transform: scale(1.2); 
+}
+
+.pin-dot.error { 
+  background: #ef4444; 
+  animation: shake 0.3s; 
+             }
+  .pin-pad { flex: 1.2; gap: 0.75rem; }
+  .pin-btn { height: 45px; font-size: 1.25rem; }
+
+  /* E. MODALS: Centered */
+  .modal-overlay { align-items: center; padding: 1rem; }
+  .modal { 
+    width: 100% !important; height: auto !important; 
+    max-height: 90vh !important; margin: 0 !important; 
   }
 }
