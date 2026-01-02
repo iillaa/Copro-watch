@@ -1118,7 +1118,7 @@ tr {
     height: 100vh !important;
     position: sticky;
     top: 0;
-    width: 60px !important;
+    width: 80px !important;
     padding: 0.5rem !important;
     justify-content: center; /* CENTER ICONS VERTICALLY */
   }
