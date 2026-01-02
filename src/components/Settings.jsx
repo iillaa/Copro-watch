@@ -904,7 +904,7 @@ export default function Settings({ currentPin, onPinChange }) {
                 backgroundColor: 'var(--bg-secondary)',
                 borderRadius: '4px',
                 fontSize: '0.9rem',
-                border: '1px solid var(--border)',
+                border: '1px solid var(--border-color)',
                 marginBottom: '0.5rem',
               }}
             >
