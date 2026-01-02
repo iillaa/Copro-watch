@@ -1,6 +1,7 @@
 import Dexie from 'dexie';
-import localforage from 'localforage'; // Keep this for migration only
+import localforage from 'localforage';
 import backupService from './backup';
+import { encryptString, decryptString } from './crypto'; // IMPORT ADDED
 
 // 1. Define the Database
 class CoproDatabase extends Dexie {
@@ -32,19 +33,14 @@ async function migrateFromLocalForage() {
   };
 
   try {
-    // Check if we already migrated (by checking if Dexie is empty but LocalForage is not)
     const workerCount = await dbInstance.workers.count();
-    if (workerCount > 0) return; // Already data in Dexie, skip migration.
+    if (workerCount > 0) return;
 
     console.log('[DB] Checking for legacy data to migrate...');
-
-    // Load old data
     const workers = await localforage.getItem(OLD_STORES.WORKERS);
 
     if (workers && Array.isArray(workers) && workers.length > 0) {
       console.log(`[DB] Migrating ${workers.length} workers...`);
-
-      // Bulk Add to Dexie
       await dbInstance.workers.bulkPut(workers);
 
       const departments = (await localforage.getItem(OLD_STORES.DEPARTMENTS)) || [];
@@ -62,9 +58,7 @@ async function migrateFromLocalForage() {
       const waterDepts = (await localforage.getItem(OLD_STORES.WATER_DEPARTMENTS)) || [];
       await dbInstance.water_departments.bulkPut(waterDepts);
 
-      console.log('[DB] Migration successful! clearing legacy storage.');
-      // Optional: clear localforage to free space, or keep as safety backup
-      // await localforage.clear();
+      console.log('[DB] Migration successful!');
     }
   } catch (e) {
     console.error('[DB] Migration Failed', e);
@@ -76,7 +70,6 @@ async function triggerBackupCheck() {
   try {
     const thresholdReached = await backupService.registerChange();
     if (thresholdReached) {
-      // NOTE: We change the export function slightly for backup
       await backupService.performAutoExport(async () => await exportData());
     }
   } catch (e) {
@@ -97,18 +90,43 @@ async function exportData() {
   return JSON.stringify(data);
 }
 
-// 5. The Public API (Compatible with your existing components)
+// 5. The Public API
 export const db = {
   async init() {
-    // Run migration check on startup
     await migrateFromLocalForage();
-
-    // Seeding Logic (Only if truly empty after migration)
     const deptCount = await dbInstance.departments.count();
     if (deptCount === 0) {
       console.log('Seeding database (First Run)...');
-      // Add your seed data here if needed, similar to old file
-      // await dbInstance.departments.bulkAdd(SEED_DATA.departments);
+    }
+  },
+
+  // --- SETTINGS (FIXED) ---
+  async getSettings() {
+    const s = await dbInstance.settings.get('app_settings');
+    return s || { key: 'app_settings' };
+  },
+  
+  async saveSettings(newSettings) {
+    const current = (await dbInstance.settings.get('app_settings')) || { key: 'app_settings' };
+    const updated = { ...current, ...newSettings };
+    await dbInstance.settings.put(updated);
+    return updated;
+  },
+
+  // --- ENCRYPTION (FIXED) ---
+  async exportDataEncrypted(password) {
+    const json = await exportData();
+    return await encryptString(password, json);
+  },
+
+  async importDataEncrypted(encryptedContent, password) {
+    try {
+      const decryptedJson = await decryptString(password, encryptedContent);
+      // Calls the plain import function below
+      return await this.importData(decryptedJson);
+    } catch (e) {
+      console.error("Decryption failed", e);
+      return false;
     }
   },
 
@@ -118,7 +136,7 @@ export const db = {
   },
   async saveWorker(worker) {
     if (!worker.id) worker.id = Date.now();
-    await dbInstance.workers.put(worker); // .put updates if exists, adds if not
+    await dbInstance.workers.put(worker);
     await triggerBackupCheck();
     return worker;
   },
@@ -155,20 +173,15 @@ export const db = {
     await dbInstance.departments.delete(id);
   },
 
-  // --- WORKPLACES (Lieux de Travail)
-
+  // --- WORKPLACES ---
   async getWorkplaces() {
     return await dbInstance.workplaces.toArray();
   },
-
   async saveWorkplace(workplace) {
     if (!workplace.id) workplace.id = Date.now();
-
     await dbInstance.workplaces.put(workplace);
-
     return workplace;
   },
-
   async deleteWorkplace(id) {
     await dbInstance.workplaces.delete(id);
   },
@@ -200,7 +213,7 @@ export const db = {
   },
 
   // --- IMPORT / EXPORT ---
-  exportData, // Exposed for WorkerList.jsx
+  exportData,
 
   async importData(jsonString) {
     try {
