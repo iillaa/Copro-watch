@@ -10,7 +10,7 @@ import {
   FaTrash,
   FaBuilding,
   FaTint,
-  FaBriefcase
+  FaBriefcase,
 } from 'react-icons/fa';
 
 export default function Settings({ currentPin, onPinChange }) {
@@ -134,7 +134,7 @@ export default function Settings({ currentPin, onPinChange }) {
     // Load departments
     loadDepartments();
 
-    loadWorkplaces(); 
+    loadWorkplaces();
     // Load water departments
     loadWaterDepartments();
   }, []);
@@ -259,7 +259,7 @@ export default function Settings({ currentPin, onPinChange }) {
     }
     setTimeout(() => setBackupStatus(''), 3000);
   };
-// --- NEW WORKPLACE LOGIC START ---
+  // --- NEW WORKPLACE LOGIC START ---
   const loadWorkplaces = async () => {
     try {
       const places = await db.getWorkplaces();
@@ -325,9 +325,9 @@ export default function Settings({ currentPin, onPinChange }) {
       setMsg('Erreur lors de la suppression du service.');
       setTimeout(() => setMsg(''), 3000);
     }
-    }
-    
-    // --- WORKPLACES HANDLERS ---
+  };
+
+  // --- WORKPLACES HANDLERS ---
   const addWorkplace = async () => {
     if (!newWorkplaceName.trim()) return;
     try {
@@ -353,7 +353,6 @@ export default function Settings({ currentPin, onPinChange }) {
         console.error(e);
       }
     }
-
   };
 
   // Water Departments management functions
@@ -476,10 +475,17 @@ export default function Settings({ currentPin, onPinChange }) {
 
       {/* --- NEW SIDE-BY-SIDE SECTION --- */}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginTop: '2rem', alignItems: 'start' }}>
-      
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: '1.5rem',
+          marginTop: '2rem',
+          alignItems: 'start',
+        }}
+      >
         {/* LEFT: Standard Services */}
-        <div className="card" style={{marginTop: 0 }}>
+        <div className="card" style={{ marginTop: 0 }}>
           <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FaBuilding /> Services (RH)
           </h3>
@@ -565,53 +571,81 @@ export default function Settings({ currentPin, onPinChange }) {
             </div>
           </div>
         </div>
-        
+
         {/* --- START OF NEW CARD: LIEUX DE TRAVAIL --- */}
         <div className="card" style={{ marginTop: 0 }}>
-          <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#d97706' }}>
+          <h3
+            style={{
+              marginTop: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              color: '#d97706',
+            }}
+          >
             <FaBriefcase /> Lieux de Travail
           </h3>
-          
+
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
             <input
-              type="text" 
-              placeholder="Nouveau lieu..." 
+              type="text"
+              placeholder="Nouveau lieu..."
               value={newWorkplaceName}
               onChange={(e) => setNewWorkplaceName(e.target.value)}
-              className="input" 
+              className="input"
               style={{ flex: 1 }}
             />
-            <button 
-              className="btn btn-primary" 
-              onClick={addWorkplace} 
+            <button
+              className="btn btn-primary"
+              onClick={addWorkplace}
               disabled={!newWorkplaceName || !newWorkplaceName.trim()}
             >
               <FaPlus />
             </button>
           </div>
 
-          <div style={{ maxHeight: '250px', overflowY: 'auto', background: '#fffbeb', padding: '0.5rem', borderRadius: '4px' }}>
+          <div
+            style={{
+              maxHeight: '250px',
+              overflowY: 'auto',
+              background: '#fffbeb',
+              padding: '0.5rem',
+              borderRadius: '4px',
+            }}
+          >
             {(!workplaces || workplaces.length === 0) && (
-              <div style={{textAlign:'center', color:'#999', padding:'1rem'}}>
+              <div style={{ textAlign: 'center', color: '#999', padding: '1rem' }}>
                 Aucun lieu défini
               </div>
             )}
-            
-            {workplaces && workplaces.map((w) => (
-              <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', borderBottom: '1px solid #fef3c7', background: 'white', marginBottom: '4px', borderRadius: '4px' }}>
-                <span style={{ fontWeight: 500 }}>{w.name}</span>
-                <button 
-                  className="btn btn-sm btn-outline" 
-                  onClick={() => deleteWorkplace(w.id)} 
-                  style={{ color: 'var(--danger)', borderColor: 'transparent' }}
+
+            {workplaces &&
+              workplaces.map((w) => (
+                <div
+                  key={w.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '0.5rem',
+                    borderBottom: '1px solid #fef3c7',
+                    background: 'white',
+                    marginBottom: '4px',
+                    borderRadius: '4px',
+                  }}
                 >
-                  <FaTrash size={12} />
-                </button>
-              </div>
-            ))}
+                  <span style={{ fontWeight: 500 }}>{w.name}</span>
+                  <button
+                    className="btn btn-sm btn-outline"
+                    onClick={() => deleteWorkplace(w.id)}
+                    style={{ color: 'var(--danger)', borderColor: 'transparent' }}
+                  >
+                    <FaTrash size={12} />
+                  </button>
+                </div>
+              ))}
           </div>
         </div>
-                                                                                                                                 
+
         {/* RIGHT: Water Services */}
         <div className="card" style={{ marginTop: 0 }}>
           <h3

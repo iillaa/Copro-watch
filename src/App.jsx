@@ -25,10 +25,10 @@ function App() {
   const initApp = async () => {
     try {
       setLoading(true);
-      
+
       // 1. Start the Database (Triggers Migration to Dexie)
-      await db.init(); 
-      
+      await db.init();
+
       // 2. Start Backup Service
       await backupService.init();
       try {
@@ -43,7 +43,7 @@ function App() {
         setPin(settings.pin);
       }
     } catch (error) {
-      console.error("App Initialization Failed:", error);
+      console.error('App Initialization Failed:', error);
     } finally {
       setLoading(false);
     }
@@ -62,7 +62,15 @@ function App() {
   // --- LOADING SCREEN ---
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          flexDirection: 'column',
+        }}
+      >
         <div className="loading-spinner"></div>
         <p style={{ marginTop: '1rem', color: '#666' }}>Chargement...</p>
       </div>
@@ -77,7 +85,6 @@ function App() {
   // --- MAIN UI (Original Layout Restored) ---
   return (
     <div className={`app-shell ${isSidebarOpen ? '' : 'sidebar-closed'}`}>
-      
       {/* SIDEBAR */}
       <aside className="sidebar no-print">
         <div className="brand">

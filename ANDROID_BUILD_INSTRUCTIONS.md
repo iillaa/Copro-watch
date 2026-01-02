@@ -75,7 +75,6 @@ L'application est configurée pour être construite automatiquement par les serv
     ```
 
 3.  **Lancer la compilation Gradle** :
-
     - **Sur Windows (PowerShell / CMD)** :
       ```bash
       cd android

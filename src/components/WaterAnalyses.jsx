@@ -8,9 +8,9 @@ import WaterServiceDetail from './WaterServiceDetail';
 export default function WaterAnalyses() {
   const [departments, setDepartments] = useState([]);
   const [waterAnalyses, setWaterAnalyses] = useState([]);
-  
+
   // 1. REMOVED: const [filteredDepartments, setFilteredDepartments] = useState([]);
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   // 2. NEW: Defer the search term to keep typing smooth
   const deferredSearch = useDeferredValue(searchTerm);
@@ -35,12 +35,10 @@ export default function WaterAnalyses() {
   // 3. OPTIMIZATION: Calculate filtered list on-the-fly
   const filteredDepartments = useMemo(() => {
     const withStatus = logic.getDepartmentsWaterStatus(departments, waterAnalyses);
-    
+
     if (!deferredSearch) return withStatus;
 
-    return withStatus.filter((d) =>
-      d.name.toLowerCase().includes(deferredSearch.toLowerCase())
-    );
+    return withStatus.filter((d) => d.name.toLowerCase().includes(deferredSearch.toLowerCase()));
   }, [departments, waterAnalyses, deferredSearch]);
 
   // Auto-select first item if nothing selected (Handled via effect to avoid loop)
@@ -78,32 +76,54 @@ export default function WaterAnalyses() {
 
   // --- NEW: Empty State UI (Premium Look) ---
   const emptyStateUI = (
-    <div className="card" style={{
-      textAlign: 'center',
-      padding: '4rem 2rem',
-      border: '2px dashed var(--border-color)',
-      background: '#f8fafc',
-      boxShadow: 'none',
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '400px'
-    }}>
-      <div style={{
-        fontSize: '4rem',
-        marginBottom: '1rem',
-        color: 'var(--primary-light)',
-        filter: 'drop-shadow(2px 2px 0px var(--border-color))'
-      }}>
+    <div
+      className="card"
+      style={{
+        textAlign: 'center',
+        padding: '4rem 2rem',
+        border: '2px dashed var(--border-color)',
+        background: '#f8fafc',
+        boxShadow: 'none',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '400px',
+      }}
+    >
+      <div
+        style={{
+          fontSize: '4rem',
+          marginBottom: '1rem',
+          color: 'var(--primary-light)',
+          filter: 'drop-shadow(2px 2px 0px var(--border-color))',
+        }}
+      >
         <FaTint />
       </div>
       <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem' }}>Aucun service d'eau configuré</h3>
-      <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', maxWidth: '450px', lineHeight: '1.6' }}>
-        Votre tableau de bord est vide. Pour commencer le suivi de la qualité de l'eau, veuillez ajouter vos points d'eau (Robinets, Réservoirs, Bâches) dans l'onglet <strong>Paramètres</strong>.
+      <p
+        style={{
+          color: 'var(--text-muted)',
+          marginBottom: '2rem',
+          maxWidth: '450px',
+          lineHeight: '1.6',
+        }}
+      >
+        Votre tableau de bord est vide. Pour commencer le suivi de la qualité de l'eau, veuillez
+        ajouter vos points d'eau (Robinets, Réservoirs, Bâches) dans l'onglet{' '}
+        <strong>Paramètres</strong>.
       </p>
-      <div style={{ padding: '1rem', background: '#e2e8f0', borderRadius: '8px', fontSize: '0.9rem', color: '#475569' }}>
+      <div
+        style={{
+          padding: '1rem',
+          background: '#e2e8f0',
+          borderRadius: '8px',
+          fontSize: '0.9rem',
+          color: '#475569',
+        }}
+      >
         ℹ️ Conseil : Allez dans <strong>Paramètres {'>'} Services d'Eau</strong> pour en ajouter.
       </div>
     </div>
@@ -183,7 +203,7 @@ export default function WaterAnalyses() {
                     backgroundColor: isSelected ? 'var(--primary-light)' : 'transparent',
                     borderLeft: isSelected ? `5px solid var(--primary)` : `5px solid transparent`,
                     transition: 'all 0.2s ease',
-                    opacity: isStale ? 0.6 : 1 
+                    opacity: isStale ? 0.6 : 1,
                   }}
                 >
                   <div
@@ -220,10 +240,16 @@ export default function WaterAnalyses() {
             })}
             {/* 2. NO SEARCH RESULTS STATE (New) */}
             {filteredDepartments.length === 0 && (
-              <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div
+                style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}
+              >
                 <div style={{ opacity: 0.5, fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
                 <p>Aucun service trouvé pour "{searchTerm}"</p>
-                <button className="btn btn-outline btn-sm" onClick={() => setSearchTerm('')} style={{ marginTop: '0.5rem' }}>
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setSearchTerm('')}
+                  style={{ marginTop: '0.5rem' }}
+                >
                   Effacer la recherche
                 </button>
               </div>

@@ -13,7 +13,7 @@ class CoproDatabase extends Dexie {
       exams: '++id, worker_id, exam_date',
       water_analyses: '++id, sample_date',
       water_departments: '++id',
-      settings: 'key' // For simple key-value storage
+      settings: 'key', // For simple key-value storage
     });
   }
 }
@@ -37,34 +37,34 @@ async function migrateFromLocalForage() {
     if (workerCount > 0) return; // Already data in Dexie, skip migration.
 
     console.log('[DB] Checking for legacy data to migrate...');
-    
+
     // Load old data
     const workers = await localforage.getItem(OLD_STORES.WORKERS);
-    
+
     if (workers && Array.isArray(workers) && workers.length > 0) {
       console.log(`[DB] Migrating ${workers.length} workers...`);
-      
+
       // Bulk Add to Dexie
       await dbInstance.workers.bulkPut(workers);
-      
-      const departments = await localforage.getItem(OLD_STORES.DEPARTMENTS) || [];
+
+      const departments = (await localforage.getItem(OLD_STORES.DEPARTMENTS)) || [];
       await dbInstance.departments.bulkPut(departments);
-      
-      const workplaces = await localforage.getItem(OLD_STORES.WORKPLACES) || [];
+
+      const workplaces = (await localforage.getItem(OLD_STORES.WORKPLACES)) || [];
       await dbInstance.workplaces.bulkPut(workplaces);
-      
-      const exams = await localforage.getItem(OLD_STORES.EXAMS) || [];
+
+      const exams = (await localforage.getItem(OLD_STORES.EXAMS)) || [];
       await dbInstance.exams.bulkPut(exams);
-      
-      const waterAnalyses = await localforage.getItem(OLD_STORES.WATER_ANALYSES) || [];
+
+      const waterAnalyses = (await localforage.getItem(OLD_STORES.WATER_ANALYSES)) || [];
       await dbInstance.water_analyses.bulkPut(waterAnalyses);
-      
-      const waterDepts = await localforage.getItem(OLD_STORES.WATER_DEPARTMENTS) || [];
+
+      const waterDepts = (await localforage.getItem(OLD_STORES.WATER_DEPARTMENTS)) || [];
       await dbInstance.water_departments.bulkPut(waterDepts);
 
       console.log('[DB] Migration successful! clearing legacy storage.');
       // Optional: clear localforage to free space, or keep as safety backup
-      // await localforage.clear(); 
+      // await localforage.clear();
     }
   } catch (e) {
     console.error('[DB] Migration Failed', e);
@@ -102,7 +102,7 @@ export const db = {
   async init() {
     // Run migration check on startup
     await migrateFromLocalForage();
-    
+
     // Seeding Logic (Only if truly empty after migration)
     const deptCount = await dbInstance.departments.count();
     if (deptCount === 0) {
@@ -155,30 +155,23 @@ export const db = {
     await dbInstance.departments.delete(id);
   },
 
- // --- WORKPLACES (Lieux de Travail)
+  // --- WORKPLACES (Lieux de Travail)
 
   async getWorkplaces() {
-
     return await dbInstance.workplaces.toArray();
-
   },
 
   async saveWorkplace(workplace) {
-
     if (!workplace.id) workplace.id = Date.now();
 
     await dbInstance.workplaces.put(workplace);
 
     return workplace;
-
   },
 
   async deleteWorkplace(id) {
-
     await dbInstance.workplaces.delete(id);
-
   },
-
 
   // --- WATER ---
   async getWaterAnalyses() {
@@ -198,9 +191,9 @@ export const db = {
     return await dbInstance.water_departments.toArray();
   },
   async saveWaterDepartment(dept) {
-     if (!dept.id) dept.id = Date.now();
-     await dbInstance.water_departments.put(dept);
-     return dept;
+    if (!dept.id) dept.id = Date.now();
+    await dbInstance.water_departments.put(dept);
+    return dept;
   },
   async deleteWaterDepartment(id) {
     await dbInstance.water_departments.delete(id);
@@ -218,12 +211,13 @@ export const db = {
         if (data.workers) await dbInstance.workers.bulkPut(data.workers);
         if (data.exams) await dbInstance.exams.bulkPut(data.exams);
         if (data.water_analyses) await dbInstance.water_analyses.bulkPut(data.water_analyses);
-        if (data.water_departments) await dbInstance.water_departments.bulkPut(data.water_departments);
+        if (data.water_departments)
+          await dbInstance.water_departments.bulkPut(data.water_departments);
       });
       return true;
     } catch (e) {
       console.error('Import failed', e);
       return false;
     }
-  }
+  },
 };

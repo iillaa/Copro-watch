@@ -362,8 +362,8 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
                       formData.result === 'potable'
                         ? 'var(--success)'
                         : formData.result === 'non_potable'
-                        ? 'var(--danger)'
-                        : 'inherit',
+                          ? 'var(--danger)'
+                          : 'inherit',
                   }}
                 >
                   <option value="pending">En attente</option>
