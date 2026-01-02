@@ -3,10 +3,12 @@
 
 /* --- CRITICAL BOX MODEL FIX --- */
 /* This forces padding to be INSIDE the width/height, preventing cut-off content */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
-  }
-  
+}
+
 :root {
   /* Cartoon / Flat Vector Palette */
   --primary: #6366f1; /* Indigo */
@@ -61,14 +63,14 @@ body {
   flex-direction: column;
   height: 100vh;
   /* UNLOCK 1: Allow the root container to scroll if needed */
-  overflow: auto; 
+  overflow: auto;
 }
 
 .app-shell {
   display: flex;
   height: 100vh;
   /* UNLOCK 2: Allow the shell to manage overflow */
-  overflow: hidden; 
+  overflow: hidden;
   position: relative;
 }
 
@@ -81,10 +83,10 @@ body {
   flex-direction: column;
   padding: 1.5rem 1rem;
   flex-shrink: 0;
-  
+
   /* UNLOCK 3: Add scrollbar INSIDE sidebar if menu is too tall */
-  overflow-y: auto; 
-  height: 100%;     
+  overflow-y: auto;
+  height: 100%;
 }
 
 /* Simple Brand Container - No Bander */
@@ -220,20 +222,19 @@ body {
 
 /* Responsive: collapse sidebar on small screens */
 @media (max-width: 820px) {
-    .sidebar {
-        position: fixed;
-            z-index: 100;
-                transform: translateX(-100%);
-                    transition: transform 0.2s ease-in-out;
-                        
-                            /* ADD THIS: Ensure mobile sidebar scrolls if menu is long */
-                                height: 100vh; 
-                                    overflow-y: auto; 
-                                        
-                                            /* Optional: Add bottom padding so last item isn't cut off by browser bar */
-                                                padding-bottom: 80px; 
-  
-}
+  .sidebar {
+    position: fixed;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease-in-out;
+
+    /* ADD THIS: Ensure mobile sidebar scrolls if menu is long */
+    height: 100vh;
+    overflow-y: auto;
+
+    /* Optional: Add bottom padding so last item isn't cut off by browser bar */
+    padding-bottom: 80px;
+  }
 
   .app-shell.sidebar-closed .sidebar {
     transform: translateX(-100%);
@@ -272,7 +273,6 @@ body {
 .toggle-sidebar {
   display: block !important;
 }
-
 
 .main-content {
   flex: 1;
@@ -995,21 +995,23 @@ tr {
   contain-intrinsic-size: 50px; /* Approximate height of a row */
 }
 /* =================================================================
-   UNIVERSAL PINLOCK & MOBILE OPTIMIZATIONS (MASTER BLOCK)
-   Paste this at the very end of src/index.css
+   UNIVERSAL PINLOCK & MOBILE LANDSCAPE (MASTER BLOCK)
+   Paste this at the very bottom of src/index.css
    ================================================================= */
 
-/* --- 1. PINLOCK BASE STYLES (Tablet/Desktop - Vertical) --- */
+/* 1. PINLOCK BASE STYLES (Vertical / Tablet Default) */
 .pin-lock-container {
   display: flex;
   justify-content: center;
   align-items: center;
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: #f1f5f9;
   z-index: 9999;
 }
-
 .pin-card {
   background: white;
   padding: 2rem;
@@ -1019,32 +1021,54 @@ tr {
   max-width: 350px;
   display: flex;
   flex-direction: column;
-  align-items: center; /* Center Items Horizontally */
-  text-align: center;  /* Center Text */
+  align-items: center;
+  text-align: center;
   gap: 1.5rem;
 }
-
-/* Ensure inner info block is centered */
 .pin-info {
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
 }
+/* --- MISSING DOT STYLES --- */
+.pin-title {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1e293b;
+  font-weight: bold;
+}
+.pin-subtitle {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
 
-.pin-title { margin: 0; font-size: 1.5rem; color: #1e293b; font-weight: bold; }
-.pin-subtitle { margin: 0; color: #64748b; font-size: 0.9rem; }
+.pin-dots {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
 
-.pin-dots { display: flex; gap: 0.75rem; justify-content: center; margin-top: 1rem; }
 .pin-dot {
-  width: 14px; height: 14px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: #e2e8f0;
   transition: all 0.2s;
 }
-.pin-dot.filled { background: #3b82f6; transform: scale(1.2); }
-.pin-dot.error { background: #ef4444; animation: shake 0.3s; }
 
+.pin-dot.filled {
+  background: #3b82f6;
+  transform: scale(1.2);
+}
+
+.pin-dot.error {
+  background: #ef4444;
+  animation: shake 0.3s;
+}
 .pin-pad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1055,64 +1079,89 @@ tr {
   height: 55px;
   font-size: 1.4rem;
   border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 600;
   background: white;
   border: 1px solid #e2e8f0;
   color: #334155;
 }
-.pin-btn:active { background-color: #f8fafc; transform: scale(0.95); }
-.btn-danger-outline { color: #ef4444; border-color: #fee2e2; }
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+.pin-btn:active {
+  background-color: #f8fafc;
+  transform: scale(0.95);
+}
+.btn-danger-outline {
+  color: #ef4444;
+  border-color: #fee2e2;
 }
 
-/* --- 2. MOBILE LANDSCAPE OVERRIDES (The "Poco F6" Fix) --- */
+/* 2. MOBILE LANDSCAPE OVERRIDES (The Poco F6 Special) */
 @media (max-height: 600px) {
-  /* Keep the Zoom */
-  body { zoom: 0.75; }
+  body {
+    zoom: 0.75;
+  }
 
-  /* Allow full page scrolling on short screens */
-  .app-shell { height: auto; overflow: visible; }
-  .sidebar { height: 100vh; position: sticky; top: 0; }
-  .main-content { height: auto; overflow: visible; padding-bottom: 100px !important; }
+  /* A. UNLOCK SCROLLING */
+  .app-shell {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .main-content {
+    height: auto !important;
+    overflow: visible !important;
+    padding-bottom: 120px !important;
+  }
 
-  /* B. SPLIT PINLOCK (Side-by-Side) */
+  /* B. SIDEBAR: Centered Icons & No Toggle */
+  .sidebar {
+    height: 100vh !important;
+    position: sticky;
+    top: 0;
+    width: 60px !important;
+    padding: 0.5rem !important;
+    justify-content: center; /* CENTER ICONS VERTICALLY */
+  }
+  .sidebar .brand-text,
+  .sidebar .nav-text,
+  .sidebar .credit {
+    display: none !important;
+  }
+  .toggle-sidebar {
+    display: none !important;
+  } /* HIDE "MASQUER" BUTTON */
+
+  /* C. PINLOCK: Split Side-by-Side */
   .pin-card {
     flex-direction: row !important;
     max-width: 650px !important;
     padding: 1.5rem !important;
     gap: 2rem;
-    text-align: center; /* Keep text centered */
   }
-  
   .pin-info {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;     /* Horizontal Center (Icon/Dots) */
-    justify-content: center; /* Vertical Center */
     border-right: 2px solid #e2e8f0;
     padding-right: 2rem;
+    justify-content: center;
   }
-  
-  .pin-pad { flex: 1.2; gap: 0.75rem; }
-  .pin-btn { height: 45px; font-size: 1.25rem; }
-
-  /* C. SLIM SIDEBAR & UI TWEAKS */
-  .sidebar { width: 60px !important; padding: 0.5rem !important; }
-  .sidebar .brand-text, .sidebar .nav-text, .sidebar .credit { display: none !important; }
-  .sidebar .brand { margin-bottom: 0.5rem; justify-content: center; }
-  .sidebar .nav-item { justify-content: center; padding: 0.5rem; }
-
-  .modal-overlay { align-items: flex-start; padding: 0; }
-  .modal { 
-    width: 100% !important; height: 100% !important; 
-    border-radius: 0 !important; margin: 0 !important; 
-    display: flex; flex-direction: column;
+  .pin-pad {
+    flex: 1.2;
+    gap: 0.75rem;
   }
-  .modal-body { flex: 1; overflow-y: auto; padding: 1rem !important; }
+  .pin-btn {
+    height: 45px;
+    font-size: 1.25rem;
+  }
+
+  /* D. MODALS: Centered on Screen */
+  .modal-overlay {
+    align-items: center;
+    padding: 1rem;
+  } /* CENTER PANELS */
+  .modal {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 90vh !important;
+    margin: 0 !important;
+  }
 }

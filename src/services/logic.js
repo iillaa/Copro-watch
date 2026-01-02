@@ -9,7 +9,7 @@ import {
   endOfMonth,
   getMonth,
   getYear,
-  isValid 
+  isValid,
 } from 'date-fns';
 
 // HELPER: Safety Check for Dates
@@ -49,7 +49,7 @@ export const logic = {
   // WORKER LOGIC
   calculateNextExamDue(lastExamDateStr) {
     const lastDate = safeDate(lastExamDateStr);
-    if (!lastDate) return this.formatDate(new Date()); 
+    if (!lastDate) return this.formatDate(new Date());
     return this.formatDate(addMonths(lastDate, this.EXAM_INTERVAL_MONTHS));
   },
 
@@ -78,9 +78,9 @@ export const logic = {
     }
     // Safe Sort
     const sortedExams = [...exams].sort((a, b) => {
-        const dateA = safeDate(a.exam_date) || new Date(0);
-        const dateB = safeDate(b.exam_date) || new Date(0);
-        return dateB - dateA;
+      const dateA = safeDate(a.exam_date) || new Date(0);
+      const dateB = safeDate(b.exam_date) || new Date(0);
+      return dateB - dateA;
     });
 
     const lastExam = sortedExams[0];
@@ -96,8 +96,8 @@ export const logic = {
       if (status === 'apte') {
         nextDue = this.calculateNextExamDue(referenceDate);
       } else if (['inapte', 'apte_partielle'].includes(status)) {
-        nextDue = (lastValidExam.treatment?.retest_date) 
-          ? lastValidExam.treatment.retest_date 
+        nextDue = lastValidExam.treatment?.retest_date
+          ? lastValidExam.treatment.retest_date
           : this.calculateRetestDate(referenceDate, 7);
       } else {
         nextDue = this.calculateNextExamDue(referenceDate);
@@ -105,14 +105,19 @@ export const logic = {
     } else {
       nextDue = this.formatDate(new Date());
     }
-    
-    return { last_exam_date: lastExam.exam_date, next_exam_due: nextDue || this.formatDate(new Date()) };
+
+    return {
+      last_exam_date: lastExam.exam_date,
+      next_exam_due: nextDue || this.formatDate(new Date()),
+    };
   },
 
   // --- RESTORED DASHBOARD STATS (CRITICAL FIX) ---
   getDashboardStats(workers, exams) {
-    const dueSoon = workers.filter(w => !w.archived && this.isDueSoon(w.next_exam_due) && !this.isOverdue(w.next_exam_due));
-    const overdue = workers.filter(w => !w.archived && this.isOverdue(w.next_exam_due));
+    const dueSoon = workers.filter(
+      (w) => !w.archived && this.isDueSoon(w.next_exam_due) && !this.isOverdue(w.next_exam_due)
+    );
+    const overdue = workers.filter((w) => !w.archived && this.isOverdue(w.next_exam_due));
     const activePositive = [];
     const retests = [];
 
@@ -121,7 +126,7 @@ export const logic = {
       const workerExams = exams.filter((e) => e.worker_id === w.id);
       // Safe Sort
       workerExams.sort((a, b) => (safeDate(b.exam_date) || 0) - (safeDate(a.exam_date) || 0));
-      
+
       if (workerExams.length > 0) {
         const lastExam = workerExams[0];
         if (lastExam.lab_result?.result === 'positive') {
@@ -163,7 +168,8 @@ export const logic = {
     if (!currentMonthAnalysis) return { status: 'todo', analysis: null, lastDate };
 
     let status = 'todo';
-    if (currentMonthAnalysis.request_date && !currentMonthAnalysis.sample_date) status = 'requested';
+    if (currentMonthAnalysis.request_date && !currentMonthAnalysis.sample_date)
+      status = 'requested';
     else if (currentMonthAnalysis.result === 'pending') status = 'pending';
     else if (currentMonthAnalysis.result === 'potable') status = 'ok';
     else if (currentMonthAnalysis.result === 'non_potable') status = 'alert';
@@ -174,32 +180,51 @@ export const logic = {
   getDepartmentsWaterStatus(departments, waterAnalyses) {
     return departments.map((d) => {
       const statusInfo = this.getServiceWaterStatus(d.id, waterAnalyses);
-      return { ...d, waterStatus: statusInfo.status, waterAnalysis: statusInfo.analysis, lastDate: statusInfo.lastDate };
+      return {
+        ...d,
+        waterStatus: statusInfo.status,
+        waterAnalysis: statusInfo.analysis,
+        lastDate: statusInfo.lastDate,
+      };
     });
   },
 
   getServiceWaterStatusLabel(status) {
-    const map = { todo: 'À Faire', requested: 'Demandé', pending: 'En Cours', ok: 'OK', alert: 'ALERTE' };
+    const map = {
+      todo: 'À Faire',
+      requested: 'Demandé',
+      pending: 'En Cours',
+      ok: 'OK',
+      alert: 'ALERTE',
+    };
     return map[status] || '-';
   },
 
   getServiceWaterStatusColor(status) {
-    const map = { todo: '#94a3b8', requested: '#3b82f6', pending: '#f59e0b', ok: '#22c55e', alert: '#ef4444' };
+    const map = {
+      todo: '#94a3b8',
+      requested: '#3b82f6',
+      pending: '#f59e0b',
+      ok: '#22c55e',
+      alert: '#ef4444',
+    };
     return map[status] || '#94a3b8';
   },
 
   getServiceWaterAnalysisStats(departments, waterAnalyses) {
     const stats = this.getDepartmentsWaterStatus(departments, waterAnalyses);
     const counts = { todo: 0, requested: 0, pending: 0, ok: 0, alert: 0 };
-    stats.forEach(s => { if (counts[s.waterStatus] !== undefined) counts[s.waterStatus]++; });
+    stats.forEach((s) => {
+      if (counts[s.waterStatus] !== undefined) counts[s.waterStatus]++;
+    });
 
     return {
-      todo: stats.filter(d => d.waterStatus === 'todo'),
-      requested: stats.filter(d => d.waterStatus === 'requested'),
-      pending: stats.filter(d => d.waterStatus === 'pending'),
-      ok: stats.filter(d => d.waterStatus === 'ok'),
-      alerts: stats.filter(d => d.waterStatus === 'alert'),
-      summary: { total: departments.length, ...counts }
+      todo: stats.filter((d) => d.waterStatus === 'todo'),
+      requested: stats.filter((d) => d.waterStatus === 'requested'),
+      pending: stats.filter((d) => d.waterStatus === 'pending'),
+      ok: stats.filter((d) => d.waterStatus === 'ok'),
+      alerts: stats.filter((d) => d.waterStatus === 'alert'),
+      summary: { total: departments.length, ...counts },
     };
-  }
+  },
 };

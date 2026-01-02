@@ -40,7 +40,6 @@ export default function PinLock({ onUnlock, correctPin = '0000' }) {
     // We use CSS classes instead of inline styles for responsiveness
     <div className="pin-lock-container">
       <div className="card pin-card">
-        
         {/* WRAPPER 1: INFO (Left side on Mobile, Top on Desktop) */}
         <div className="pin-info">
           <div style={{ marginBottom: '1rem', color: 'var(--primary)' }}>
@@ -53,9 +52,7 @@ export default function PinLock({ onUnlock, correctPin = '0000' }) {
             {[0, 1, 2, 3].map((i) => (
               <div
                 key={i}
-                className={`pin-dot ${
-                  i < pin.length ? (error ? 'error' : 'filled') : ''
-                }`}
+                className={`pin-dot ${i < pin.length ? (error ? 'error' : 'filled') : ''}`}
               />
             ))}
           </div>
@@ -64,24 +61,14 @@ export default function PinLock({ onUnlock, correctPin = '0000' }) {
         {/* WRAPPER 2: KEYS (Right side on Mobile, Bottom on Desktop) */}
         <div className="pin-pad">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-            <button
-              key={num}
-              className="btn btn-outline pin-btn"
-              onClick={() => handleDigit(num)}
-            >
+            <button key={num} className="btn btn-outline pin-btn" onClick={() => handleDigit(num)}>
               {num}
             </button>
           ))}
-          <button
-            className="btn btn-outline pin-btn btn-danger-outline"
-            onClick={handleClear}
-          >
+          <button className="btn btn-outline pin-btn btn-danger-outline" onClick={handleClear}>
             C
           </button>
-          <button
-            className="btn btn-outline pin-btn"
-            onClick={() => handleDigit(0)}
-          >
+          <button className="btn btn-outline pin-btn" onClick={() => handleDigit(0)}>
             0
           </button>
           <button className="btn btn-outline pin-btn" onClick={handleBackspace}>
