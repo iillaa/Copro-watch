@@ -67,12 +67,14 @@ function App() {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          height: '100vh',
+          height: '100%',
+          width: '100%',
           flexDirection: 'column',
+          backgroundColor: 'var(--bg-app)',
         }}
       >
         <div className="loading-spinner"></div>
-        <p style={{ marginTop: '1rem', color: '#666' }}>Chargement...</p>
+        <p style={{ marginTop: '1rem', color: 'var(--text-main)' }}>Chargement...</p>
       </div>
     );
   }

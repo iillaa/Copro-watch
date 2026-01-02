@@ -56,16 +56,15 @@ body {
   color: var(--text-main);
   line-height: 1.5;
   margin: 0;
-  /* FIX: Use 100dvh */
-  min-height: 100dvh;
-  overscroll-behavior: none;
+  /* FIX: Use 100% for better mobile stability */
+  height: 100%;
 }
 
 #root {
   display: flex;
   flex-direction: column;
-  /* FIX: Use 100dvh */
-  height: 100dvh;
+  /* FIX: Use 100% */
+  height: 100%;
   overflow: hidden;
 }
 
@@ -282,6 +281,7 @@ body {
   overflow-y: auto;
   padding: 2rem;
   height: 100%; /* FIXED: Ensures full height usage */
+  -webkit-overflow-scrolling: touch;
 }
 
 .container {
@@ -714,7 +714,7 @@ tr:nth-child(even):hover td {
     position: fixed;
     bottom: 0;
     left: 0;
-    width: 100%;
+    width: 100% !important; /* Force full width to override collapsed state */
     height: auto;
     flex-direction: row;
     justify-content: space-around;
@@ -726,7 +726,9 @@ tr:nth-child(even):hover td {
     border-right: none;
     border-top: var(--border-width) solid var(--border-color);
     z-index: 1000;
-    background: rgba(255, 255, 255, 0.95);
+    
+    /* FIX: Match app background to avoid 'white bar' look, add blur */
+    background: rgba(241, 245, 249, 0.95); /* var(--bg-app) with opacity */
     backdrop-filter: blur(10px);
   }
 
@@ -734,11 +736,16 @@ tr:nth-child(even):hover td {
   .sidebar > div:last-child {
     display: none;
   }
+  
+  /* Hide the toggle button on mobile as we use bottom nav */
+  .toggle-sidebar {
+    display: none !important;
+  }
 
   .main-content {
     padding: 1rem;
     /* FIX: Add padding so content isn't hidden behind the bar */
-    padding-bottom: calc(90px + env(safe-area-inset-bottom));
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
   }
 
   /* Mobile-specific button styles */
