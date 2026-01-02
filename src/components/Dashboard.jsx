@@ -67,7 +67,7 @@ export default function Dashboard({ onNavigateWorker }) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
           gap: '2rem',
           marginBottom: '2.5rem',
         }}
@@ -152,7 +152,7 @@ export default function Dashboard({ onNavigateWorker }) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
+          gridTemplateColumns: '1fr', // Stacks vertically on mobile, auto-grid on desktop if needed
           gap: '1.5rem',
         }}
       >
