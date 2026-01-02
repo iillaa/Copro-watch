@@ -1,10 +1,9 @@
 import AppDesktop from './AppDesktop';
 import ReloadPrompt from './components/ReloadPrompt';
 
-export default function App() {
-  // Strategy: Unified UI. 
-  // We strictly serve the Desktop UI. 
-  // Orientation handling is done natively in AndroidManifest.
+function App() {
+  // STRICT MODE: Always render the Desktop/Tablet UI.
+  // CSS Media Queries will handle the resizing for phones.
   return (
     <>
       <ReloadPrompt />
@@ -12,3 +11,5 @@ export default function App() {
     </>
   );
 }
+
+export default App;
