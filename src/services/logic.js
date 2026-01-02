@@ -9,7 +9,9 @@ import {
   endOfMonth,
   getMonth,
   getYear,
+  isValid
 } from 'date-fns';
+import { db } from './db'; // Import DB to handle status updates
 
 export const logic = {
   // ==========================================
@@ -22,19 +24,29 @@ export const logic = {
   // ==========================================
   // GENERAL DATE HELPERS
   // ==========================================
-  // 1. For Inputs (Computer needs this)
-  formatDate(date) {
-    if (!date) return '';
-    return format(date, 'yyyy-MM-dd');
+  
+  // Safe Date Parser to prevent RangeError
+  safeParse(dateStr) {
+    if (!dateStr) return null;
+    const d = typeof dateStr === 'string' ? parseISO(dateStr) : dateStr;
+    return isValid(d) ? d : null;
   },
 
-  // 2. For Display (Humans read this)
+  formatDate(date) {
+    if (!date) return '';
+    try {
+      const d = this.safeParse(date);
+      return d ? format(d, 'yyyy-MM-dd') : '';
+    } catch (e) {
+      return '';
+    }
+  },
+
   formatDateDisplay(date) {
     if (!date) return '-';
     try {
-      // Handle both Date objects and Strings
-      const d = typeof date === 'string' ? parseISO(date) : date;
-      return format(d, 'dd/MM/yyyy');
+      const d = this.safeParse(date);
+      return d ? format(d, 'dd/MM/yyyy') : '-';
     } catch (e) {
       return '-';
     }
@@ -54,45 +66,65 @@ export const logic = {
   // WORKER (FOOD HANDLERS) LOGIC
   // ==========================================
 
+  // PREMIUM FEATURE: Calculate due date with variable months
+  calculateNextDueDate(dateStr, months = 6) {
+    const date = this.safeParse(dateStr);
+    if (!date) return this.formatDate(new Date()); // Default to now if invalid
+    
+    try {
+      const nextDate = addMonths(date, months);
+      return this.formatDate(nextDate);
+    } catch (e) {
+      console.warn("Date calculation error", e);
+      return this.formatDate(new Date());
+    }
+  },
+
+  // Legacy support (defaults to 6 months)
   calculateNextExamDue(lastExamDateStr) {
-    if (!lastExamDateStr) return this.formatDate(new Date()); // If never examined, due now
-    const lastDate = parseISO(lastExamDateStr);
-    const nextDate = addMonths(lastDate, this.EXAM_INTERVAL_MONTHS);
-    return this.formatDate(nextDate);
+    return this.calculateNextDueDate(lastExamDateStr, this.EXAM_INTERVAL_MONTHS);
   },
 
   isDueSoon(nextExamDateStr) {
-    if (!nextExamDateStr) return true;
-    const nextDate = parseISO(nextExamDateStr);
+    const nextDate = this.safeParse(nextExamDateStr);
+    if (!nextDate) return true;
+    
     const today = new Date();
     const diff = differenceInDays(nextDate, today);
     return diff <= this.DUE_WARNING_DAYS && diff >= 0;
   },
 
   isOverdue(nextExamDateStr) {
-    if (!nextExamDateStr) return true;
-    const nextDate = parseISO(nextExamDateStr);
+    const nextDate = this.safeParse(nextExamDateStr);
+    if (!nextDate) return true;
+    
     const today = new Date();
-    // Check if nextDate is strictly before today
     return isBefore(nextDate, today) && differenceInDays(today, nextDate) > 0;
   },
 
   calculateRetestDate(treatmentStartDateStr, days = 7) {
-    const startDate = parseISO(treatmentStartDateStr);
+    const startDate = this.safeParse(treatmentStartDateStr);
+    if (!startDate) return this.formatDate(new Date());
     return this.formatDate(addDays(startDate, days));
   },
 
+  // CORE LOGIC: Determines status based on exam history
   recalculateWorkerStatus(exams) {
     if (!exams || exams.length === 0) {
       return { last_exam_date: null, next_exam_due: this.formatDate(new Date()) };
     }
 
-    const sortedExams = [...exams].sort((a, b) => parseISO(b.exam_date) - parseISO(a.exam_date));
+    // Sort by exam date descending
+    const sortedExams = [...exams].sort((a, b) => {
+      const dateA = this.safeParse(a.exam_date) || new Date(0);
+      const dateB = this.safeParse(b.exam_date) || new Date(0);
+      return dateB - dateA;
+    });
 
     const lastExam = sortedExams[0];
-
     const lastExamDate = lastExam.exam_date;
 
+    // Find the last "Decisive" exam (Valid, Inapt, or Partial)
     const lastValidExam = sortedExams.find(
       (e) => e.decision && ['apte', 'apte_partielle', 'inapte'].includes(e.decision.status)
     );
@@ -101,41 +133,68 @@ export const logic = {
 
     if (lastValidExam) {
       const status = lastValidExam.decision.status;
+      // Use the decision date if available (lab return), else exam date
+      const referenceDate = lastValidExam.decision.date || lastValidExam.exam_date; 
+      // Use the logic already stored in the exam if possible
+      const storedValidity = lastValidExam.decision.valid_until;
 
-      // MODIFICATION ICI : On utilise la date de décision (retour labo) si elle existe, sinon la date d'examen
-
-      const referenceDate = lastValidExam.decision.date || lastValidExam.exam_date;
-
-      if (status === 'apte') {
-        // 6 mois à partir de la date de validation (résultat vu par le médecin)
-
-        nextDue = this.calculateNextExamDue(referenceDate);
-      } else if (['inapte', 'apte_partielle'].includes(status)) {
-        if (lastValidExam.treatment && lastValidExam.treatment.retest_date) {
-          nextDue = lastValidExam.treatment.retest_date;
-        } else {
-          // Calculer le re-test par rapport à la date de décision aussi
-
-          nextDue = this.calculateRetestDate(referenceDate, 7);
-        }
+      if (storedValidity && isValid(parseISO(storedValidity))) {
+         nextDue = storedValidity;
       } else {
-        nextDue = this.calculateNextExamDue(referenceDate);
+        // Fallback calculation
+        if (status === 'apte') {
+           // Default to 6 months if not specified
+           nextDue = this.calculateNextDueDate(referenceDate, 6);
+        } else if (['inapte', 'apte_partielle'].includes(status)) {
+          if (lastValidExam.treatment && lastValidExam.treatment.retest_date) {
+            nextDue = lastValidExam.treatment.retest_date;
+          } else {
+            nextDue = this.calculateRetestDate(referenceDate, 7);
+          }
+        } else {
+          nextDue = this.calculateNextDueDate(referenceDate, 6);
+        }
       }
     } else {
       nextDue = this.formatDate(new Date());
     }
     return { last_exam_date: lastExamDate, next_exam_due: nextDue };
   },
+
+  // NEW: Update Worker Status in DB (Fixes the "Not like tablets" issue)
+  async updateWorkerStatus(workerId) {
+    try {
+      const allExams = await db.getExams();
+      const workerExams = allExams.filter(e => e.worker_id === workerId);
+      const newStatus = this.recalculateWorkerStatus(workerExams);
+      
+      const workers = await db.getWorkers();
+      const worker = workers.find(w => w.id === workerId);
+      
+      if (worker) {
+        const updatedWorker = { 
+          ...worker, 
+          last_exam_date: newStatus.last_exam_date,
+          next_exam_due: newStatus.next_exam_due
+        };
+        await db.saveWorker(updatedWorker);
+      }
+    } catch (e) {
+      console.error("Failed to update worker status", e);
+    }
+  },
+
   // Worker Dashboard Stats
   getDashboardStats(workers, exams) {
     const dueSoon = workers.filter(
-      (w) => this.isDueSoon(w.next_exam_due) && !this.isOverdue(w.next_exam_due)
+      (w) => !w.archived && this.isDueSoon(w.next_exam_due) && !this.isOverdue(w.next_exam_due)
     );
-    const overdue = workers.filter((w) => this.isOverdue(w.next_exam_due));
+    const overdue = workers.filter((w) => !w.archived && this.isOverdue(w.next_exam_due));
     const activePositive = [];
     const retests = [];
 
     workers.forEach((w) => {
+      if (w.archived) return;
       const workerExams = exams.filter((e) => e.worker_id === w.id);
       workerExams.sort((a, b) => new Date(b.exam_date) - new Date(a.exam_date));
       if (workerExams.length > 0) {
@@ -153,11 +212,9 @@ export const logic = {
   },
 
   // ==========================================
-  // WATER ANALYSIS LOGIC (UPDATED & FIXED)
+  // WATER ANALYSIS LOGIC
   // ==========================================
 
-  // 1. Get ALL history for a department (New Helper)
-  // This allows us to see past activity even if it wasn't this month.
   getDepartmentWaterHistory(departmentId, allAnalyses) {
     return allAnalyses
       .filter((a) => (a.department_id || a.structure_id) === departmentId)
@@ -165,36 +222,27 @@ export const logic = {
         const dateA = new Date(a.request_date || a.sample_date);
         const dateB = new Date(b.request_date || b.sample_date);
         const diff = dateB - dateA;
-        // Same fix: If dates equal, show newest ID first
         return diff !== 0 ? diff : b.id - a.id;
       });
   },
 
-  // 2. Get Status (Considers History for "Last Date" but Current Month for "Status")
   getServiceWaterStatus(departmentId, allAnalyses) {
     const { start, end } = this.getCurrentMonthRange();
-
-    // A. Get ALL history first to find the TRUE last date
     const deptAnalyses = this.getDepartmentWaterHistory(departmentId, allAnalyses);
-
-    // B. Find "Last Date" (The most recent activity EVER, even if months ago)
     const lastActivity = deptAnalyses[0];
     const lastDate = lastActivity ? lastActivity.sample_date || lastActivity.request_date : null;
 
-    // C. Find "Current Status" (Strictly THIS MONTH for Compliance)
     const currentMonthAnalysis = deptAnalyses.find((analysis) => {
       const dateToCheck = analysis.sample_date || analysis.request_date;
       if (!dateToCheck) return false;
-      const pDate = parseISO(dateToCheck);
-      return pDate >= start && pDate <= end;
+      const pDate = this.safeParse(dateToCheck);
+      return pDate && pDate >= start && pDate <= end;
     });
 
-    // If no activity THIS month -> TODO (Gray), but we return the REAL lastDate!
     if (!currentMonthAnalysis) {
       return { status: 'todo', analysis: null, lastDate: lastDate };
     }
 
-    // Determine status for the CURRENT analysis
     let status = 'todo';
     if (currentMonthAnalysis.request_date && !currentMonthAnalysis.sample_date)
       status = 'requested';
@@ -205,11 +253,10 @@ export const logic = {
     return {
       status: status,
       analysis: currentMonthAnalysis,
-      lastDate: lastDate, // Use the TRUE last date from history
+      lastDate: lastDate,
     };
   },
 
-  // 3. Batch Process all Departments (Used by Left Panel)
   getDepartmentsWaterStatus(departments, waterAnalyses) {
     return departments.map((department) => {
       const statusInfo = this.getServiceWaterStatus(department.id, waterAnalyses);
@@ -222,46 +269,30 @@ export const logic = {
     });
   },
 
-  // 4. UI Helpers (Labels & Colors)
   getServiceWaterStatusLabel(status) {
     switch (status) {
-      case 'todo':
-        return 'À Faire';
-      case 'requested':
-        return 'Demandé';
-      case 'pending':
-        return 'En Cours';
-      case 'ok':
-        return 'OK';
-      case 'alert':
-        return 'ALERTE';
-      default:
-        return '-';
+      case 'todo': return 'À Faire';
+      case 'requested': return 'Demandé';
+      case 'pending': return 'En Cours';
+      case 'ok': return 'OK';
+      case 'alert': return 'ALERTE';
+      default: return '-';
     }
   },
 
   getServiceWaterStatusColor(status) {
     switch (status) {
-      case 'todo':
-        return '#94a3b8';
-      case 'requested':
-        return '#3b82f6';
-      case 'pending':
-        return '#f59e0b';
-      case 'ok':
-        return '#22c55e';
-      case 'alert':
-        return '#ef4444';
-      default:
-        return '#94a3b8';
+      case 'todo': return '#94a3b8';
+      case 'requested': return '#3b82f6';
+      case 'pending': return '#f59e0b';
+      case 'ok': return '#22c55e';
+      case 'alert': return '#ef4444';
+      default: return '#94a3b8';
     }
   },
 
-  // 5. Dashboard Summary Stats (WAS MISSING IN PREVIOUS VERSION)
-  // This calculates the totals for the Overview Panel
   getServiceWaterAnalysisStats(departments, waterAnalyses) {
     const departmentStats = this.getDepartmentsWaterStatus(departments, waterAnalyses);
-
     const todo = departmentStats.filter((d) => d.waterStatus === 'todo');
     const requested = departmentStats.filter((d) => d.waterStatus === 'requested');
     const pending = departmentStats.filter((d) => d.waterStatus === 'pending');
@@ -269,11 +300,7 @@ export const logic = {
     const alerts = departmentStats.filter((d) => d.waterStatus === 'alert');
 
     return {
-      todo,
-      requested,
-      pending,
-      ok,
-      alerts,
+      todo, requested, pending, ok, alerts,
       summary: {
         total: departments.length,
         todoCount: todo.length,
