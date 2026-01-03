@@ -29,7 +29,7 @@ export default function WaterAnalysisForm({
       setFormData({
         id: analysisToEdit.id,
         department_id: analysisToEdit.department_id || analysisToEdit.structure_id,
-        request_date: analysisToEdit.request_date || '', // Load request date
+        request_date: analysisToEdit.request_date || '',
         sample_date: analysisToEdit.sample_date || '',
         result_date: analysisToEdit.result_date || '',
         result: analysisToEdit.result || '',
@@ -47,7 +47,7 @@ export default function WaterAnalysisForm({
         ...prev,
         department_id: department?.id || workplace?.id,
         request_date: new Date().toISOString().split('T')[0],
-        sample_date: new Date().toISOString().split('T')[0], // Default Sample to Today for convenience
+        sample_date: new Date().toISOString().split('T')[0],
       }));
     } else if (type === 'result') {
       setFormData((prev) => ({
@@ -143,46 +143,53 @@ export default function WaterAnalysisForm({
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 1000,
-      }}
-    >
+    // FIX: Using global 'modal-overlay' class for Blur + Z-Index (Covers Sidebar)
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onCancel()}>
       <div
+        className="modal"
         style={{
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          padding: '2rem',
-          maxWidth: '500px',
-          width: '90%',
-          maxHeight: '90vh',
-          overflow: 'auto',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+          // Animation matches WorkerForm
+          animation: 'modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          transform: 'scale(0.9)',
+          animationFillMode: 'forwards',
+          maxWidth: '500px', // Matches original width
         }}
       >
-        {/* Header */}
+        {/* Header - Styled like WorkerForm */}
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             marginBottom: '1.5rem',
+            paddingBottom: '1rem',
+            borderBottom: '2px solid var(--border-color)',
           }}
         >
-          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
+          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', color: 'var(--primary)' }}>
             <FaFlask style={{ marginRight: '0.5rem' }} /> {getFormTitle()}
           </h3>
-          <button onClick={onCancel} className="btn btn-outline" style={{ padding: '0.5rem' }}>
-            <FaTimes />
+          <button
+            onClick={onCancel}
+            style={{
+              background: 'var(--danger-light)',
+              border: '2px solid var(--danger)',
+              color: 'var(--danger)',
+              borderRadius: '8px',
+              padding: '0.5rem',
+              cursor: 'pointer',
+              fontSize: '1.2rem',
+              fontWeight: 'bold',
+              transition: 'all 0.2s ease',
+              lineHeight: 1,
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            ×
           </button>
         </div>
 

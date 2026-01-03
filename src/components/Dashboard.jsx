@@ -13,12 +13,21 @@ export default function Dashboard({ onNavigateWorker }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-const loadStats = async () => {
+  // [INJECT THIS] --- MOBILE DETECTOR ---
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  // [END INJECTION]
+  const loadStats = async () => {
     try {
       setLoading(true);
       // Safety check for DB
-      if (!db) throw new Error("DB not ready");
-      
+      if (!db) throw new Error('DB not ready');
+
       const [workers, exams] = await Promise.all([db.getWorkers(), db.getExams()]);
 
       // 1. Filtrer les archivés
@@ -28,13 +37,15 @@ const loadStats = async () => {
       const computed = logic.getDashboardStats(activeWorkers, exams || []);
 
       // 3. TRI AUTOMATIQUE
-      if (computed.dueSoon) computed.dueSoon.sort((a, b) => new Date(a.next_exam_due) - new Date(b.next_exam_due));
-      if (computed.overdue) computed.overdue.sort((a, b) => new Date(a.next_exam_due) - new Date(b.next_exam_due));
+      if (computed.dueSoon)
+        computed.dueSoon.sort((a, b) => new Date(a.next_exam_due) - new Date(b.next_exam_due));
+      if (computed.overdue)
+        computed.overdue.sort((a, b) => new Date(a.next_exam_due) - new Date(b.next_exam_due));
       if (computed.retests) computed.retests.sort((a, b) => new Date(a.date) - new Date(b.date));
 
       setStats(computed);
     } catch (e) {
-      console.error("Dashboard error:", e);
+      console.error('Dashboard error:', e);
     } finally {
       setLoading(false); // CRITICAL: This forces the screen to show, even if empty
     }
@@ -62,93 +73,261 @@ const loadStats = async () => {
 
   return (
     <div>
-      <header style={{ marginBottom: '2rem' }}>
-        <h2>Tableau de bord</h2>
-        <p>Aperçu de la situation médicale.</p>
+      {/* FIX: Reduced marginBottom to 0.75rem to pull charts UP */}
+      {/* --- HEADER (Hybrid) --- */}
+      <header style={{ marginBottom: isMobile ? '0.75rem' : '1.5rem' }}>
+        <h2
+          style={
+            isMobile
+              ? { marginBottom: 0, marginTop: 0, lineHeight: 1.2 }
+              : { marginBottom: '0', marginTop: '0', lineHeight: '1.2' }
+          }
+        >
+          Tableau de bord
+        </h2>
+        <p
+          style={{
+            margin: 0,
+            color: 'var(--text-muted)',
+            fontSize: isMobile ? '0.85rem' : '0.9rem',
+          }}
+        >
+          Aperçu de la situation médicale.
+        </p>
       </header>
 
       {/* --- CARTES DE STATISTIQUES --- */}
+      {/* --- STATS CARDS (Hybrid Grid) --- */}
       <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '2rem',
-          marginBottom: '2.5rem',
-        }}
+        style={
+          isMobile
+            ? {
+                // MOBILE GRID: 3 Columns, Tight Gap
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '0.5rem',
+                marginBottom: '1.5rem',
+              }
+            : {
+                // DESKTOP GRID: Your Original Layout (Auto-fit, Wide Gap)
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '1rem',
+                marginBottom: '1.5rem',
+              }
+        }
       >
-        {/* À faire (Jaune) */}
+        {/* CARD 1: À FAIRE */}
         <div
           className="card"
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: 'var(--warning-light)',
-            padding: '1.5rem',
-          }}
+          style={
+            isMobile
+              ? {
+                  // MOBILE STYLE: Vertical & Compact
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'var(--warning-light)',
+                  padding: '0.75rem 0.25rem',
+                  textAlign: 'center',
+                  margin: 0,
+                }
+              : {
+                  // DESKTOP STYLE: Your Original (Horizontal)
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  background: 'var(--warning-light)',
+                  padding: '1.5rem',
+                }
+          }
         >
-          <div>
-            <h3 className="stat-card-title" style={{ color: 'var(--warning-text)' }}>
-              À faire (15 jours)
-            </h3>
-            <div className="stat-card-value" style={{ color: 'var(--warning)' }}>
-              {stats.dueSoon.length}
-            </div>
-            <p style={{ margin: 0, fontWeight: 600, color: 'var(--warning-text)' }}>Travailleurs</p>
-          </div>
-          <div style={{ opacity: 0.8 }}>
-            <FaClipboardList size={60} color="var(--warning)" />
-          </div>
+          {isMobile ? (
+            /* MOBILE CONTENT */
+            <>
+              <FaClipboardList
+                size={20}
+                color="var(--warning)"
+                style={{ marginBottom: '0.25rem' }}
+              />
+              <div
+                className="stat-card-value"
+                style={{ color: 'var(--warning)', fontSize: '1.5rem' }}
+              >
+                {stats.dueSoon.length}
+              </div>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: 'var(--warning-text)',
+                  lineHeight: 1,
+                }}
+              >
+                À faire
+              </p>
+            </>
+          ) : (
+            /* DESKTOP CONTENT (Your Original Code) */
+            <>
+              <div>
+                <h3 className="stat-card-title" style={{ color: 'var(--warning-text)' }}>
+                  À faire (15 jours)
+                </h3>
+                <div className="stat-card-value" style={{ color: 'var(--warning)' }}>
+                  {stats.dueSoon.length}
+                </div>
+                <p style={{ margin: 0, fontWeight: 600, color: 'var(--warning-text)' }}>
+                  Travailleurs
+                </p>
+              </div>
+              <div style={{ opacity: 0.8 }}>
+                <FaClipboardList size={60} color="var(--warning)" />
+              </div>
+            </>
+          )}
         </div>
 
-        {/* En Retard (Rouge) */}
+        {/* CARD 2: EN RETARD */}
         <div
           className="card"
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: 'var(--danger-light)',
-            padding: '1.5rem',
-          }}
+          style={
+            isMobile
+              ? {
+                  // MOBILE STYLE
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'var(--danger-light)',
+                  padding: '0.75rem 0.25rem',
+                  textAlign: 'center',
+                  margin: 0,
+                }
+              : {
+                  // DESKTOP STYLE
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  background: 'var(--danger-light)',
+                  padding: '1.5rem',
+                }
+          }
         >
-          <div>
-            <h3 className="stat-card-title" style={{ color: 'var(--danger-text)' }}>
-              En Retard
-            </h3>
-            <div className="stat-card-value" style={{ color: 'var(--danger)' }}>
-              {stats.overdue.length}
-            </div>
-            <p style={{ margin: 0, fontWeight: 600, color: 'var(--danger-text)' }}>Travailleurs</p>
-          </div>
-          <div style={{ opacity: 0.8 }}>
-            <FaExclamationTriangle size={60} color="var(--danger)" />
-          </div>
+          {isMobile ? (
+            /* MOBILE CONTENT */
+            <>
+              <FaExclamationTriangle
+                size={20}
+                color="var(--danger)"
+                style={{ marginBottom: '0.25rem' }}
+              />
+              <div
+                className="stat-card-value"
+                style={{ color: 'var(--danger)', fontSize: '1.5rem' }}
+              >
+                {stats.overdue.length}
+              </div>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: 'var(--danger-text)',
+                  lineHeight: 1,
+                }}
+              >
+                Retard
+              </p>
+            </>
+          ) : (
+            /* DESKTOP CONTENT (Your Original Code) */
+            <>
+              <div>
+                <h3 className="stat-card-title" style={{ color: 'var(--danger-text)' }}>
+                  En Retard
+                </h3>
+                <div className="stat-card-value" style={{ color: 'var(--danger)' }}>
+                  {stats.overdue.length}
+                </div>
+                <p style={{ margin: 0, fontWeight: 600, color: 'var(--danger-text)' }}>
+                  Travailleurs
+                </p>
+              </div>
+              <div style={{ opacity: 0.8 }}>
+                <FaExclamationTriangle size={60} color="var(--danger)" />
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Suivi Médical (Bleu) */}
+        {/* CARD 3: SUIVI */}
         <div
           className="card"
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: 'var(--primary-light)',
-            padding: '1.5rem',
-          }}
+          style={
+            isMobile
+              ? {
+                  // MOBILE STYLE
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'var(--primary-light)',
+                  padding: '0.75rem 0.25rem',
+                  textAlign: 'center',
+                  margin: 0,
+                }
+              : {
+                  // DESKTOP STYLE
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  background: 'var(--primary-light)',
+                  padding: '1.5rem',
+                }
+          }
         >
-          <div>
-            <h3 className="stat-card-title" style={{ color: 'var(--primary)' }}>
-              Suivi Médical
-            </h3>
-            <div className="stat-card-value" style={{ color: 'var(--primary)' }}>
-              {stats.activePositive.length}
-            </div>
-            <p style={{ margin: 0, fontWeight: 600, color: 'var(--primary)' }}>Cas actifs</p>
-          </div>
-          <div style={{ opacity: 0.8 }}>
-            <FaMicroscope size={60} color="var(--primary)" />
-          </div>
+          {isMobile ? (
+            /* MOBILE CONTENT */
+            <>
+              <FaMicroscope size={20} color="var(--primary)" style={{ marginBottom: '0.25rem' }} />
+              <div
+                className="stat-card-value"
+                style={{ color: 'var(--primary)', fontSize: '1.5rem' }}
+              >
+                {stats.activePositive.length}
+              </div>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: 'var(--primary)',
+                  lineHeight: 1,
+                }}
+              >
+                Suivi
+              </p>
+            </>
+          ) : (
+            /* DESKTOP CONTENT (Your Original Code) */
+            <>
+              <div>
+                <h3 className="stat-card-title" style={{ color: 'var(--primary)' }}>
+                  Suivi Médical
+                </h3>
+                <div className="stat-card-value" style={{ color: 'var(--primary)' }}>
+                  {stats.activePositive.length}
+                </div>
+                <p style={{ margin: 0, fontWeight: 600, color: 'var(--primary)' }}>Cas actifs</p>
+              </div>
+              <div style={{ opacity: 0.8 }}>
+                <FaMicroscope size={60} color="var(--primary)" />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -156,7 +335,9 @@ const loadStats = async () => {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '1fr', // Stacks vertically on mobile, auto-grid on desktop if needed
+          /* FIX: Changed '1fr' to this Smart Rule */
+          /* It puts tables side-by-side if there is room (300px+), otherwise stacks them */
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
           gap: '1.5rem',
         }}
       >
@@ -187,7 +368,8 @@ const loadStats = async () => {
                 <thead>
                   <tr>
                     <th>Nom</th>
-                    <th>Date Prévue</th>
+                    {/* FIX: Added whiteSpace: 'nowrap' to prevent header splitting */}
+                    <th style={{ whiteSpace: 'nowrap' }}>Date Prévue</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -196,17 +378,34 @@ const loadStats = async () => {
                   {stats.overdue.map((w) => (
                     <tr key={w.id} className="overdue-worker-row">
                       <td>
-                        <div style={{ fontWeight: 700, color: 'var(--danger-text)' }}>
-                          {w.full_name}
-                        </div>
-                        <span
-                          className="badge badge-red"
-                          style={{ marginTop: '0.25rem', fontSize: '0.75rem' }}
+                        {/* FIX: Flexbox puts Name + Badge side-by-side */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            flexWrap: 'wrap',
+                          }}
                         >
-                          En Retard
-                        </span>
+                          <span style={{ fontWeight: 700, color: 'var(--danger-text)' }}>
+                            {w.full_name}
+                          </span>
+                          {/* FIX: Smaller, compact badge */}
+                          <span
+                            className="badge badge-red"
+                            style={{
+                              fontSize: '0.65rem',
+                              padding: '2px 6px',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            En Retard
+                          </span>
+                        </div>
                       </td>
-                      <td style={{ color: 'var(--danger)', fontWeight: 'bold' }}>
+                      <td
+                        style={{ color: 'var(--danger)', fontWeight: 'bold', whiteSpace: 'nowrap' }}
+                      >
                         {logic.formatDate(new Date(w.next_exam_due))}
                       </td>
                       <td style={{ textAlign: 'right' }}>
@@ -225,9 +424,10 @@ const loadStats = async () => {
                     <tr key={w.id}>
                       <td>
                         <div style={{ fontWeight: 600 }}>{w.full_name}</div>
-                      </td>
-                      <td>{logic.formatDate(new Date(w.next_exam_due))}</td>
-                      <td style={{ textAlign: 'right' }}>
+
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          {logic.formatDate(new Date(w.next_exam_due))}
+                        </td>
                         <button
                           className="btn btn-sm btn-outline"
                           onClick={() => onNavigateWorker(w.id)}

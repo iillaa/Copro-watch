@@ -140,15 +140,15 @@ export default function WorkerList({ onNavigateWorker }) {
   const handleExport = async () => {
     try {
       const json = await db.exportData();
-      
+
       // Use the backup service to ensure it saves to Documents/copro-watch on Android
       // and handles permissions automatically.
       await backupService.saveBackupJSON(
-        json, 
+        json,
         `medical_backup_${new Date().toISOString().split('T')[0]}.json`
       );
-      
-      alert("Export réussi ! (Vérifiez le dossier Documents/copro-watch)");
+
+      alert('Export réussi ! (Vérifiez le dossier Documents/copro-watch)');
     } catch (e) {
       console.error(e);
       alert("Erreur lors de l'export: " + e.message);
@@ -502,20 +502,31 @@ export default function WorkerList({ onNavigateWorker }) {
                         )}
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={(e) => handleEdit(e, w)}
-                          style={{ marginRight: '0.5rem' }}
+                        {/* FIX: Force side-by-side layout with Flexbox */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            gap: '0.5rem',
+                            flexWrap: 'nowrap',
+                          }}
                         >
-                          <FaEdit />
-                        </button>
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={(e) => handleDelete(e, w)}
-                          style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
-                        >
-                          <FaTrash />
-                        </button>
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={(e) => handleEdit(e, w)}
+                            title="Modifier"
+                          >
+                            <FaEdit />
+                          </button>
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={(e) => handleDelete(e, w)}
+                            style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                            title="Supprimer"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

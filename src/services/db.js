@@ -105,7 +105,7 @@ export const db = {
     const s = await dbInstance.settings.get('app_settings');
     return s || { key: 'app_settings' };
   },
-  
+
   async saveSettings(newSettings) {
     const current = (await dbInstance.settings.get('app_settings')) || { key: 'app_settings' };
     const updated = { ...current, ...newSettings };
@@ -125,7 +125,7 @@ export const db = {
       // Calls the plain import function below
       return await this.importData(decryptedJson);
     } catch (e) {
-      console.error("Decryption failed", e);
+      console.error('Decryption failed', e);
       return false;
     }
   },

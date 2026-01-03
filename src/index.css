@@ -92,7 +92,7 @@ body {
   border-right: var(--border-width) solid var(--border-color);
   display: flex;
   flex-direction: column;
-  padding: 1.5rem 1rem;
+  padding: 1rem 1rem;
   flex-shrink: 0;
 
   /* UNLOCK 3: Add scrollbar INSIDE sidebar if menu is too tall */
@@ -190,8 +190,8 @@ body {
 /* Toggle button styles - visible on all devices */
 .toggle-sidebar {
   position: fixed;
-  top: 1rem;
-  left: 1rem;
+  top: 0.5rem;
+  left: 0.5rem;
   z-index: 1001;
   background: var(--primary);
   color: white;
@@ -233,13 +233,12 @@ body {
 
 /* Responsive: collapse sidebar on small screens */
 
-
 /* Desktop toggle button behavior */
 @media (min-width: 821px) {
   .toggle-sidebar {
     position: fixed;
-    top: 1rem;
-    left: 1rem;
+    top: 0.5rem;
+    left: 0.5rem;
   }
 
   /* Always keep toggle button visible on desktop */
@@ -256,12 +255,15 @@ body {
 .main-content {
   flex: 1;
   /* FIX: Removed 'height: 100%' - let Flexbox handle the size */
-  overflow-y: auto; 
-  padding: 2rem;
-  /* FIX: Essential for smooth scrolling on iOS */
-  -webkit-overflow-scrolling: touch; 
-}
+  overflow-y: auto;
 
+  /* CHANGE THIS: Reduced from 2rem to 1rem to pull everything UP */
+  padding: 1rem !important;
+  padding-top: 0.5rem !important; /* Even tighter at the top */
+
+  /* FIX: Essential for smooth scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+}
 .container {
   max-width: 1280px;
   margin: 0 auto;
@@ -682,7 +684,6 @@ tr:nth-child(even):hover td {
   }
 }
 
-
 @media (max-width: 768px) {
   .app-shell {
     flex-direction: column;
@@ -718,27 +719,39 @@ tr:nth-child(even):hover td {
     display: none !important;
   }
 
-  .nav-text { display: none; }
-  .nav-icon { font-size: 1.5rem; margin: 0; }
+  .nav-text {
+    display: none;
+  }
+  .nav-icon {
+    font-size: 1.5rem;
+    margin: 0;
+  }
 
   /* Mobile Nav Items */
   .nav-item {
-    padding: 0.5rem; border: none; background: transparent; box-shadow: none;
+    padding: 0.5rem;
+    border: none;
+    background: transparent;
+    box-shadow: none;
   }
   .nav-item.active {
-    background: var(--primary-light); color: var(--primary);
-    border: none; box-shadow: none; transform: none;
+    background: var(--primary-light);
+    color: var(--primary);
+    border: none;
+    box-shadow: none;
+    transform: none;
   }
 
-.main-content {
-  flex: none;
-  width: 100%;
-  height: auto;
-  overflow: visible !important;
-  padding: 1rem;
-  /* FIX: Reduced from 120px to 85px to kill the white space */
-  padding-bottom: calc(85px + env(safe-area-inset-bottom));
-}
+  .main-content {
+    flex: none;
+    width: 100%;
+    height: auto;
+    overflow: visible !important;
+    padding: 1rem;
+    padding-top: 0.5rem;
+    /* FIX: Reduced from 120px to 85px to kill the white space */
+    padding-bottom: calc(85px + env(safe-area-inset-bottom));
+  }
 }
 /* Enhanced loading states */
 .loading-shimmer {
@@ -768,7 +781,9 @@ tr:nth-child(even):hover td {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* --- FIX: RESTORE SIDEBAR COLLAPSE (Makes the "Masquer" button work) --- */
@@ -780,14 +795,27 @@ tr:nth-child(even):hover td {
   width: 80px;
 }
 
-.app-shell.sidebar-closed .brand-text, 
-.app-shell.sidebar-closed .nav-text, 
-.app-shell.sidebar-closed .credit-title, 
+.app-shell.sidebar-closed .brand-text,
+.app-shell.sidebar-closed .nav-text,
+.app-shell.sidebar-closed .credit-title,
 .app-shell.sidebar-closed .credit-author,
 .app-shell.sidebar-closed .credit-version {
   display: none;
 }
+/* [INJECT THIS] Force Version 1.1 to show in small sidebar */
+.app-shell.sidebar-closed .credit-version {
+  display: inline-block !important;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  margin: 0;
+}
 
+.app-shell.sidebar-closed .credit {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem;
+}
 .app-shell.sidebar-closed .brand {
   justify-content: center;
 }
@@ -996,95 +1024,215 @@ tr {
 
 /* 1. PINLOCK BASE STYLES (Global - Works on all devices) */
 .pin-lock-container {
-  display: flex; justify-content: center; align-items: center;
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: #f1f5f9; z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #f1f5f9;
+  z-index: 9999;
 }
 
 .pin-card {
-  background: white; padding: 2rem; border-radius: 16px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); width: 100%; max-width: 350px;
-  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1.5rem;
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 350px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.5rem;
 }
 
-.pin-info { display: flex; flex-direction: column; align-items: center; width: 100%; }
+.pin-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
 
 /* --- DOTS STYLES (MOVED TO GLOBAL SO THEY ARE VISIBLE) --- */
-.pin-title { margin: 0; font-size: 1.5rem; color: #1e293b; font-weight: bold; }
-.pin-subtitle { margin: 0; color: #64748b; font-size: 0.9rem; }
+.pin-title {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1e293b;
+  font-weight: bold;
+}
+.pin-subtitle {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
 
-.pin-dots { 
-  display: flex; gap: 0.75rem; justify-content: center; 
-  margin-top: 1rem; margin-bottom: 1rem;
+.pin-dots {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
 }
-.pin-dot { 
-  width: 14px; height: 14px; border-radius: 50%; 
-  background: #e2e8f0; transition: all 0.2s; 
+.pin-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  transition: all 0.2s;
 }
-.pin-dot.filled { background: #3b82f6; transform: scale(1.2); }
-.pin-dot.error { background: #ef4444; animation: shake 0.3s; }
+.pin-dot.filled {
+  background: #3b82f6;
+  transform: scale(1.2);
+}
+.pin-dot.error {
+  background: #ef4444;
+  animation: shake 0.3s;
+}
 /* --------------------------- */
 
-.pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; width: 100%; }
-.pin-btn { 
-  height: 55px; font-size: 1.4rem; border-radius: 12px; 
-  display: flex; align-items: center; justify-content: center; font-weight: 600; 
-  background: white; border: 1px solid #e2e8f0; color: #334155; 
+.pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  width: 100%;
 }
-.pin-btn:active { background-color: #f8fafc; transform: scale(0.95); }
-.btn-danger-outline { color: #ef4444; border-color: #fee2e2; }
+.pin-btn {
+  height: 55px;
+  font-size: 1.4rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+}
+.pin-btn:active {
+  background-color: #f8fafc;
+  transform: scale(0.95);
+}
+.btn-danger-outline {
+  color: #ef4444;
+  border-color: #fee2e2;
+}
 
-@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
 
-/* 2. MOBILE LANDSCAPE OVERRIDES (Only triggers on short screens) */
+/* 5. MOBILE LANDSCAPE / COMPACT MODE FIX */
 @media (max-height: 600px) {
-
-
-  /* A. UNLOCK SCROLLING */
-  .app-shell { height: auto !important; overflow: visible !important; }
-  .main-content { 
-    height: auto !important; 
-    overflow: visible !important; 
-    padding-bottom: 2rem !important; 
+  /* A. UNLOCK SCROLLING (Release the Lock) */
+  html,
+  body {
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto !important;
+  }
+  #root,
+  .app-shell {
+    height: auto !important;
+    overflow: visible !important;
   }
 
-  /* B. SIDEBAR: The "Dock" Layout */
-  .sidebar { 
-    height: 100vh !important; 
-    position: sticky; top: 0; 
-    width: 80px !important; 
-    padding: 0 !important; 
+  /* B. FIXED SIDEBAR (The "Uncut" Fix) */
+  .sidebar {
+    position: fixed !important; /* GLUE IT TO THE SCREEN */
+    top: 0;
+    left: 0;
+    bottom: 0; /* Full Height always */
+    height: 100% !important;
+    width: 80px !important;
+    padding: 1rem 0 !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: center !important; 
-    align-items: center !important;     
+    border-right: 3px solid var(--border-color);
+    border-top: none;
+    z-index: 5000; /* Stay on top */
+    overflow-y: auto; /* Scroll inside if needed */
   }
 
-  /* Hide Text & Clutter */
-  .sidebar .brand-text, .sidebar .nav-text, .sidebar .credit { display: none !important; }
-  .toggle-sidebar { display: none !important; } 
-
-  /* C. ICONS: Geometric Centering */
-  .nav-item { 
-    width: 55px !important;   
-    height: 55px !important;  
-    padding: 0 !important;    
-    margin-left: auto !important;
-    margin-right: auto !important;
-    margin-bottom: 0.75rem !important;
-    display: flex !important;
-    justify-content: center !important; 
-    align-items: center !important;     
+  /* C. COMPACT CONTENT (The "Reduce Scrolling" Fix) */
+  .main-content {
+    margin-left: 80px !important; /* Make room for Fixed Sidebar */
+    padding: 1rem !important; /* Reduce outer padding */
+    padding-bottom: 2rem !important;
   }
-  .nav-icon { margin: 0 !important; font-size: 1.6rem !important; }
+
+  /* Shrink Cards to fit more on screen */
+  .card {
+    padding: 1rem !important; /* Tighter cards */
+    margin-bottom: 1rem !important; /* Less gap between cards */
+  }
+
+  /* Smaller Text for High Density */
+  .stat-card-value {
+    font-size: 2rem !important;
+  }
+  .stat-card-title {
+    font-size: 0.9rem !important;
+  }
+
+  /* Hide Non-Essential Sidebar Items */
+  .sidebar .brand-text,
+  .sidebar .nav-text,
+  .sidebar .credit {
+    display: none !important;
+  }
+  .toggle-sidebar {
+    display: none !important;
+  }
+  .nav-item {
+    width: 50px !important;
+    margin: 0 auto 0.5rem auto !important;
+    justify-content: center !important;
+  }
 
   /* D. PINLOCK: Split Side-by-Side */
-  .pin-card { flex-direction: row !important; max-width: 650px !important; padding: 1.5rem !important; gap: 2rem; }
-  .pin-info { flex: 1; border-right: 2px solid #e2e8f0; padding-right: 2rem; justify-content: center; }
-  .pin-pad { flex: 1.2; gap: 0.75rem; }
-  .pin-btn { height: 45px; font-size: 1.25rem; }
+  .pin-card {
+    flex-direction: row !important;
+    max-width: 650px !important;
+    padding: 1.5rem !important;
+    gap: 2rem;
+  }
+  .pin-info {
+    flex: 1;
+    border-right: 2px solid #e2e8f0;
+    padding-right: 2rem;
+    justify-content: center;
+  }
+  .pin-pad {
+    flex: 1.2;
+    gap: 0.75rem;
+  }
+  .pin-btn {
+    height: 45px;
+    font-size: 1.25rem;
+  }
 
   /* E. MODALS: Centered */
-  .modal-overlay { align-items: center; padding: 1rem; }
-  .modal { width: 100% !important; height: auto !important; max-height: 90vh !important; margin: 0 !important; }
+  .modal-overlay {
+    align-items: center;
+    padding: 1rem;
+  }
+  .modal {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 90vh !important;
+    margin: 0 !important;
+  }
 }

@@ -426,7 +426,7 @@ export default function Settings({ currentPin, onPinChange }) {
             style={{
               padding: '0.5rem',
               borderRadius: '4px',
-              border: '1px solid var(--border-color)', /* FIXED */
+              border: '1px solid var(--border-color)' /* FIXED */,
               width: '100%',
               fontSize: '1.2rem',
               letterSpacing: '0.2rem',
@@ -502,7 +502,7 @@ export default function Settings({ currentPin, onPinChange }) {
                   flex: 1,
                   padding: '0.5rem',
                   borderRadius: '4px',
-                  border: '1px solid var(--border-color)', /* FIXED */
+                  border: '1px solid var(--border-color)' /* FIXED */,
                 }}
               />
               <button
@@ -518,7 +518,7 @@ export default function Settings({ currentPin, onPinChange }) {
               style={{
                 maxHeight: '300px',
                 overflowY: 'auto',
-                border: '1px solid var(--border-color)', /* FIXED */
+                border: '1px solid var(--border-color)' /* FIXED */,
                 borderRadius: '4px',
                 padding: '0.5rem',
                 background: '#f8fafc',
@@ -672,7 +672,7 @@ export default function Settings({ currentPin, onPinChange }) {
                   flex: 1,
                   padding: '0.5rem',
                   borderRadius: '4px',
-                  border: '1px solid var(--border-color)', /* FIXED */
+                  border: '1px solid var(--border-color)' /* FIXED */,
                 }}
               />
               <button
@@ -688,7 +688,7 @@ export default function Settings({ currentPin, onPinChange }) {
               style={{
                 maxHeight: '300px',
                 overflowY: 'auto',
-                border: '1px solid var(--border-color)', /* FIXED */
+                border: '1px solid var(--border-color)' /* FIXED */,
                 borderRadius: '4px',
                 padding: '0.5rem',
                 background: '#f0f9ff',
@@ -738,7 +738,7 @@ export default function Settings({ currentPin, onPinChange }) {
             backgroundColor: 'var(--bg-secondary)',
             borderRadius: '8px',
             marginBottom: '1rem',
-            border: '1px solid var(--border-color)', /* FIXED */
+            border: '1px solid var(--border-color)' /* FIXED */,
           }}
         >
           <div
@@ -803,7 +803,7 @@ export default function Settings({ currentPin, onPinChange }) {
               width: '5rem',
               padding: '0.4rem',
               borderRadius: '4px',
-              border: '1px solid var(--border-color)', /* FIXED */
+              border: '1px solid var(--border-color)' /* FIXED */,
               fontSize: '0.9rem',
             }}
           />
@@ -842,7 +842,7 @@ export default function Settings({ currentPin, onPinChange }) {
               padding: '0.75rem',
               backgroundColor: 'var(--bg-secondary)',
               borderRadius: '8px',
-              border: '1px solid var(--border-color)', /* FIXED */
+              border: '1px solid var(--border-color)' /* FIXED */,
             }}
           >
             <div
@@ -864,7 +864,7 @@ export default function Settings({ currentPin, onPinChange }) {
               style={{
                 width: '100%',
                 height: '8px',
-                backgroundColor: 'var(--border-color)', /* FIXED */
+                backgroundColor: 'var(--border-color)' /* FIXED */,
                 borderRadius: '4px',
                 overflow: 'hidden',
               }}
@@ -947,7 +947,10 @@ export default function Settings({ currentPin, onPinChange }) {
       )}
 
       {/* --- ADDED CREDITS SECTION (MOVED INSIDE) --- */}
-      <div className="credit" style={{ marginTop: '3rem', padding: '1rem', textAlign: 'center', opacity: 0.8 }}>
+      <div
+        className="credit"
+        style={{ marginTop: '3rem', padding: '1rem', textAlign: 'center', opacity: 0.8 }}
+      >
         <div className="credit-title">Développé par</div>
         <div className="credit-author">Dr Kibeche Ali Dia Eddine</div>
         <div className="credit-version">1.1</div>
