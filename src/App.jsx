@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { db } from './services/db';
 import backupService from './services/backup';
@@ -162,11 +163,25 @@ function App() {
               compactMode={compactMode} 
             />
           )}
-          {view === 'workers' && <WorkerList onNavigateWorker={navigateToWorker} />}
-          {view === 'worker-detail' && selectedWorkerId && (
-            <WorkerDetail workerId={selectedWorkerId} onBack={() => setView('workers')} />
+          {view === 'workers' && (
+            <WorkerList
+              onNavigateWorker={navigateToWorker}
+              compactMode={compactMode} // <--- [NEW] Pass Prop
+            />
           )}
-          {view === 'water-analyses' && <WaterAnalyses key={waterResetKey} />}
+          {view === 'worker-detail' && selectedWorkerId && (
+            <WorkerDetail
+              workerId={selectedWorkerId}
+              onBack={() => setView('workers')}
+              compactMode={compactMode} // <--- [NEW] Pass Prop
+            />
+          )}
+          {view === 'water-analyses' && (
+            <WaterAnalyses
+              key={waterResetKey}
+              compactMode={compactMode} // <--- [NEW] Pass Prop
+            />
+          )}
           {view === 'settings' && (
             <Settings 
               currentPin={pin} 

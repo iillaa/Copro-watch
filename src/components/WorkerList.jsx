@@ -17,7 +17,7 @@ import {
   FaUserPlus,
 } from 'react-icons/fa';
 
-export default function WorkerList({ onNavigateWorker }) {
+export default function WorkerList({ onNavigateWorker, compactMode }) {
   // 1. Data State
   const [workers, setWorkers] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -36,6 +36,12 @@ export default function WorkerList({ onNavigateWorker }) {
   const [showArchived, setShowArchived] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingWorker, setEditingWorker] = useState(null);
+
+  // [NEW] Dynamic Style for Table
+  // If compactMode is ON, limit height to 70vh (keeps headers fixed).
+  const scrollStyle = compactMode
+    ? { maxHeight: '70vh', overflowY: 'auto' }
+    : {};
 
   // 3. Load Data
   const loadData = async () => {
@@ -390,7 +396,12 @@ export default function WorkerList({ onNavigateWorker }) {
           </div>
 
           {/* Table */}
-          <div className="table-container">
+          <div
+            className="table-container"
+            style={{
+              ...scrollStyle // <--- [NEW] Apply Dynamic Style
+            }}
+          >
             <table>
               <thead>
                 <tr>

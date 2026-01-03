@@ -4,7 +4,12 @@ import { logic } from '../services/logic';
 import WaterAnalysisForm from './WaterAnalysisForm';
 import { FaArrowLeft, FaFlask, FaTrash, FaEdit } from 'react-icons/fa';
 
-export default function WaterServiceDetail({ department, onBack, onSave }) {
+export default function WaterServiceDetail({ department, onBack, onSave, compactMode }) {
+  // [FIX] Define the missing scrollStyle variable
+  const scrollStyle = compactMode
+    ? { maxHeight: '400px', overflowY: 'auto' }
+    : {};
+
   const [analyses, setAnalyses] = useState([]);
   const [allAnalyses, setAllAnalyses] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -104,7 +109,12 @@ export default function WaterServiceDetail({ department, onBack, onSave }) {
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div
           className="table-container"
-          style={{ boxShadow: 'none', border: 'none', borderRadius: 0 }}
+          style={{
+            boxShadow: 'none',
+            border: 'none',
+            borderRadius: 0,
+            ...scrollStyle // <--- [NEW] Apply Dynamic Style
+          }}
         >
           <table>
             <thead>

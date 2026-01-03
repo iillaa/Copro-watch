@@ -5,7 +5,7 @@ import ExamForm from './ExamForm';
 // AJOUT : Import des icônes d'archive
 import { FaArrowLeft, FaFileMedical, FaTrash, FaArchive, FaBoxOpen } from 'react-icons/fa';
 
-export default function WorkerDetail({ workerId, onBack }) {
+export default function WorkerDetail({ workerId, onBack, compactMode }) {
   const [worker, setWorker] = useState(null);
   const [exams, setExams] = useState([]);
   const [showExamForm, setShowExamForm] = useState(false);
@@ -13,6 +13,11 @@ export default function WorkerDetail({ workerId, onBack }) {
 
   const [deptName, setDeptName] = useState('');
   const [workplaceName, setWorkplaceName] = useState('');
+
+  // [NEW] Dynamic Style for Table
+  const scrollStyle = compactMode
+    ? { maxHeight: '350px', overflowY: 'auto' }
+    : {};
 
   const loadData = async () => {
     const w = (await db.getWorkers()).find((x) => x.id === workerId);
@@ -217,7 +222,13 @@ export default function WorkerDetail({ workerId, onBack }) {
       </div>
 
       <h3>Historique Médical</h3>
-      <div className="card" style={{ padding: 0 }}>
+      <div
+        className="card"
+        style={{
+          padding: 0,
+          ...scrollStyle // <--- [NEW] Apply Dynamic Style
+        }}
+      >
         <table>
           <thead>
             <tr>

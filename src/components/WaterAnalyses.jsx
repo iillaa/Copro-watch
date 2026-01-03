@@ -5,7 +5,7 @@ import { FaSearch, FaHistory, FaList, FaTint } from 'react-icons/fa';
 import WaterAnalysisPanel from './WaterAnalysisPanel';
 import WaterServiceDetail from './WaterServiceDetail';
 
-export default function WaterAnalyses() {
+export default function WaterAnalyses({ compactMode }) {
   const [departments, setDepartments] = useState([]);
   const [waterAnalyses, setWaterAnalyses] = useState([]);
 
@@ -70,6 +70,7 @@ export default function WaterAnalyses() {
         department={historyDept}
         onBack={handleBackFromHistory}
         onSave={loadData}
+        compactMode={compactMode} // <--- [NEW] Pass Prop
       />
     );
   }
