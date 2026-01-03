@@ -4,9 +4,12 @@ import { logic } from '../services/logic';
 import ExamForm from './ExamForm';
 // AJOUT : Import des icônes d'archive
 import { FaArrowLeft, FaFileMedical, FaTrash, FaArchive, FaBoxOpen } from 'react-icons/fa';
+import BulkActionsToolbar from './BulkActionsToolbar'; // [NEW] Import Toolbar
 
 export default function WorkerDetail({ workerId, onBack, compactMode }) {
   const [worker, setWorker] = useState(null);
+  // [FIX] Define the missing state
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const [exams, setExams] = useState([]);
   const [showExamForm, setShowExamForm] = useState(false);
   const [selectedExam, setSelectedExam] = useState(null);
@@ -42,6 +45,32 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
   useEffect(() => {
     loadData();
   }, [workerId]);
+
+  // --- NEW: Batch Handlers ---
+  const toggleSelectAll = () => {
+    if (selectedIds.size === exams.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(exams.map(e => e.id)));
+    }
+  };
+
+  const toggleSelectOne = (id) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedIds(newSet);
+  };
+
+  const handleBatchDelete = async () => {
+    if (window.confirm(`Supprimer définitivement ${selectedIds.size} examens ?`)) {
+      const idsToDelete = Array.from(selectedIds);
+      await Promise.all(idsToDelete.map(id => db.deleteExam(id)));
+
+      setSelectedIds(new Set());
+      loadData();
+    }
+  };
 
   const handleNewExam = () => {
     setSelectedExam(null);
@@ -232,6 +261,13 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
         <table>
           <thead>
             <tr>
+              <th style={{ textAlign: 'center' }}>
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === exams.length && exams.length > 0}
+                  onChange={toggleSelectAll}
+                />
+              </th>
               <th>Date</th>
               <th>Médecin</th>
               <th>Résultat Labo</th>
@@ -242,6 +278,14 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
           <tbody>
             {exams.map((e) => (
               <tr key={e.id}>
+                {/* [NEW] Row Checkbox */}
+                <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(e.id)}
+                    onChange={() => toggleSelectOne(e.id)}
+                  />
+                </td>
                 <td>{e.exam_date}</td>
                 <td>{e.physician_name}</td>
                 <td>
@@ -279,7 +323,7 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
             ))}
             {exams.length === 0 && (
               <tr>
-                <td colSpan="5" style={{ textAlign: 'center' }}>
+                <td colSpan="6" style={{ textAlign: 'center' }}>
                   Aucun historique.
                 </td>
               </tr>
@@ -287,6 +331,15 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
           </tbody>
         </table>
       </div>
+
+      {/* [NEW] Batch Toolbar (Delete Only) */}
+      {selectedIds.size > 0 && (
+        <BulkActionsToolbar
+          selectedCount={selectedIds.size}
+          onDelete={handleBatchDelete}
+          onCancel={() => setSelectedIds(new Set())}
+        />
+      )}
 
       {showExamForm && (
         <ExamForm
