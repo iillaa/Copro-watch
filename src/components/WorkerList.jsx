@@ -3,6 +3,8 @@ import { db } from '../services/db';
 import { logic } from '../services/logic';
 import backupService from '../services/backup';
 import AddWorkerForm from './AddWorkerForm';
+import BulkActionsToolbar from './BulkActionsToolbar'; // [NEW]
+import MoveWorkersModal from './MoveWorkersModal';     // [NEW]
 import {
   FaPlus,
   FaSearch,
@@ -36,6 +38,10 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   const [showArchived, setShowArchived] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingWorker, setEditingWorker] = useState(null);
+
+  // [NEW] Batch Operations State
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [showMoveModal, setShowMoveModal] = useState(false);
 
   // [NEW] Dynamic Style for Table
   // If compactMode is ON, limit height to 70vh (keeps headers fixed).
@@ -109,6 +115,55 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
 
     return result;
   }, [workers, deferredSearch, filterDept, showArchived, sortConfig, departments]);
+
+  // --- NEW: Batch Handlers ---
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredWorkers.length) {
+      setSelectedIds(new Set());
+    } else {
+      // Create a Set of ALL currently visible IDs
+      setSelectedIds(new Set(filteredWorkers.map(w => w.id)));
+    }
+  };
+
+  const toggleSelectOne = (id) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedIds(newSet);
+  };
+
+  const handleBatchDelete = async () => {
+    if (window.confirm(`Supprimer définitivement ${selectedIds.size} travailleurs ?`)) {
+      const idsToDelete = Array.from(selectedIds);
+      // Execute deletions in parallel
+      await Promise.all(idsToDelete.map(id => db.deleteWorker(id)));
+
+      setSelectedIds(new Set());
+      loadData();
+    }
+  };
+
+  const handleBatchArchive = async () => {
+    if (window.confirm(`Archiver ${selectedIds.size} travailleurs ?`)) {
+      const targets = workers.filter(w => selectedIds.has(w.id));
+      // Update all to archived
+      await Promise.all(targets.map(w => db.saveWorker({ ...w, archived: true })));
+
+      setSelectedIds(new Set());
+      loadData();
+    }
+  };
+
+  const handleBatchMoveConfirm = async (deptId) => {
+    const targets = workers.filter(w => selectedIds.has(w.id));
+    // Update department for all
+    await Promise.all(targets.map(w => db.saveWorker({ ...w, department_id: parseInt(deptId) })));
+
+    setShowMoveModal(false);
+    setSelectedIds(new Set());
+    loadData();
+  };
 
   // --- Handlers ---
 
@@ -405,6 +460,18 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
             <table>
               <thead>
                 <tr>
+                  {/* [NEW] Header Checkbox */}
+                  <th style={{ width: '40px', textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      onChange={toggleSelectAll}
+                      checked={
+                        filteredWorkers.length > 0 &&
+                        selectedIds.size === filteredWorkers.length
+                      }
+                      title="Tout sélectionner"
+                    />
+                  </th>
                   <th
                     onClick={() => handleSort('full_name')}
                     style={{ cursor: 'pointer', userSelect: 'none' }}
@@ -467,6 +534,14 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
                         background: w.archived ? '#f9f9f9' : undefined,
                       }}
                     >
+                      {/* [NEW] Row Checkbox */}
+                      <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={selectedIds.has(w.id)} 
+                          onChange={() => toggleSelectOne(w.id)}
+                        />
+                      </td>
                       <td style={{ fontWeight: 500 }}>
                         {w.full_name}
                         {w.archived && (
@@ -572,6 +647,25 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
             </table>
           </div>
         </>
+      )}
+
+      {/* [NEW] Batch UI Elements */}
+      {selectedIds.size > 0 && (
+        <BulkActionsToolbar
+          selectedCount={selectedIds.size}
+          onDelete={handleBatchDelete}
+          onArchive={handleBatchArchive}
+          onMove={() => setShowMoveModal(true)}
+          onCancel={() => setSelectedIds(new Set())}
+        />
+      )}
+
+      {showMoveModal && (
+        <MoveWorkersModal
+          departments={departments}
+          onConfirm={handleBatchMoveConfirm}
+          onCancel={() => setShowMoveModal(false)}
+        />
       )}
 
       {showForm && (

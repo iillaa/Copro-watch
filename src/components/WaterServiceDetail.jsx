@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
 import WaterAnalysisForm from './WaterAnalysisForm';
+import BulkActionsToolbar from './BulkActionsToolbar'; // [NEW]
 import { FaArrowLeft, FaFlask, FaTrash, FaEdit } from 'react-icons/fa';
 
 export default function WaterServiceDetail({ department, onBack, onSave, compactMode }) {
@@ -15,6 +16,7 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
   const [showForm, setShowForm] = useState(false);
   const [selectedAnalysis, setSelectedAnalysis] = useState(null);
   const [editingAnalysis, setEditingAnalysis] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set()); // [NEW]
 
   const loadData = async () => {
     // Reload all data to ensure sync
@@ -56,6 +58,30 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
     setEditingAnalysis(null);
     loadData();
     if (onSave) onSave();
+  };
+
+  // --- NEW: Batch Handlers ---
+  const toggleSelectAll = () => {
+    if (selectedIds.size === analyses.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(analyses.map(a => a.id)));
+  };
+
+  const toggleSelectOne = (id) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedIds(newSet);
+  };
+
+  const handleBatchDelete = async () => {
+    if (window.confirm(`Supprimer définitivement ${selectedIds.size} analyses ?`)) {
+      const idsToDelete = Array.from(selectedIds);
+      await Promise.all(idsToDelete.map(id => db.deleteWaterAnalysis(id)));
+
+      setSelectedIds(new Set());
+      loadData();
+      if (onSave) onSave();
+    }
   };
 
   const renderStatusBadge = (result) => {
@@ -119,6 +145,15 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
           <table>
             <thead>
               <tr>
+                {/* [NEW] */}
+                <th style={{ width: '40px', textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    onChange={toggleSelectAll}
+                    checked={analyses.length > 0 && selectedIds.size === analyses.length}
+                    title="Tout sélectionner"
+                  />
+                </th>
                 {/* 3 STATISTICS AS REQUESTED */}
                 <th>Date Demande</th>
                 <th>Date Prélèvement</th>
@@ -131,6 +166,14 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
             <tbody>
               {analyses.map((a) => (
                 <tr key={a.id}>
+                  {/* [NEW] */}
+                  <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(a.id)}
+                      onChange={() => toggleSelectOne(a.id)}
+                    />
+                  </td>
                   {/* 1. Date Demande (Safe + European Format) */}
                   <td>{logic.formatDateDisplay(a.request_date)}</td>
 
@@ -184,6 +227,15 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
           </table>
         </div>
       </div>
+
+      {/* [NEW] Batch UI */}
+      {selectedIds.size > 0 && (
+        <BulkActionsToolbar
+          selectedCount={selectedIds.size}
+          onDelete={handleBatchDelete}
+          onCancel={() => setSelectedIds(new Set())}
+        />
+      )}
 
       {showForm && (
         <WaterAnalysisForm
