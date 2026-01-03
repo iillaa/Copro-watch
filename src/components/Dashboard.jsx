@@ -419,15 +419,22 @@ export default function Dashboard({ onNavigateWorker }) {
                     </tr>
                   ))}
 
-                  {/* Ensuite les examens à venir */}
+              
+                 {/* Ensuite les examens à venir */}
                   {stats.dueSoon.map((w) => (
                     <tr key={w.id}>
+                      {/* Column 1: Name */}
                       <td>
                         <div style={{ fontWeight: 600 }}>{w.full_name}</div>
+                      </td>
 
-                        <td style={{ whiteSpace: 'nowrap' }}>
-                          {logic.formatDate(new Date(w.next_exam_due))}
-                        </td>
+                      {/* Column 2: Date (Fixed NOWRAP) */}
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        {logic.formatDate(new Date(w.next_exam_due))}
+                      </td>
+
+                      {/* Column 3: Button */}
+                      <td style={{ textAlign: 'right' }}>
                         <button
                           className="btn btn-sm btn-outline"
                           onClick={() => onNavigateWorker(w.id)}
