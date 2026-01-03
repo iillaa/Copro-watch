@@ -63,6 +63,19 @@ body {
   overflow-y: auto; /* Enables smooth scrolling */
   overscroll-behavior-y: none;
 }
+/* --- MISSING LAYOUT ENGINE --- */
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-shell {
+  display: flex; /* <--- THIS WAS MISSING! */
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Contains the scroll bars inside */
+}
 
 /* On Desktop, we still want the sidebar to be sticky */
 @media (min-width: 769px) {
@@ -742,23 +755,47 @@ tr:nth-child(even):hover td {
     background-position: 200% 0;
   }
 }
-
+/* --- RESTORE MISSING SPINNER --- */
+/* --- FIX: RESTORE MISSING SPINNER (Makes the empty screen show "Loading") --- */
 .loading-spinner {
   display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 3px solid rgba(99, 102, 241, 0.3);
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(99, 102, 241, 0.3);
   border-radius: 50%;
   border-top-color: var(--primary);
   animation: spin 1s ease-in-out infinite;
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
+/* --- FIX: RESTORE SIDEBAR COLLAPSE (Makes the "Masquer" button work) --- */
+.sidebar {
+  transition: width 0.3s ease;
+}
+
+.app-shell.sidebar-closed .sidebar {
+  width: 80px;
+}
+
+.app-shell.sidebar-closed .brand-text, 
+.app-shell.sidebar-closed .nav-text, 
+.app-shell.sidebar-closed .credit-title, 
+.app-shell.sidebar-closed .credit-author,
+.app-shell.sidebar-closed .credit-version {
+  display: none;
+}
+
+.app-shell.sidebar-closed .brand {
+  justify-content: center;
+}
+
+.app-shell.sidebar-closed .nav-item {
+  justify-content: center;
+  padding: 1rem 0.5rem;
+}
 /* Better focus states - Styled to match the Black/White theme */
 *:focus-visible {
   /* Changed from var(--primary) [Blue] to var(--text-main) [Black/Gray] */

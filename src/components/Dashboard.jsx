@@ -13,28 +13,32 @@ export default function Dashboard({ onNavigateWorker }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const loadStats = async () => {
-    setLoading(true);
-    const [workers, exams] = await Promise.all([db.getWorkers(), db.getExams()]);
+const loadStats = async () => {
+    try {
+      setLoading(true);
+      // Safety check for DB
+      if (!db) throw new Error("DB not ready");
+      
+      const [workers, exams] = await Promise.all([db.getWorkers(), db.getExams()]);
 
-    // 1. Filtrer les archivés
-    const activeWorkers = workers.filter((w) => !w.archived);
+      // 1. Filtrer les archivés
+      const activeWorkers = (workers || []).filter((w) => !w.archived);
 
-    // 2. Calculer les stats
-    const computed = logic.getDashboardStats(activeWorkers, exams);
+      // 2. Calculer les stats
+      const computed = logic.getDashboardStats(activeWorkers, exams || []);
 
-    // 3. TRI AUTOMATIQUE
-    // A faire bientôt : du plus proche au plus lointain
-    computed.dueSoon.sort((a, b) => new Date(a.next_exam_due) - new Date(b.next_exam_due));
-    // En retard : du plus grand retard (date ancienne) au plus petit
-    computed.overdue.sort((a, b) => new Date(a.next_exam_due) - new Date(b.next_exam_due));
-    // Contre-visites : par date prévue
-    computed.retests.sort((a, b) => new Date(a.date) - new Date(b.date));
+      // 3. TRI AUTOMATIQUE
+      if (computed.dueSoon) computed.dueSoon.sort((a, b) => new Date(a.next_exam_due) - new Date(b.next_exam_due));
+      if (computed.overdue) computed.overdue.sort((a, b) => new Date(a.next_exam_due) - new Date(b.next_exam_due));
+      if (computed.retests) computed.retests.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    setStats(computed);
-    setLoading(false);
+      setStats(computed);
+    } catch (e) {
+      console.error("Dashboard error:", e);
+    } finally {
+      setLoading(false); // CRITICAL: This forces the screen to show, even if empty
+    }
   };
-
   useEffect(() => {
     loadStats();
   }, []);
