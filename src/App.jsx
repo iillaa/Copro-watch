@@ -19,8 +19,8 @@ function App() {
   const [isLocked, setIsLocked] = useState(true);
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [waterResetKey, setWaterResetKey] = useState(0);
+  const [compactMode, setCompactMode] = useState(true);
   const [pin, setPin] = useState('0011');
-
   // --- ENGINE STARTUP (The Only Change) ---
   const initApp = async () => {
     try {
@@ -156,13 +156,25 @@ function App() {
             {isSidebarOpen ? 'Masquer' : 'Afficher'}
           </button>
 
-          {view === 'dashboard' && <Dashboard onNavigateWorker={navigateToWorker} />}
+          {view === 'dashboard' && (
+            <Dashboard 
+              onNavigateWorker={navigateToWorker} 
+              compactMode={compactMode} 
+            />
+          )}
           {view === 'workers' && <WorkerList onNavigateWorker={navigateToWorker} />}
           {view === 'worker-detail' && selectedWorkerId && (
             <WorkerDetail workerId={selectedWorkerId} onBack={() => setView('workers')} />
           )}
           {view === 'water-analyses' && <WaterAnalyses key={waterResetKey} />}
-          {view === 'settings' && <Settings currentPin={pin} onPinChange={setPin} />}
+          {view === 'settings' && (
+            <Settings 
+              currentPin={pin} 
+              onPinChange={setPin} 
+              compactMode={compactMode} 
+              setCompactMode={setCompactMode} 
+            />
+          )}
         </div>
       </main>
     </div>

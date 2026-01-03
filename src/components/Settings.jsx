@@ -13,7 +13,7 @@ import {
   FaBriefcase,
 } from 'react-icons/fa';
 
-export default function Settings({ currentPin, onPinChange }) {
+export default function Settings({ onReset, compactMode, setCompactMode ,currentPin, onPinChange }) {
   const [pin, setPin] = useState(currentPin);
   const [msg, setMsg] = useState('');
   const fileRef = useRef();
@@ -409,6 +409,35 @@ export default function Settings({ currentPin, onPinChange }) {
     <div>
       <h2 style={{ marginBottom: '1.5rem' }}>Paramètres</h2>
 
+{/* --- [NEW] AFFICHAGE SECTION --- */}
+      <div className="card" style={{ maxWidth: '500px', marginTop: '1.5rem' }}>
+        <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)' }}>
+           Affichage
+        </h3>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <span style={{ fontWeight: '600' }}>Mode Compact (Tableaux)</span>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              Activer le défilement interne (scroll) pour les tableaux.
+            </p>
+          </div>
+          
+          <button
+            className="btn"
+            onClick={() => setCompactMode(!compactMode)}
+            style={{
+              backgroundColor: compactMode ? 'var(--primary)' : '#e2e8f0',
+              color: compactMode ? 'white' : 'var(--text-main)',
+              minWidth: '100px',
+              fontWeight: 'bold'
+            }}
+          >
+            {compactMode ? 'Activé' : 'Désactivé'}
+          </button>
+        </div>
+      </div>
+      
       {/* Security Section */}
       <div className="card" style={{ maxWidth: '500px' }}>
         <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

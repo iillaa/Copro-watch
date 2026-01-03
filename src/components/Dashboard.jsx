@@ -9,7 +9,7 @@ import {
   FaClock,
 } from 'react-icons/fa';
 
-export default function Dashboard({ onNavigateWorker }) {
+export default function Dashboard({ onNavigateWorker, compactMode }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -22,6 +22,11 @@ export default function Dashboard({ onNavigateWorker }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   // [END INJECTION]
+  // Dynamic style for tables
+  const scrollStyle = compactMode 
+    ? { maxHeight: '350px', overflowY: 'auto' } // Internal Scroll ON
+    : {}; // Internal Scroll OFF (Full Height)
+
   const loadStats = async () => {
     try {
       setLoading(true);
@@ -366,7 +371,12 @@ export default function Dashboard({ onNavigateWorker }) {
           ) : (
             <div
               className="table-container"
-              style={{ border: 'none', boxShadow: 'none', borderRadius: 0 }}
+              style={{
+                border: 'none',
+                boxShadow: 'none',
+                borderRadius: 0,
+                ...scrollStyle // <--- THIS APPLIES THE DYNAMIC LOGIC
+              }}
             >
               <table>
                 <thead>
@@ -475,7 +485,12 @@ export default function Dashboard({ onNavigateWorker }) {
           ) : (
             <div
               className="table-container"
-              style={{ border: 'none', boxShadow: 'none', borderRadius: 0 }}
+              style={{
+                border: 'none',
+                boxShadow: 'none',
+                borderRadius: 0,
+                ...scrollStyle // <--- THIS APPLIES THE DYNAMIC LOGIC
+              }}
             >
               <table>
                 <thead>
