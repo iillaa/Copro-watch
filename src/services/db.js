@@ -145,6 +145,16 @@ export const db = {
     await triggerBackupCheck();
   },
 
+  async bulkDeleteWorkers(ids) {
+    await dbInstance.workers.bulkDelete(ids);
+    await triggerBackupCheck();
+  },
+
+  async bulkMoveWorkers(ids, departmentId) {
+    await dbInstance.workers.where('id').anyOf(ids).modify({ department_id: departmentId });
+    await triggerBackupCheck();
+  },
+
   // --- EXAMS ---
   async getExams() {
     return await dbInstance.exams.toArray();

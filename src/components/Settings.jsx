@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useContext } from 'react';
 import { db } from '../services/db';
 import backupService from '../services/backup';
 import {
@@ -11,12 +11,19 @@ import {
   FaBuilding,
   FaTint,
   FaBriefcase,
+  FaMoon,
+  FaSun,
 } from 'react-icons/fa';
+import { ThemeContext } from '../contexts/ThemeContext';
 
 export default function Settings({ currentPin, onPinChange }) {
+  const { theme, toggleTheme } = useContext(ThemeContext);
   const [pin, setPin] = useState(currentPin);
   const [msg, setMsg] = useState('');
   const fileRef = useRef();
+
+  const [autoLockEnabled, setAutoLockEnabled] = useState(false);
+  const [autoLockTimeout, setAutoLockTimeout] = useState(5);
 
   const [backupDir, setBackupDir] = useState(null);
   const [backupStatus, setBackupStatus] = useState('');
@@ -112,7 +119,22 @@ export default function Settings({ currentPin, onPinChange }) {
     setTimeout(() => setMsg(''), 3000);
   };
 
+  const handleSaveAutoLockSettings = async () => {
+    await db.saveSettings({ autoLockEnabled, autoLockTimeout });
+    setMsg('Paramètres de verrouillage automatique sauvegardés !');
+    setTimeout(() => setMsg(''), 3000);
+  };
+
   useEffect(() => {
+    // load auto-lock settings
+    (async () => {
+      const settings = await db.getSettings();
+      if (settings) {
+        setAutoLockEnabled(settings.autoLockEnabled || false);
+        setAutoLockTimeout(settings.autoLockTimeout || 5);
+      }
+    })();
+
     // load backup settings
     (async () => {
       try {
@@ -470,6 +492,55 @@ export default function Settings({ currentPin, onPinChange }) {
             <FaUpload /> Importer chiffré
             <input type="file" onChange={handleImportEncrypted} style={{ display: 'none' }} />
           </label>
+        </div>
+      </div>
+
+      {/* Appearance Section */}
+      <div className="card" style={{ maxWidth: '500px', marginTop: '2rem' }}>
+        <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          Apparence
+        </h3>
+        <button className="btn btn-outline" onClick={toggleTheme}>
+          {theme === 'light' ? (
+            <>
+              <FaMoon /> Passer en mode sombre
+            </>
+          ) : (
+            <>
+              <FaSun /> Passer en mode clair
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Auto-lock Section */}
+      <div className="card" style={{ maxWidth: '500px', marginTop: '2rem' }}>
+        <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          Verrouillage automatique
+        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <label htmlFor="autoLockEnabled" style={{ fontWeight: '500' }}>Activer le verrouillage automatique</label>
+          <button
+            className={`btn ${autoLockEnabled ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setAutoLockEnabled(!autoLockEnabled)}
+          >
+            {autoLockEnabled ? 'Activé' : 'Désactivé'}
+          </button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <label htmlFor="autoLockTimeout" style={{ fontWeight: '500' }}>Délai (minutes)</label>
+          <input
+            type="number"
+            id="autoLockTimeout"
+            value={autoLockTimeout}
+            onChange={(e) => setAutoLockTimeout(parseInt(e.target.value, 10))}
+            className="input"
+            style={{ width: '100px' }}
+            min="1"
+          />
+          <button className="btn btn-primary" onClick={handleSaveAutoLockSettings}>
+            <FaSave /> Enregistrer
+          </button>
         </div>
       </div>
 

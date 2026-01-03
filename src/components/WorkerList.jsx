@@ -16,6 +16,8 @@ import {
   FaSortDown,
   FaUserPlus,
 } from 'react-icons/fa';
+import BulkActionsToolbar from './BulkActionsToolbar';
+import MoveWorkersModal from './MoveWorkersModal';
 
 export default function WorkerList({ onNavigateWorker }) {
   // 1. Data State
@@ -36,6 +38,8 @@ export default function WorkerList({ onNavigateWorker }) {
   const [showArchived, setShowArchived] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingWorker, setEditingWorker] = useState(null);
+  const [selectedWorkers, setSelectedWorkers] = useState([]);
+  const [showMoveModal, setShowMoveModal] = useState(false);
 
   // 3. Load Data
   const loadData = async () => {
@@ -43,6 +47,12 @@ export default function WorkerList({ onNavigateWorker }) {
     setWorkers(w);
     setDepartments(d);
     setExams(e);
+  };
+
+  const handleSelectWorker = (workerId) => {
+    setSelectedWorkers((prev) =>
+      prev.includes(workerId) ? prev.filter((id) => id !== workerId) : [...prev, workerId]
+    );
   };
 
   useEffect(() => {
@@ -129,6 +139,14 @@ export default function WorkerList({ onNavigateWorker }) {
     setShowForm(true);
   };
 
+  const handleSelectAll = () => {
+    if (selectedWorkers.length === filteredWorkers.length) {
+      setSelectedWorkers([]);
+    } else {
+      setSelectedWorkers(filteredWorkers.map((w) => w.id));
+    }
+  };
+
   const handleDelete = async (e, worker) => {
     e.stopPropagation();
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${worker.full_name} ?`)) {
@@ -181,6 +199,25 @@ export default function WorkerList({ onNavigateWorker }) {
     return workerExams[0]?.decision?.status;
   };
 
+  const handleMoveSelected = async (departmentId) => {
+    await db.bulkMoveWorkers(selectedWorkers, departmentId);
+    loadData();
+    setSelectedWorkers([]);
+    setShowMoveModal(false);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedWorkers([]);
+  };
+
+  const handleDeleteSelected = async () => {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${selectedWorkers.length} travailleur(s) ?`)) {
+      await db.bulkDeleteWorkers(selectedWorkers);
+      loadData();
+      setSelectedWorkers([]);
+    }
+  };
+
   const renderStatusBadge = (status) => {
     if (!status) return null;
     const configs = {
@@ -206,7 +243,7 @@ export default function WorkerList({ onNavigateWorker }) {
         textAlign: 'center',
         padding: '4rem 2rem',
         border: '2px dashed var(--border-color)',
-        background: '#f8fafc',
+        background: 'var(--surface)',
         boxShadow: 'none',
         marginTop: '2rem',
       }}
@@ -292,6 +329,7 @@ export default function WorkerList({ onNavigateWorker }) {
             }}
           >
             <div
+              className="search-input-container"
               style={{
                 flex: 1,
                 display: 'flex',
@@ -300,16 +338,10 @@ export default function WorkerList({ onNavigateWorker }) {
                 position: 'relative',
               }}
             >
-              <FaSearch style={{ color: 'var(--text-muted)', marginRight: '0.5rem' }} />
+              <FaSearch style={{ color: 'var(--text-muted)', position: 'absolute', left: '1rem' }} />
               <input
-                style={{
-                  border: 'none',
-                  outline: 'none',
-                  padding: '0.75rem',
-                  width: '100%',
-                  fontSize: '1rem',
-                  background: 'transparent',
-                }}
+                className="input"
+                style={{ paddingLeft: '2.5rem' }}
                 placeholder="Rechercher..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -394,6 +426,13 @@ export default function WorkerList({ onNavigateWorker }) {
             <table>
               <thead>
                 <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      checked={selectedWorkers.length === filteredWorkers.length && filteredWorkers.length > 0}
+                      onChange={handleSelectAll}
+                    />
+                  </th>
                   <th
                     onClick={() => handleSort('full_name')}
                     style={{ cursor: 'pointer', userSelect: 'none' }}
@@ -448,27 +487,26 @@ export default function WorkerList({ onNavigateWorker }) {
                   return (
                     <tr
                       key={w.id}
-                      onClick={() => onNavigateWorker(w.id)}
-                      className={!w.archived && isOverdue ? 'overdue-worker-row' : ''}
+                      onClick={() => selectedWorkers.length > 0 ? handleSelectWorker(w.id) : onNavigateWorker(w.id)}
+                      className={`${!w.archived && isOverdue ? 'overdue-worker-row' : ''} ${w.archived ? 'archived-worker-row' : ''}`}
                       style={{
                         cursor: 'pointer',
-                        opacity: isStale ? 0.5 : w.archived ? 0.6 : 1,
-                        background: w.archived ? '#f9f9f9' : undefined,
+                        opacity: isStale ? 0.5 : 1,
+                        background: selectedWorkers.includes(w.id) ? 'var(--primary-light)' : undefined,
                       }}
                     >
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedWorkers.includes(w.id)}
+                          onChange={() => handleSelectWorker(w.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </td>
                       <td style={{ fontWeight: 500 }}>
                         {w.full_name}
                         {w.archived && (
-                          <span
-                            style={{
-                              fontSize: '0.7rem',
-                              background: '#ddd',
-                              color: '#555',
-                              padding: '2px 4px',
-                              borderRadius: '3px',
-                              marginLeft: '6px',
-                            }}
-                          >
+                          <span className="badge-archived">
                             Archivé
                           </span>
                         )}
@@ -477,7 +515,6 @@ export default function WorkerList({ onNavigateWorker }) {
                         <span
                           style={{
                             fontFamily: 'monospace',
-                            background: w.archived ? '#eee' : 'var(--bg-app)',
                             padding: '2px 6px',
                             borderRadius: '4px',
                           }}
@@ -523,7 +560,7 @@ export default function WorkerList({ onNavigateWorker }) {
                 {filteredWorkers.length === 0 && (
                   <tr>
                     <td
-                      colSpan="6"
+                      colSpan="7"
                       style={{
                         textAlign: 'center',
                         padding: '4rem 2rem',
@@ -560,6 +597,23 @@ export default function WorkerList({ onNavigateWorker }) {
             setShowForm(false);
             loadData();
           }}
+        />
+      )}
+
+      {selectedWorkers.length > 0 && (
+        <BulkActionsToolbar
+          selectedCount={selectedWorkers.length}
+          onDelete={handleDeleteSelected}
+          onMove={() => setShowMoveModal(true)}
+          onClearSelection={handleClearSelection}
+        />
+      )}
+
+      {showMoveModal && (
+        <MoveWorkersModal
+          departments={departments}
+          onMove={handleMoveSelected}
+          onClose={() => setShowMoveModal(false)}
         />
       )}
     </div>

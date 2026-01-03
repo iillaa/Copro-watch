@@ -117,17 +117,7 @@ export default function WorkerForm({ workerToEdit, onClose, onSave }) {
           </h3>
           <button
             onClick={onClose}
-            style={{
-              background: 'var(--danger-light)',
-              border: '2px solid var(--danger)',
-              color: 'var(--danger)',
-              borderRadius: '8px',
-              padding: '0.5rem',
-              cursor: 'pointer',
-              fontSize: '1.2rem',
-              fontWeight: 'bold',
-              transition: 'all 0.2s ease',
-            }}
+            className="modal-close-button"
           >
             ×
           </button>
@@ -136,15 +126,7 @@ export default function WorkerForm({ workerToEdit, onClose, onSave }) {
         {/* AJOUT : Alerte si le dossier est archivé */}
         {formData.archived && (
           <div
-            style={{
-              background: '#eee',
-              color: '#555',
-              padding: '0.75rem',
-              borderRadius: '6px',
-              marginBottom: '1rem',
-              fontSize: '0.9rem',
-              border: '1px solid #ccc',
-            }}
+            className="archived-alert"
           >
             <strong>📦 Attention :</strong> Ce travailleur est actuellement <strong>archivé</strong>
             .

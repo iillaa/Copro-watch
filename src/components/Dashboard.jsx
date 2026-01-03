@@ -166,7 +166,7 @@ const loadStats = async () => {
             style={{
               padding: '1.5rem',
               borderBottom: 'var(--border-width) solid var(--border-color)',
-              background: 'white',
+              background: 'var(--surface)',
             }}
           >
             <h3 style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -249,7 +249,7 @@ const loadStats = async () => {
             style={{
               padding: '1.5rem',
               borderBottom: 'var(--border-width) solid var(--border-color)',
-              background: 'white',
+              background: 'var(--surface)',
             }}
           >
             <h3 style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -296,14 +296,7 @@ const loadStats = async () => {
                             <div style={{ fontWeight: 600 }}>{item.worker.full_name}</div>
                             {/* BADGE DISCRET */}
                             <span
-                              style={{
-                                fontSize: '0.7rem',
-                                background: '#e0f2fe',
-                                color: '#0284c7',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                fontWeight: '600',
-                              }}
+                              className="badge-discreet"
                             >
                               Suivi requis
                             </span>

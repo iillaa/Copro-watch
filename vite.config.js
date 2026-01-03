@@ -1,12 +1,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
-// REMOVE: import { viteSingleFile } from 'vite-plugin-singlefile';
 
 export default defineConfig({
   plugins: [
     react(),
-    // REMOVE: viteSingleFile(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['app-icon.svg'],
@@ -24,10 +22,7 @@ export default defineConfig({
   base: './',
   build: {
     target: 'esnext',
-    // REMOVE: assetsInlineLimit: 100000000,
-    // REMOVE: cssCodeSplit: false,
     rollupOptions: {
-      // REMOVE: inlineDynamicImports: true,
       output: {
         manualChunks: undefined,
       },

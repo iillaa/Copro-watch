@@ -16,12 +16,14 @@
 
   --danger: #ef4444; /* Red */
   --danger-light: #fee2e2;
+  --danger-text: #991b1b;
 
   --success: #22c55e; /* Green */
   --success-light: #dcfce7;
 
   --warning: #f59e0b; /* Orange/Amber */
   --warning-light: #fef3c7;
+  --warning-text: #b45309;
 
   /* --- NEW COLORS START HERE --- */
 
@@ -44,6 +46,221 @@
   --shadow-hard: 4px 4px 0px var(--border-color);
   --shadow-hover: 6px 6px 0px var(--border-color);
   --shadow-active: 0px 0px 0px var(--border-color);
+}
+
+/* Dark Mode */
+.dark-mode {
+  --bg-app: #1a202c;
+  --surface: #2d3748;
+  --text-main: #edf2f7;
+  --text-muted: #a0aec0;
+  --border-color: #4a5568;
+  --primary-light: #3c3f8f;
+  --shadow-hard: 4px 4px 0px #000;
+  --shadow-hover: 6px 6px 0px #000;
+  --warning-light: #452c0d;
+  --danger-light: #450a0a;
+  --primary-light: #312e81;
+  --warning-text: #fef3c7;
+  --danger-text: #fee2e2;
+}
+
+.dark-mode .credit-author {
+    color: #fff;
+}
+
+.dark-mode .btn-outline {
+  background-color: var(--surface);
+  color: var(--text-main);
+  border-color: var(--border-color);
+}
+.dark-mode .btn-outline:hover {
+  background-color: #4a5568;
+}
+
+.dark-mode .sidebar {
+  background-color: #2d3748; /* Darker sidebar background */
+  border-right: 3px solid var(--border-color);
+}
+
+.dark-mode .nav-item {
+  color: #a0aec0; /* Lighter text for nav items */
+}
+
+.dark-mode .nav-item:hover {
+  background-color: #4a5568; /* Hover state for nav items */
+  color: #ffffff;
+  border-color: var(--border-color);
+}
+
+.dark-mode .nav-item.active {
+  background-color: var(--primary); /* Active state remains the same */
+  color: white;
+  border-color: var(--border-color);
+}
+
+.dark-mode .credit {
+  background: #2d3748;
+  border: 2px dashed #4a5568;
+}
+
+.dark-mode .credit-title {
+  color: #a0aec0;
+}
+
+.dark-mode .credit-version {
+  background-color: #4a5568;
+  color: #edf2f7;
+}
+
+.dark-mode table {
+  background: var(--surface);
+}
+
+.dark-mode thead {
+  background-color: #4a5568;
+}
+
+.dark-mode th {
+  color: var(--text-main);
+}
+
+.dark-mode td {
+  border-bottom-color: #4a5568;
+}
+
+.dark-mode tr:nth-child(even) td {
+  background-color: #2d3748;
+}
+
+.dark-mode tr:hover td {
+  background-color: #4a5568;
+}
+
+.dark-mode .input {
+  background-color: var(--surface);
+  color: var(--text-main);
+  border-color: var(--border-color);
+}
+
+.dark-mode .input:focus {
+  border-color: var(--primary);
+}
+
+.dark-mode .pin-lock-container {
+  background: var(--bg-app);
+}
+
+.dark-mode .pin-card {
+  background: var(--surface);
+}
+
+.dark-mode .pin-title {
+  color: var(--text-main);
+}
+
+.dark-mode .pin-subtitle {
+  color: var(--text-muted);
+}
+
+.dark-mode .pin-dots {
+  background: #4a5568;
+}
+
+.dark-mode .pin-dot.filled {
+  background: #3b82f6;
+}
+
+.dark-mode .pin-btn {
+  background: #4a5568;
+  color: var(--text-main);
+  border-color: #2d3748;
+}
+
+.dark-mode .search-input-container input {
+    background: transparent;
+    color: var(--text-main);
+}
+
+.modal-close-button {
+  background: var(--danger-light);
+  border: 2px solid var(--danger);
+  color: var(--danger);
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.dark-mode .modal-close-button {
+  background: var(--danger-light);
+  color: var(--danger-text);
+  border-color: var(--danger);
+}
+
+.archived-alert {
+  background: #eee;
+  color: #555;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  border: 1px solid #ccc;
+}
+
+.dark-mode .archived-alert {
+  background: #2d3748;
+  color: #a0aec0;
+  border-color: #4a5568;
+}
+
+/* Timeline Styles */
+.timeline-container {
+  position: relative;
+  padding-left: 30px;
+  border-left: 3px solid var(--border-color);
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.timeline-icon {
+  position: absolute;
+  left: -46px;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--border-color);
+}
+
+.timeline-content {
+  padding-left: 20px;
+}
+
+.timeline-date {
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.timeline-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.timeline-description {
+  color: var(--text-main);
 }
 /* --- UNIVERSAL SCROLL FIX (STABLE) --- */
 html {
@@ -519,6 +736,30 @@ tr:nth-child(even):hover td {
   background-color: var(--primary-light);
 }
 
+.archived-worker-row td {
+  background-color: #f1f5f9 !important;
+  color: #64748b !important;
+}
+
+.dark-mode .archived-worker-row td {
+  background-color: #1e293b !important;
+  color: #94a3b8 !important;
+}
+
+.badge-archived {
+  background: #e2e8f0;
+  color: #475569;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  margin-left: 6px;
+}
+
+.dark-mode .badge-archived {
+  background: #334155;
+  color: #94a3b8;
+}
+
 /* Override zebra striping for overdue workers */
 .overdue-worker-row {
   background: var(--danger-light) !important;
@@ -559,6 +800,20 @@ tr:nth-child(even):hover td {
   background-color: var(--primary-light);
   color: var(--primary);
   border-color: var(--primary);
+}
+
+.badge-discreet {
+  font-size: 0.7rem;
+  background: #e0f2fe;
+  color: #0284c7;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.dark-mode .badge-discreet {
+  background: #0c4a6e;
+  color: #e0f2fe;
 }
 
 /* Navigation - Enhanced Neobrutalist Style */

@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:standalone": "vite build --config vite.standalone.config.js",
     "lint": "eslint . --ext .js,.jsx",
     "lint:fix": "eslint . --ext .js,.jsx --fix",
     "format": "prettier --write .",
@@ -39,7 +38,6 @@
     "prettier": "^2.8.8",
     "vite": "^7.2.4",
     "vite-plugin-pwa": "^1.2.0",
-    "vite-plugin-singlefile": "^2.3.0",
     "vitest": "^1.6.1"
   }
 }

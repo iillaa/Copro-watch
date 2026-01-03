@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { db } from './services/db';
 import backupService from './services/backup';
+import { useIdleTimer } from './hooks/useIdleTimer';
 
 import Dashboard from './components/Dashboard';
 import WorkerList from './components/WorkerList';
@@ -20,6 +21,18 @@ function App() {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [waterResetKey, setWaterResetKey] = useState(0);
   const [pin, setPin] = useState('0011');
+  const [autoLockEnabled, setAutoLockEnabled] = useState(false);
+  const [autoLockTimeout, setAutoLockTimeout] = useState(5);
+
+  // --- AUTO-LOCK ---
+  useIdleTimer({
+    timeout: autoLockTimeout * 60 * 1000,
+    onIdle: () => {
+      if (autoLockEnabled && !isLocked) {
+        setIsLocked(true);
+      }
+    },
+  });
 
   // --- ENGINE STARTUP (The Only Change) ---
   const initApp = async () => {
@@ -41,6 +54,12 @@ function App() {
       const settings = await db.getSettings();
       if (settings.pin) {
         setPin(settings.pin);
+      }
+      if (settings.autoLockEnabled) {
+        setAutoLockEnabled(settings.autoLockEnabled);
+      }
+      if (settings.autoLockTimeout) {
+        setAutoLockTimeout(settings.autoLockTimeout);
       }
     } catch (error) {
       console.error('App Initialization Failed:', error);
