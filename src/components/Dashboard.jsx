@@ -123,15 +123,17 @@ export default function Dashboard({ onNavigateWorker }) {
           style={
             isMobile
               ? {
-                  // MOBILE STYLE: Vertical & Compact
+            
+                 // MOBILE STYLE: Horizontal Row
                   display: 'flex',
-                  flexDirection: 'column',
+                  flexDirection: 'row', // <--- CHANGED TO ROW
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'var(--warning-light)',
-                  padding: '0.75rem 0.25rem',
+                  justifyContent: 'space-around', // Spreads Icon, Number, Name evenly
+                  background: 'var(--warning-light)', // (Change color for other cards!)
+                  padding: '0.5rem 0.2rem',
                   textAlign: 'center',
                   margin: 0,
+                  gap: '2px' // Small gap between items
                 }
               : {
                   // DESKTOP STYLE: Your Original (Horizontal)
@@ -196,15 +198,16 @@ export default function Dashboard({ onNavigateWorker }) {
           style={
             isMobile
               ? {
-                  // MOBILE STYLE
+                 // MOBILE STYLE: Horizontal Row
                   display: 'flex',
-                  flexDirection: 'column',
+                  flexDirection: 'row', // <--- CHANGED TO ROW
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'var(--danger-light)',
-                  padding: '0.75rem 0.25rem',
+                  justifyContent: 'space-around', // Spreads Icon, Number, Name evenly
+                  background: 'var(--danger-light)', // (Change color for other cards!)
+                  padding: '0.5rem 0.2rem',
                   textAlign: 'center',
                   margin: 0,
+                  gap: '2px' // Small gap between items
                 }
               : {
                   // DESKTOP STYLE
@@ -269,15 +272,16 @@ export default function Dashboard({ onNavigateWorker }) {
           style={
             isMobile
               ? {
-                  // MOBILE STYLE
+                 // MOBILE STYLE: Horizontal Row
                   display: 'flex',
-                  flexDirection: 'column',
+                  flexDirection: 'row', // <--- CHANGED TO ROW
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'var(--primary-light)',
-                  padding: '0.75rem 0.25rem',
+                  justifyContent: 'space-around', // Spreads Icon, Number, Name evenly
+                  background: 'var(--primary-light)', // (Change color for other cards!)
+                  padding: '0.5rem 0.2rem',
                   textAlign: 'center',
                   margin: 0,
+                  gap: '2px' // Small gap between items
                 }
               : {
                   // DESKTOP STYLE
@@ -337,7 +341,7 @@ export default function Dashboard({ onNavigateWorker }) {
           display: 'grid',
           /* FIX: Changed '1fr' to this Smart Rule */
           /* It puts tables side-by-side if there is room (300px+), otherwise stacks them */
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))',
           gap: '1.5rem',
         }}
       >
