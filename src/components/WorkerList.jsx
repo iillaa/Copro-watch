@@ -183,17 +183,27 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     }
   };
 
-  const handleBatchArchive = async () => {
-    if (window.confirm(`Archiver ${selectedIds.size} travailleurs ?`)) {
-      const targets = workers.filter(w => selectedIds.has(w.id));
-      await Promise.all(targets.map(w => db.saveWorker({ ...w, archived: true })));
-      
+const handleBatchArchive = async () => {
+    // 1. Identify the selected workers
+    const targets = workers.filter(w => selectedIds.has(w.id));
+    
+    // 2. Detect State: Are they ALL currently archived?
+    // If every selected worker is already archived, we assume you want to RESTORE them.
+    const areAllArchived = targets.length > 0 && targets.every(w => w.archived);
+    
+    // 3. Determine Action & New Status
+    const actionLabel = areAllArchived ? 'Restaurer' : 'Archiver';
+    const newStatus = !areAllArchived; // If all archived (true), set to false (active).
+    
+    // 4. Confirm & Execute
+    if (window.confirm(`${actionLabel} ${selectedIds.size} travailleurs ?`)) {
+      await Promise.all(targets.map(w => db.saveWorker({ ...w, archived: newStatus })));
+
       setSelectedIds(new Set());
-      // [FIX] Mode stays ON after archive
+      // Keep Selection Mode ON (User Preference)
       loadData();
     }
   };
-
   const handleBatchMoveConfirm = async (deptId) => {
     const targets = workers.filter(w => selectedIds.has(w.id));
     await Promise.all(targets.map(w => db.saveWorker({ ...w, department_id: parseInt(deptId) })));
