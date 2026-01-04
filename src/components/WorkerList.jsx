@@ -110,10 +110,14 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     // C. Filter Search (Using the deferred value!)
     if (deferredSearch) {
       const lower = deferredSearch.toLowerCase();
-      result = result.filter(
-        (w) => w.full_name.toLowerCase().includes(lower) || 
-               w.national_id.includes(lower)
-      );
+      result = result.filter((w) => {
+        // [FIX] Recherche sécurisée sur le Nom ET le Matricule
+        const nameMatch = w.full_name && w.full_name.toLowerCase().includes(lower);
+        // On convertit le matricule en String pour éviter les erreurs si c'est un nombre
+        const idMatch = w.national_id && String(w.national_id).toLowerCase().includes(lower);
+        
+        return nameMatch || idMatch;
+      });
     }
 
     // D. Sorting Logic
@@ -373,13 +377,13 @@ const handleBatchArchive = async () => {
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           
-          {/* [NEW] TOGGLE SELECTION MODE BUTTON */}
+          {/* [NEW] TOGGLE SELECTION MODE (Icon Only) */}
           <button
             className={`btn ${isSelectionMode ? 'btn-primary' : 'btn-outline'}`}
             onClick={toggleSelectionMode}
             title={isSelectionMode ? "Masquer la sélection" : "Activer la sélection multiple"}
           >
-            <FaCheckSquare /> <span className="hide-mobile">Sélection</span>
+            <FaCheckSquare />
           </button>
 
           <button 

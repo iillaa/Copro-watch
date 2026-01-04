@@ -209,14 +209,14 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {/* [NEW] Toggle Button */}
-            <button
-              className={`btn ${isSelectionMode ? 'btn-primary' : 'btn-outline'}`}
-              onClick={toggleSelectionMode}
-              title={isSelectionMode ? "Masquer la sélection" : "Sélection multiple"}
-            >
-              <FaCheckSquare /> <span className="hide-mobile">Sélection</span>
-            </button>
+          {/* [NEW] TOGGLE SELECTION MODE (Icon Only) */}
+          <button
+            className={`btn ${isSelectionMode ? 'btn-primary' : 'btn-outline'}`}
+            onClick={toggleSelectionMode}
+            title={isSelectionMode ? "Masquer la sélection" : "Sélection multiple"}
+          >
+            <FaCheckSquare />
+          </button>
 
             {/* Bouton Nouvel Examen */}
             <button className="btn btn-primary" onClick={handleNewExam} disabled={worker.archived}>

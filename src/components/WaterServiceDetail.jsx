@@ -165,13 +165,14 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
           </div>
           
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            {/* [NEW] TOGGLE SELECTION MODE */}
+          
+          {/* [NEW] TOGGLE SELECTION MODE (Icon Only) */}
             <button
               className={`btn ${isSelectionMode ? 'btn-primary' : 'btn-outline'}`}
               onClick={toggleSelectionMode}
               title={isSelectionMode ? "Masquer la sélection" : "Sélection multiple"}
             >
-              <FaCheckSquare /> <span className="hide-mobile">Sélection</span>
+              <FaCheckSquare />
             </button>
 
             <button className="btn btn-primary" onClick={handleNewAnalysis}>
