@@ -167,10 +167,12 @@ export const db = {
   async saveDepartment(dept) {
     if (!dept.id) dept.id = Date.now();
     await dbInstance.departments.put(dept);
+    await triggerBackupCheck();
     return dept;
   },
   async deleteDepartment(id) {
     await dbInstance.departments.delete(id);
+    await triggerBackupCheck();
   },
 
   // --- WORKPLACES ---
@@ -180,10 +182,12 @@ export const db = {
   async saveWorkplace(workplace) {
     if (!workplace.id) workplace.id = Date.now();
     await dbInstance.workplaces.put(workplace);
+    await triggerBackupCheck();
     return workplace;
   },
   async deleteWorkplace(id) {
     await dbInstance.workplaces.delete(id);
+    await triggerBackupCheck();
   },
 
   // --- WATER ---
@@ -206,10 +210,12 @@ export const db = {
   async saveWaterDepartment(dept) {
     if (!dept.id) dept.id = Date.now();
     await dbInstance.water_departments.put(dept);
+    await triggerBackupCheck();
     return dept;
   },
   async deleteWaterDepartment(id) {
     await dbInstance.water_departments.delete(id);
+    await triggerBackupCheck();
   },
 
   // --- IMPORT / EXPORT ---
