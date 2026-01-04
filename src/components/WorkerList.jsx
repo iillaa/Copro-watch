@@ -58,10 +58,7 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showMoveModal, setShowMoveModal] = useState(false);
 
-  // [PRESERVED] Dynamic Style for Compact Mode (Scrolling)
-  const scrollStyle = compactMode
-    ? { maxHeight: '70vh', overflowY: 'auto' }
-    : {};
+  
 
   // ==================================================================================
   // 2. DATA LOADING & EFFECTS
@@ -356,393 +353,195 @@ const handleBatchArchive = async () => {
     </div>
   );
   // ==================================================================================
-  // 7. RENDER COMPONENT
+  // RENDER: HYBRID ROW-CARD LAYOUT (Fixed)
   // ==================================================================================
+  
+  // Columns: Check | Nom | Mat | Svc | Last | Next | Actions
+  // [FIX] Updated Template: 2.2fr for Prochain Dû (Column 6) to stop squishing
+  const gridTemplate = isSelectionMode 
+    ? "50px 1.9fr 0.8fr 1fr 0.9fr 2.2fr 100px" 
+    : "0px 1.5fr 0.8fr 1fr 0.9fr 2.2fr 100px";
+
   return (
     <div>
-      {/* --- HEADER SECTION --- */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: '1.5rem' 
-        }}
-      >
+      {/* HEADER BAR */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
           <h2 style={{ marginBottom: 0 }}>Liste des Travailleurs</h2>
-          <p style={{ margin: 0, fontSize: '0.875rem' }}>
+          <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)' }}>
             {filteredWorkers.length} dossier{filteredWorkers.length > 1 ? 's' : ''} trouvé(s)
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           
-          {/* [NEW] TOGGLE SELECTION MODE (Icon Only) */}
           <button
             className={`btn ${isSelectionMode ? 'btn-primary' : 'btn-outline'}`}
             onClick={toggleSelectionMode}
             title={isSelectionMode ? "Masquer la sélection" : "Activer la sélection multiple"}
+            style={{ padding: '0.6rem 0.8rem' }}
           >
             <FaCheckSquare />
           </button>
 
-          <button 
-            className="btn btn-outline" 
-            onClick={handleExport} 
-            title="Exporter"
-          >
-            <FaFileDownload /> Export
+          <button className="btn btn-outline" onClick={handleExport} title="Exporter">
+            <FaFileDownload /> <span className="hide-mobile">Export</span>
           </button>
           
           <label className="btn btn-outline" style={{ cursor: 'pointer' }}>
-            <FaFileUpload /> Import
-            <input 
-              type="file" 
-              onChange={handleImport} 
-              style={{ display: 'none' }} 
-              accept=".json" 
-            />
+            <FaFileUpload /> <span className="hide-mobile">Import</span>
+            <input type="file" onChange={handleImport} style={{ display: 'none' }} accept=".json" />
           </label>
           
-          <button 
-            className="btn btn-primary" 
-            onClick={() => { setEditingWorker(null); setShowForm(true); }}
-          >
+          <button className="btn btn-primary" onClick={() => { setEditingWorker(null); setShowForm(true); }}>
             <FaPlus /> Nouveau
           </button>
         </div>
       </div>
 
-      {/* --- MAIN CONTENT SWITCH --- */}
-      {workers.length === 0 ? (
-        emptyStateUI
-      ) : (
-        <>
-          {/* --- FILTERS TOOLBAR --- */}
-          <div 
-            className="card" 
-            style={{ 
-              display: 'flex', 
-              gap: '1rem', 
-              padding: '1rem', 
-              alignItems: 'center', 
-              marginBottom: '1.5rem', 
-              flexWrap: 'wrap' 
-            }}
-          >
-            <div 
-              style={{ 
-                flex: 1, 
-                display: 'flex', 
-                alignItems: 'center', 
-                minWidth: '250px', 
-                position: 'relative' 
-              }}
-            >
-              <FaSearch style={{ color: 'var(--text-muted)', marginRight: '0.5rem' }} />
-              <input
-                style={{ 
-                  border: 'none', 
-                  outline: 'none', 
-                  padding: '0.75rem', 
-                  width: '100%', 
-                  fontSize: '1rem', 
-                  background: 'transparent' 
-                }}
-                placeholder="Rechercher..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  style={{ 
-                    position: 'absolute', 
-                    right: '0.5rem', 
-                    background: 'none', 
-                    border: 'none', 
-                    color: 'var(--text-muted)', 
-                    cursor: 'pointer' 
-                  }}
-                >
-                  ×
-                </button>
+      {/* FILTERS BAR */}
+      <div className="card" style={{ padding: '0.75rem', display: 'flex', gap: '1rem', alignItems: 'center', overflowX: 'auto', marginBottom: '1rem' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+          <FaSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input
+            className="input"
+            style={{ paddingLeft: '2.5rem', borderRadius: '50px' }}
+            placeholder="Rechercher (Nom et prénom, Matricule)..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <select
+          className="input"
+          style={{ width: 'auto', borderRadius: '50px' }}
+          value={filterDept}
+          onChange={(e) => setFilterDept(e.target.value)}
+        >
+          <option value="">Tous les services</option>
+          {departments.map((d) => (
+            <option key={d.id} value={d.id}>{d.name}</option>
+          ))}
+        </select>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap', cursor: 'pointer' }}>
+          <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+          Archives
+        </label>
+        {(searchTerm || filterDept) && (
+          <button className="btn btn-outline btn-sm" onClick={() => { setSearchTerm(''); setFilterDept(''); }}>
+            Effacer
+          </button>
+        )}
+      </div>
+
+      {/* --- HYBRID TABLE CONTAINER (Scrolling Window) --- */}
+      <div className="scroll-wrapper">
+        <div className="hybrid-container">
+          
+          {/* 1. STICKY HEADER ROW */}
+          <div className="hybrid-header" style={{ gridTemplateColumns: gridTemplate }}>
+            <div style={{ textAlign: 'center' }}>
+              {isSelectionMode && (
+                <input 
+                  type="checkbox" 
+                  onChange={toggleSelectAll} 
+                  checked={filteredWorkers.length > 0 && selectedIds.size === filteredWorkers.length}
+                />
               )}
             </div>
-            
-            <div 
-              style={{ 
-                borderLeft: '1px solid var(--border-color)', 
-                height: '2rem', 
-                margin: '0 0.5rem' 
-              }}
-            ></div>
+            <div onClick={() => handleSort('full_name')} style={{ cursor: 'pointer' }}>Nom et prénom {getSortIcon('full_name')}</div>
+            <div onClick={() => handleSort('national_id')} style={{ cursor: 'pointer' }}>Matricule {getSortIcon('national_id')}</div>
+            <div onClick={() => handleSort('department_id')} style={{ cursor: 'pointer' }}>Service {getSortIcon('department_id')}</div>
+            <div onClick={() => handleSort('last_exam_date')} style={{ cursor: 'pointer' }}>Dernier Exam {getSortIcon('last_exam_date')}</div>
+            <div onClick={() => handleSort('next_exam_due')} style={{ cursor: 'pointer' }}>Prochain Dû {getSortIcon('next_exam_due')}</div>
+            <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>Actions</div>
+          </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <FaFilter style={{ color: 'var(--text-muted)' }} />
-              <select
-                className="input"
-                style={{ padding: '0.75rem', width: 'auto', minWidth: '150px' }}
-                value={filterDept}
-                onChange={(e) => setFilterDept(e.target.value)}
-              >
-                <option value="">Tous les services</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
-            </div>
+          {/* 2. SCROLLABLE DATA ROWS */}
+          {filteredWorkers.map((w) => {
+            const isOverdue = logic.isOverdue(w.next_exam_due);
+            const status = getWorkerLastStatus(w.id);
+            const isSelected = selectedIds.has(w.id);
 
-            <label 
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.5rem', 
-                cursor: 'pointer', 
-                fontSize: '0.9rem', 
-                color: 'var(--text-muted)', 
-                paddingLeft: '10px', 
-                borderLeft: '1px solid var(--border-color)' 
-              }}
-            >
-              <input 
-                type="checkbox" 
-                checked={showArchived} 
-                onChange={(e) => setShowArchived(e.target.checked)} 
-              />
-              Voir archives
-            </label>
-
-            {(searchTerm || filterDept) && (
-              <button
-                className="btn btn-outline btn-sm"
-                onClick={() => { 
-                  setSearchTerm(''); 
-                  setFilterDept(''); 
-                  localStorage.removeItem('worker_filter_dept'); 
+            return (
+              <div 
+                key={w.id}
+                onClick={() => isSelectionMode ? toggleSelectOne(w.id) : onNavigateWorker(w.id)}
+                className={`hybrid-row ${isSelected ? 'selected' : ''} ${!w.archived && isOverdue ? 'overdue-worker-row' : ''}`}
+                style={{ 
+                  gridTemplateColumns: gridTemplate,
+                  opacity: w.archived ? 0.6 : 1,
                 }}
               >
-                Effacer
-              </button>
-            )}
-          </div>
-
-          {/* --- DATA TABLE --- */}
-          <div className="table-container" style={{ ...scrollStyle }}>
-            <table>
-              <thead>
-                <tr>
-                  {/* [NEW] CONDITIONAL HEADER: Only render <th> if selection mode is ON */}
+                {/* Checkbox */}
+                <div style={{ textAlign: 'center', overflow: 'hidden' }}>
                   {isSelectionMode && (
-                    <th style={{ width: '40px', textAlign: 'center' }}>
-                      <input 
-                        type="checkbox" 
-                        onChange={toggleSelectAll} 
-                        checked={
-                          filteredWorkers.length > 0 && 
-                          selectedIds.size === filteredWorkers.length
-                        }
-                        title="Tout sélectionner"
-                      />
-                    </th>
+                    <input 
+                      type="checkbox" 
+                      checked={isSelected} 
+                      onChange={() => toggleSelectOne(w.id)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
                   )}
+                </div>
 
-                  <th 
-                    onClick={() => handleSort('full_name')} 
-                    style={{ cursor: 'pointer', userSelect: 'none' }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      Nom {getSortIcon('full_name')}
-                    </div>
-                  </th>
-                  
-                  <th 
-                    onClick={() => handleSort('national_id')} 
-                    style={{ cursor: 'pointer', userSelect: 'none' }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      Matricule {getSortIcon('national_id')}
-                    </div>
-                  </th>
-                  
-                  <th 
-                    onClick={() => handleSort('department_id')} 
-                    style={{ cursor: 'pointer', userSelect: 'none' }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      Service {getSortIcon('department_id')}
-                    </div>
-                  </th>
-                  
-                  <th 
-                    onClick={() => handleSort('last_exam_date')} 
-                    style={{ cursor: 'pointer', userSelect: 'none' }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      Dernier Examen {getSortIcon('last_exam_date')}
-                    </div>
-                  </th>
-                  
-                  <th 
-                    onClick={() => handleSort('next_exam_due')} 
-                    style={{ cursor: 'pointer', userSelect: 'none' }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      Prochain Dû {getSortIcon('next_exam_due')}
-                    </div>
-                  </th>
-                  
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredWorkers.map((w) => {
-                  const isOverdue = logic.isOverdue(w.next_exam_due);
-                  const status = getWorkerLastStatus(w.id);
-                  const isStale = searchTerm !== deferredSearch;
+                {/* Nom et prénom */}
+                <div className="hybrid-cell cell-name">
+                  {w.full_name}
+                  {w.archived && <span className="badge" style={{fontSize: '0.6rem', marginLeft: '5px', background:'#eee', color:'#666', border:'none'}}>Archivé</span>}
+                </div>
 
-                  return (
-                    <tr
-                      key={w.id}
-                      onClick={() => onNavigateWorker(w.id)}
-                      className={!w.archived && isOverdue ? 'overdue-worker-row' : ''}
-                      style={{
-                        cursor: 'pointer',
-                        opacity: isStale ? 0.5 : w.archived ? 0.6 : 1,
-                        background: w.archived ? '#f9f9f9' : undefined,
-                      }}
-                    >
-                      {/* [NEW] CONDITIONAL ROW: Only render <td> if selection mode is ON */}
-                      {isSelectionMode && (
-                        <td 
-                          onClick={(e) => e.stopPropagation()} 
-                          style={{ textAlign: 'center' }}
-                        >
-                          <input 
-                            type="checkbox" 
-                            checked={selectedIds.has(w.id)} 
-                            onChange={() => toggleSelectOne(w.id)}
-                          />
-                        </td>
-                      )}
-                      
-                      <td style={{ fontWeight: 500 }}>
-                        {w.full_name}
-                        {w.archived && (
-                          <span 
-                            style={{ 
-                              fontSize: '0.7rem', 
-                              background: '#ddd', 
-                              color: '#555', 
-                              padding: '2px 4px', 
-                              borderRadius: '3px', 
-                              marginLeft: '6px' 
-                            }}
-                          >
-                            Archivé
-                          </span>
-                        )}
-                      </td>
-                      
-                      <td>
-                        <span 
-                          style={{ 
-                            fontFamily: 'monospace', 
-                            background: w.archived ? '#eee' : 'var(--bg-app)', 
-                            padding: '2px 6px', 
-                            borderRadius: '4px' 
-                          }}
-                        >
-                          {w.national_id}
-                        </span>
-                      </td>
-                      
-                      <td>{getDeptName(w.department_id)}</td>
-                      
-                      <td>
-                        {w.last_exam_date ? logic.formatDate(new Date(w.last_exam_date)) : '-'}
-                      </td>
-                      
-                      <td>
-                        {w.next_exam_due}
-                        {renderStatusBadge(status)}
-                        {!w.archived && isOverdue && (
-                          <span
-                            className="badge badge-red"
-                            style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}
-                          >
-                            Retard
-                          </span>
-                        )}
-                      </td>
-                      
-                      <td style={{ textAlign: 'right' }}>
-                        <div 
-                          style={{ 
-                            display: 'flex', 
-                            justifyContent: 'flex-end', 
-                            gap: '0.5rem', 
-                            flexWrap: 'nowrap' 
-                          }}
-                        >
-                          <button 
-                            className="btn btn-outline btn-sm" 
-                            onClick={(e) => handleEdit(e, w)} 
-                            title="Modifier"
-                          >
-                            <FaEdit />
-                          </button>
-                          <button 
-                            className="btn btn-outline btn-sm" 
-                            onClick={(e) => handleDelete(e, w)} 
-                            style={{ 
-                              color: 'var(--danger)', 
-                              borderColor: 'var(--danger)' 
-                            }} 
-                            title="Supprimer"
-                          >
-                            <FaTrash />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                
-                {/* EMPTY SEARCH STATE */}
-                {filteredWorkers.length === 0 && (
-                  <tr>
-                    {/* [FIX] Dynamic ColSpan: 7 if Selection Mode is ON, 6 if OFF */}
-                    <td 
-                      colSpan={isSelectionMode ? 7 : 6} 
-                      style={{ 
-                        textAlign: 'center', 
-                        padding: '4rem 2rem', 
-                        color: 'var(--text-muted)' 
-                      }}
-                    >
-                      <div style={{ opacity: 0.5, fontSize: '2rem', marginBottom: '1rem' }}>
-                        🔍
-                      </div>
-                      <p style={{ fontWeight: 500, marginBottom: '0.5rem' }}>
-                        Aucun résultat trouvé
-                      </p>
-                      <button 
-                        className="btn btn-outline btn-sm" 
-                        onClick={() => { setSearchTerm(''); setFilterDept(''); }}
-                      >
-                        Effacer les filtres
-                      </button>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+                {/* Matricule */}
+                <div className="hybrid-cell">
+                  <span style={{ fontFamily: 'monospace', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '0.8rem', color: '#64748b' }}>
+                    {w.national_id}
+                  </span>
+                </div>
 
-      {/* --- BATCH ACTION TOOLBAR --- */}
+                {/* Service */}
+                <div className="hybrid-cell">{getDeptName(w.department_id)}</div>
+
+                {/* Dernier Exam */}
+                <div className="hybrid-cell">
+                  {w.last_exam_date ? logic.formatDate(new Date(w.last_exam_date)) : '-'}
+                </div>
+
+               {/* Col 6: Prochain Dû */}
+                <div className="hybrid-cell" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {/* [FIX] Fixed width '85px' prevents wiggling when scrolling */}
+                  <span style={{ fontWeight: 600, minWidth: '85px', display: 'inline-block' }}>
+                    {w.next_exam_due}
+                  </span>
+                  {renderStatusBadge(status)}
+                  {!w.archived && isOverdue && (
+                    <span className="badge badge-red" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>RETARD</span>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="hybrid-actions">
+                  <button className="btn btn-outline btn-sm" onClick={(e) => handleEdit(e, w)} title="Modifier">
+                    <FaEdit />
+                  </button>
+                  <button className="btn btn-outline btn-sm" onClick={(e) => handleDelete(e, w)} style={{ color: 'var(--danger)', borderColor: 'var(--danger)', backgroundColor: '#fff1f2' }} title="Supprimer">
+                    <FaTrash />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+
+          {filteredWorkers.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>🔍</div>
+              <p>Aucun résultat trouvé.</p>
+              <button className="btn btn-outline btn-sm" onClick={() => { setSearchTerm(''); setFilterDept(''); }}>
+                Effacer les filtres
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* FLOATERS */}
       {selectedIds.size > 0 && (
         <BulkActionsToolbar
           selectedCount={selectedIds.size}
@@ -753,7 +552,6 @@ const handleBatchArchive = async () => {
         />
       )}
 
-      {/* --- MOVE MODAL --- */}
       {showMoveModal && (
         <MoveWorkersModal
           departments={departments}
@@ -762,17 +560,12 @@ const handleBatchArchive = async () => {
         />
       )}
 
-      {/* --- ADD/EDIT WORKER FORM --- */}
       {showForm && (
         <AddWorkerForm
           workerToEdit={editingWorker}
           onClose={() => setShowForm(false)}
-          onSave={() => {
-            setShowForm(false);
-            loadData();
-          }}
+          onSave={() => { setShowForm(false); loadData(); }}
         />
       )}
     </div>
-  );
-}
+  );}

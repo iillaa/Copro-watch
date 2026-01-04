@@ -1236,3 +1236,124 @@ tr {
     margin: 0 !important;
   }
 }
+/* =========================================
+   1. GHOST BROWSER RESET (Sensation Native)
+   ========================================= */
+* {
+  -webkit-tap-highlight-color: transparent; /* Supprime le flash bleu au clic */
+}
+/* =========================================
+   HYBRID ROW-CARDS (Doctor's Table V4 - Stable)
+   ========================================= */
+
+/* 1. The Scroll Container (Vertical Window) */
+.scroll-wrapper {
+  overflow-x: auto; /* Horizontal scroll for columns */
+  
+  /* [FIX] Safer Height Logic */
+  max-height: 75vh; /* Takes up to 75% of screen height */
+  min-height: 300px; /* Never collapses completely */
+  
+  overflow-y: auto; /* Vertical Scroll is KEY for sticky header */
+  overscroll-behavior: contain;
+  
+  /* Spacing */
+  padding-bottom: 80px; 
+  margin: 0 -1rem; /* Full width on mobile */
+  padding: 0 1rem;
+  
+}
+
+/* 2. The Sticky Header (Now a Floating Card) */
+.hybrid-header {
+  display: grid;
+    /* Columns: Check | Nom(Smaller) | Mat | Svc | Last(Smaller) | Next(HUGE) | Actions */
+  /* [FIX] Resized columns to prevent squishing "Retard" */
+  grid-template-columns: 50px 1.9fr 0.8fr 1fr 0.9fr 2.2fr 100px;
+  
+  /* [STICKY LOGIC] */
+  position: sticky;
+  top: 0; /* Sticks to the top of the scroll window */
+  z-index: 50;
+  
+  /* [VISUALS - CARD STYLE] */
+  background-color: var(--primary-light); /* Keep Blue BG */
+  color: var(--primary);
+  
+  padding: 1rem 1.25rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  
+  /* [TRANSFORMATION] Match the Row Cards exactly */
+  border: 2px solid #000000; /* Black Border */
+  border-radius: 12px;       /* Rounded Corners */
+  box-shadow: 1px 1px 0px rgba(0,0,0,0.1); /* Card Shadow */
+  
+  /* Spacing to make it float */
+  margin-bottom: 0.75rem; 
+  margin-top: 0.25rem; /* Tiny gap at the very top */
+}
+/* 3. The Row Card */
+.hybrid-row {
+  display: grid;
+  /* Columns set via JSX */
+  grid-template-columns: 50px 1.9fr 0.8fr 1fr 0.9fr 2.2fr 100px;
+
+  background: white;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.6rem;
+  border-radius: 12px;
+  
+  /* [IDENTITY] Black Border */
+  border: 1.5px solid #000000; 
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.1); 
+  
+  align-items: center;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.hybrid-row:hover {
+  transform: translateY(-2px);
+  box-shadow: 4px 4px 0px rgba(0,0,0,0.15);
+  border-color: var(--primary);
+  z-index: 10;
+}
+
+/* Selection State */
+.hybrid-row.selected {
+  background-color: #e0e7ff;
+  border-color: var(--primary);
+}
+
+/* 4. Cell Styling */
+.hybrid-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 0.5rem;
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+
+.cell-name {
+  font-weight: 800;
+  color: #000000; /* Black Name */
+}
+
+/* 5. Action Buttons */
+.hybrid-actions {
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.hybrid-actions .btn-sm {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.9rem;
+  border-width: 2px;
+  box-shadow: none;
+}
