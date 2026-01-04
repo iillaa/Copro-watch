@@ -4,18 +4,14 @@
 
 ### 🩺 Valeur Médicale & Métier
 
-- [ ] **Concept : Historique Visuel (Timeline)**
-  - _Idée :_ Sur la fiche d'un travailleur, afficher une frise chronologique verticale.
-  - _But :_ Voir l'évolution sanitaire (Examens, Résultats, Absences) en un coup d'œil rapide.
+
 - [ ] **Concept : Types d'Examens Personnalisables**
   - _Idée :_ Rendre le système générique via les paramètres.
   - _But :_ Permettre d'ajouter d'autres types que la Coprologie (ex: Visite d'embauche, Vision, Sang).
 - [ ] **Concept : File d'Attente "Contre-Visites"**
   - _Idée :_ Créer une liste dédiée pour les cas positifs.
   - _But :_ Système de rappel automatique à J+7 / J+10 pour ne jamais oublier un contrôle.
-- [ ] **Concept : Tendances Qualité Eau**
-  - _Idée :_ Ajouter un graphique (courbe) dans le détail d'un service d'eau.
-  - _But :_ Visualiser la chute du Chlore ou les variations de pH sur 30 jours.
+
 
 ### 📊 Administration & Reporting
 
@@ -37,7 +33,7 @@
 - [ ] **Concept : Mode Sombre (Dark Mode)**
   - _Idée :_ Option pour basculer l'interface en noir/gris foncé.
   - _But :_ Confort visuel pour le travail de nuit et économie de batterie.
-- [ ] **Concept : Actions en Masse (Bulk Actions)**
+- [x] **Concept : Actions en Masse (Bulk Actions)**
   - _Idée :_ Cases à cocher dans la liste des travailleurs.
   - _But :_ Supprimer ou déplacer 10 travailleurs d'un coup vers un autre département.
 - [ ] **Concept : Recherche Avancée**
@@ -49,9 +45,7 @@
 - [ ] **Concept : Authentification Biométrique**
   - _Idée :_ Utiliser les API natives Android.
   - _But :_ Connexion par empreinte digitale ou FaceID (remplace le PIN).
-- [ ] **Concept : Verrouillage Automatique**
-  - _Idée :_ Timer d'inactivité.
-  - _But :_ Verrouiller l'écran après 5 minutes sans action.
+
 - [ ] **Concept : Logs d'Audit**
   - _Idée :_ Historique technique invisible.
   - _But :_ Savoir qui a modifié une fiche et quand (traçabilité en cas d'erreur).
