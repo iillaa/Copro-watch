@@ -3,8 +3,8 @@ import { db } from '../services/db';
 import { logic } from '../services/logic';
 import backupService from '../services/backup';
 import AddWorkerForm from './AddWorkerForm';
-import BulkActionsToolbar from './BulkActionsToolbar'; // [NEW]
-import MoveWorkersModal from './MoveWorkersModal';     // [NEW]
+import BulkActionsToolbar from './BulkActionsToolbar'; // [NEW] Batch Toolbar
+import MoveWorkersModal from './MoveWorkersModal';     // [NEW] Move Modal
 import {
   FaPlus,
   FaSearch,
@@ -17,16 +17,22 @@ import {
   FaSortUp,
   FaSortDown,
   FaUserPlus,
+  FaCheckSquare, // [NEW] Icon for Toggle
 } from 'react-icons/fa';
 
 export default function WorkerList({ onNavigateWorker, compactMode }) {
-  // 1. Data State
+  // ==================================================================================
+  // 1. STATE MANAGEMENT
+  // ==================================================================================
+  
+  // Data State
   const [workers, setWorkers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [exams, setExams] = useState([]);
 
-  // 2. UI State
+  // UI State
   const [searchTerm, setSearchTerm] = useState('');
+  
   // KEY FIX: Defer the search term. React allows the UI to update immediately
   // while the heavy filtering happens in the background.
   const deferredSearch = useDeferredValue(searchTerm);
@@ -34,27 +40,46 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   const [filterDept, setFilterDept] = useState(
     () => localStorage.getItem('worker_filter_dept') || ''
   );
-  const [sortConfig, setSortConfig] = useState({ key: 'full_name', direction: 'asc' });
+  
+  const [sortConfig, setSortConfig] = useState({ 
+    key: 'full_name', 
+    direction: 'asc' 
+  });
+  
   const [showArchived, setShowArchived] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingWorker, setEditingWorker] = useState(null);
 
-  // [NEW] Batch Operations State
+  // [NEW] BATCH SELECTION STATE
+  // We use localStorage to remember if the user likes the checkboxes visible or hidden
+  const [isSelectionMode, setIsSelectionMode] = useState(
+    () => localStorage.getItem('copro_selection_mode_workers') === 'true'
+  );
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showMoveModal, setShowMoveModal] = useState(false);
 
-  // [NEW] Dynamic Style for Table
-  // If compactMode is ON, limit height to 70vh (keeps headers fixed).
+  // [PRESERVED] Dynamic Style for Compact Mode (Scrolling)
   const scrollStyle = compactMode
     ? { maxHeight: '70vh', overflowY: 'auto' }
     : {};
 
-  // 3. Load Data
+  // ==================================================================================
+  // 2. DATA LOADING & EFFECTS
+  // ==================================================================================
+  
   const loadData = async () => {
-    const [w, d, e] = await Promise.all([db.getWorkers(), db.getDepartments(), db.getExams()]);
-    setWorkers(w);
-    setDepartments(d);
-    setExams(e);
+    try {
+      const [w, d, e] = await Promise.all([
+        db.getWorkers(),
+        db.getDepartments(),
+        db.getExams()
+      ]);
+      setWorkers(w);
+      setDepartments(d);
+      setExams(e);
+    } catch (error) {
+      console.error("Failed to load data:", error);
+    }
   };
 
   useEffect(() => {
@@ -65,9 +90,10 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     localStorage.setItem('worker_filter_dept', filterDept);
   }, [filterDept]);
 
-  // 4. PERFORMANCE ENGINE: useMemo
-  // This replaces the old useEffect + setFilteredWorkers.
-  // It only runs when dependencies change, and it runs DURING render (no double-render).
+  // ==================================================================================
+  // 3. FILTERING & SORTING ENGINE (useMemo)
+  // ==================================================================================
+  
   const filteredWorkers = useMemo(() => {
     let result = workers;
 
@@ -85,23 +111,24 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     if (deferredSearch) {
       const lower = deferredSearch.toLowerCase();
       result = result.filter(
-        (w) => w.full_name.toLowerCase().includes(lower) || w.national_id.includes(lower)
+        (w) => w.full_name.toLowerCase().includes(lower) || 
+               w.national_id.includes(lower)
       );
     }
 
-    // D. Sorting
+    // D. Sorting Logic
     if (sortConfig.key) {
       result = [...result].sort((a, b) => {
         let aVal = a[sortConfig.key];
         let bVal = b[sortConfig.key];
 
-        // Sort by Department Name instead of ID
+        // Sort by Department Name
         if (sortConfig.key === 'department_id') {
           const getDeptName = (id) => departments.find((x) => x.id == id)?.name || '';
           aVal = getDeptName(a.department_id);
           bVal = getDeptName(b.department_id);
         }
-        // Case insensitive sort for text
+        // Case insensitive string sort
         else if (typeof aVal === 'string') {
           aVal = aVal.toLowerCase();
           bVal = bVal ? bVal.toLowerCase() : '';
@@ -115,13 +142,26 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
 
     return result;
   }, [workers, deferredSearch, filterDept, showArchived, sortConfig, departments]);
+  // ==================================================================================
+  // 4. BATCH OPERATIONS HANDLERS
+  // ==================================================================================
+  
+  // Toggle the Checkbox Column ON/OFF
+  const toggleSelectionMode = () => {
+    const newState = !isSelectionMode;
+    setIsSelectionMode(newState);
+    localStorage.setItem('copro_selection_mode_workers', newState);
+    
+    // Safety: If turning OFF, clear selections to avoid accidental deletes later
+    if (!newState) {
+      setSelectedIds(new Set());
+    }
+  };
 
-  // --- NEW: Batch Handlers ---
   const toggleSelectAll = () => {
     if (selectedIds.size === filteredWorkers.length) {
       setSelectedIds(new Set());
     } else {
-      // Create a Set of ALL currently visible IDs
       setSelectedIds(new Set(filteredWorkers.map(w => w.id)));
     }
   };
@@ -135,11 +175,10 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
 
   const handleBatchDelete = async () => {
     if (window.confirm(`Supprimer définitivement ${selectedIds.size} travailleurs ?`)) {
-      const idsToDelete = Array.from(selectedIds);
-      // Execute deletions in parallel
-      await Promise.all(idsToDelete.map(id => db.deleteWorker(id)));
-
+      await Promise.all(Array.from(selectedIds).map(id => db.deleteWorker(id)));
+      
       setSelectedIds(new Set());
+      // [FIX] Mode stays ON after delete
       loadData();
     }
   };
@@ -147,25 +186,26 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   const handleBatchArchive = async () => {
     if (window.confirm(`Archiver ${selectedIds.size} travailleurs ?`)) {
       const targets = workers.filter(w => selectedIds.has(w.id));
-      // Update all to archived
       await Promise.all(targets.map(w => db.saveWorker({ ...w, archived: true })));
-
+      
       setSelectedIds(new Set());
+      // [FIX] Mode stays ON after archive
       loadData();
     }
   };
 
   const handleBatchMoveConfirm = async (deptId) => {
     const targets = workers.filter(w => selectedIds.has(w.id));
-    // Update department for all
     await Promise.all(targets.map(w => db.saveWorker({ ...w, department_id: parseInt(deptId) })));
-
+    
     setShowMoveModal(false);
     setSelectedIds(new Set());
+    // [FIX] Mode stays ON after move
     loadData();
   };
-
-  // --- Handlers ---
+  // ==================================================================================
+  // 5. STANDARD ACTION HANDLERS
+  // ==================================================================================
 
   const handleSort = (key) => {
     let direction = 'asc';
@@ -176,12 +216,12 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   };
 
   const getSortIcon = (key) => {
-    if (sortConfig.key !== key) return <FaSort style={{ opacity: 0.3, marginLeft: '5px' }} />;
-    return sortConfig.direction === 'asc' ? (
-      <FaSortUp style={{ marginLeft: '5px' }} />
-    ) : (
-      <FaSortDown style={{ marginLeft: '5px' }} />
-    );
+    if (sortConfig.key !== key) {
+      return <FaSort style={{ opacity: 0.3, marginLeft: '5px' }} />;
+    }
+    return sortConfig.direction === 'asc' ? 
+      <FaSortUp style={{ marginLeft: '5px' }} /> : 
+      <FaSortDown style={{ marginLeft: '5px' }} />;
   };
 
   const handleEdit = (e, worker) => {
@@ -201,14 +241,11 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   const handleExport = async () => {
     try {
       const json = await db.exportData();
-
-      // Use the backup service to ensure it saves to Documents/copro-watch on Android
-      // and handles permissions automatically.
+      // Use the backup service to ensure it saves correctly
       await backupService.saveBackupJSON(
         json,
         `medical_backup_${new Date().toISOString().split('T')[0]}.json`
       );
-
       alert('Export réussi ! (Vérifiez le dossier Documents/copro-watch)');
     } catch (e) {
       console.error(e);
@@ -232,7 +269,13 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     reader.readAsText(file);
   };
 
-  const getDeptName = (id) => departments.find((x) => x.id == id)?.name || '-';
+  // ==================================================================================
+  // 6. HELPER FUNCTIONS
+  // ==================================================================================
+
+  const getDeptName = (id) => {
+    return departments.find((x) => x.id == id)?.name || '-';
+  };
 
   const getWorkerLastStatus = (workerId) => {
     const workerExams = exams.filter((e) => e.worker_id === workerId);
@@ -253,13 +296,15 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     if (!conf) return null;
 
     return (
-      <span className={`badge ${conf.class}`} style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>
+      <span 
+        className={`badge ${conf.class}`} 
+        style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}
+      >
         {conf.label}
       </span>
     );
   };
 
-  // --- NEW: Empty State UI Component ---
   const emptyStateUI = (
     <div
       className="card"
@@ -273,7 +318,9 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
       }}
     >
       <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🌱</div>
-      <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem' }}>Aucun travailleur enregistré</h3>
+      <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem' }}>
+        Aucun travailleur enregistré
+      </h3>
       <p
         style={{
           color: 'var(--text-muted)',
@@ -285,28 +332,27 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
         Votre base de données est vide. Commencez par ajouter votre premier travailleur.
       </p>
       <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            setEditingWorker(null);
-            setShowForm(true);
-          }}
+        <button 
+          className="btn btn-primary" 
+          onClick={() => { setEditingWorker(null); setShowForm(true); }}
         >
           <FaUserPlus /> Ajouter le premier travailleur
         </button>
       </div>
     </div>
   );
-
+  // ==================================================================================
+  // 7. RENDER COMPONENT
+  // ==================================================================================
   return (
     <div>
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1.5rem',
+      {/* --- HEADER SECTION --- */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '1.5rem' 
         }}
       >
         <div>
@@ -316,60 +362,78 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button className="btn btn-outline" onClick={handleExport} title="Exporter">
+          
+          {/* [NEW] TOGGLE SELECTION MODE BUTTON */}
+          <button
+            className={`btn ${isSelectionMode ? 'btn-primary' : 'btn-outline'}`}
+            onClick={toggleSelectionMode}
+            title={isSelectionMode ? "Masquer la sélection" : "Activer la sélection multiple"}
+          >
+            <FaCheckSquare /> <span className="hide-mobile">Sélection</span>
+          </button>
+
+          <button 
+            className="btn btn-outline" 
+            onClick={handleExport} 
+            title="Exporter"
+          >
             <FaFileDownload /> Export
           </button>
+          
           <label className="btn btn-outline" style={{ cursor: 'pointer' }}>
             <FaFileUpload /> Import
-            <input type="file" onChange={handleImport} style={{ display: 'none' }} accept=".json" />
+            <input 
+              type="file" 
+              onChange={handleImport} 
+              style={{ display: 'none' }} 
+              accept=".json" 
+            />
           </label>
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              setEditingWorker(null);
-              setShowForm(true);
-            }}
+          
+          <button 
+            className="btn btn-primary" 
+            onClick={() => { setEditingWorker(null); setShowForm(true); }}
           >
             <FaPlus /> Nouveau
           </button>
         </div>
       </div>
 
-      {/* --- LOGIC: Show Empty State OR Table --- */}
+      {/* --- MAIN CONTENT SWITCH --- */}
       {workers.length === 0 ? (
         emptyStateUI
       ) : (
         <>
-          {/* Filters Toolbar */}
-          <div
-            className="card"
-            style={{
-              display: 'flex',
-              gap: '1rem',
-              padding: '1rem',
-              alignItems: 'center',
-              marginBottom: '1.5rem',
-              flexWrap: 'wrap',
+          {/* --- FILTERS TOOLBAR --- */}
+          <div 
+            className="card" 
+            style={{ 
+              display: 'flex', 
+              gap: '1rem', 
+              padding: '1rem', 
+              alignItems: 'center', 
+              marginBottom: '1.5rem', 
+              flexWrap: 'wrap' 
             }}
           >
-            <div
-              style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                minWidth: '250px',
-                position: 'relative',
+            <div 
+              style={{ 
+                flex: 1, 
+                display: 'flex', 
+                alignItems: 'center', 
+                minWidth: '250px', 
+                position: 'relative' 
               }}
             >
               <FaSearch style={{ color: 'var(--text-muted)', marginRight: '0.5rem' }} />
               <input
-                style={{
-                  border: 'none',
-                  outline: 'none',
-                  padding: '0.75rem',
-                  width: '100%',
-                  fontSize: '1rem',
-                  background: 'transparent',
+                style={{ 
+                  border: 'none', 
+                  outline: 'none', 
+                  padding: '0.75rem', 
+                  width: '100%', 
+                  fontSize: '1rem', 
+                  background: 'transparent' 
                 }}
                 placeholder="Rechercher..."
                 value={searchTerm}
@@ -378,24 +442,25 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm('')}
-                  style={{
-                    position: 'absolute',
-                    right: '0.5rem',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
+                  style={{ 
+                    position: 'absolute', 
+                    right: '0.5rem', 
+                    background: 'none', 
+                    border: 'none', 
+                    color: 'var(--text-muted)', 
+                    cursor: 'pointer' 
                   }}
                 >
                   ×
                 </button>
               )}
             </div>
-            <div
-              style={{
-                borderLeft: '1px solid var(--border-color)',
-                height: '2rem',
-                margin: '0 0.5rem',
+            
+            <div 
+              style={{ 
+                borderLeft: '1px solid var(--border-color)', 
+                height: '2rem', 
+                margin: '0 0.5rem' 
               }}
             ></div>
 
@@ -409,29 +474,27 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
               >
                 <option value="">Tous les services</option>
                 {departments.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
+                  <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
             </div>
 
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-                color: 'var(--text-muted)',
-                paddingLeft: '10px',
-                borderLeft: '1px solid var(--border-color)',
+            <label 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem', 
+                cursor: 'pointer', 
+                fontSize: '0.9rem', 
+                color: 'var(--text-muted)', 
+                paddingLeft: '10px', 
+                borderLeft: '1px solid var(--border-color)' 
               }}
             >
-              <input
-                type="checkbox"
-                checked={showArchived}
-                onChange={(e) => setShowArchived(e.target.checked)}
+              <input 
+                type="checkbox" 
+                checked={showArchived} 
+                onChange={(e) => setShowArchived(e.target.checked)} 
               />
               Voir archives
             </label>
@@ -439,10 +502,10 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
             {(searchTerm || filterDept) && (
               <button
                 className="btn btn-outline btn-sm"
-                onClick={() => {
-                  setSearchTerm('');
-                  setFilterDept('');
-                  localStorage.removeItem('worker_filter_dept');
+                onClick={() => { 
+                  setSearchTerm(''); 
+                  setFilterDept(''); 
+                  localStorage.removeItem('worker_filter_dept'); 
                 }}
               >
                 Effacer
@@ -450,68 +513,71 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
             )}
           </div>
 
-          {/* Table */}
-          <div
-            className="table-container"
-            style={{
-              ...scrollStyle // <--- [NEW] Apply Dynamic Style
-            }}
-          >
+          {/* --- DATA TABLE --- */}
+          <div className="table-container" style={{ ...scrollStyle }}>
             <table>
               <thead>
                 <tr>
-                  {/* [NEW] Header Checkbox */}
-                  <th style={{ width: '40px', textAlign: 'center' }}>
-                    <input
-                      type="checkbox"
-                      onChange={toggleSelectAll}
-                      checked={
-                        filteredWorkers.length > 0 &&
-                        selectedIds.size === filteredWorkers.length
-                      }
-                      title="Tout sélectionner"
-                    />
-                  </th>
-                  <th
-                    onClick={() => handleSort('full_name')}
+                  {/* [NEW] CONDITIONAL HEADER: Only render <th> if selection mode is ON */}
+                  {isSelectionMode && (
+                    <th style={{ width: '40px', textAlign: 'center' }}>
+                      <input 
+                        type="checkbox" 
+                        onChange={toggleSelectAll} 
+                        checked={
+                          filteredWorkers.length > 0 && 
+                          selectedIds.size === filteredWorkers.length
+                        }
+                        title="Tout sélectionner"
+                      />
+                    </th>
+                  )}
+
+                  <th 
+                    onClick={() => handleSort('full_name')} 
                     style={{ cursor: 'pointer', userSelect: 'none' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       Nom {getSortIcon('full_name')}
                     </div>
                   </th>
-                  <th
-                    onClick={() => handleSort('national_id')}
+                  
+                  <th 
+                    onClick={() => handleSort('national_id')} 
                     style={{ cursor: 'pointer', userSelect: 'none' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       Matricule {getSortIcon('national_id')}
                     </div>
                   </th>
-                  <th
-                    onClick={() => handleSort('department_id')}
+                  
+                  <th 
+                    onClick={() => handleSort('department_id')} 
                     style={{ cursor: 'pointer', userSelect: 'none' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       Service {getSortIcon('department_id')}
                     </div>
                   </th>
-                  <th
-                    onClick={() => handleSort('last_exam_date')}
+                  
+                  <th 
+                    onClick={() => handleSort('last_exam_date')} 
                     style={{ cursor: 'pointer', userSelect: 'none' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       Dernier Examen {getSortIcon('last_exam_date')}
                     </div>
                   </th>
-                  <th
-                    onClick={() => handleSort('next_exam_due')}
+                  
+                  <th 
+                    onClick={() => handleSort('next_exam_due')} 
                     style={{ cursor: 'pointer', userSelect: 'none' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       Prochain Dû {getSortIcon('next_exam_due')}
                     </div>
                   </th>
+                  
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
@@ -519,8 +585,6 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
                 {filteredWorkers.map((w) => {
                   const isOverdue = logic.isOverdue(w.next_exam_due);
                   const status = getWorkerLastStatus(w.id);
-
-                  // Dynamic opacity for better visual hierarchy (stale data during search lag appears dimmed)
                   const isStale = searchTerm !== deferredSearch;
 
                   return (
@@ -534,47 +598,57 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
                         background: w.archived ? '#f9f9f9' : undefined,
                       }}
                     >
-                      {/* [NEW] Row Checkbox */}
-                      <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={selectedIds.has(w.id)} 
-                          onChange={() => toggleSelectOne(w.id)}
-                        />
-                      </td>
+                      {/* [NEW] CONDITIONAL ROW: Only render <td> if selection mode is ON */}
+                      {isSelectionMode && (
+                        <td 
+                          onClick={(e) => e.stopPropagation()} 
+                          style={{ textAlign: 'center' }}
+                        >
+                          <input 
+                            type="checkbox" 
+                            checked={selectedIds.has(w.id)} 
+                            onChange={() => toggleSelectOne(w.id)}
+                          />
+                        </td>
+                      )}
+                      
                       <td style={{ fontWeight: 500 }}>
                         {w.full_name}
                         {w.archived && (
-                          <span
-                            style={{
-                              fontSize: '0.7rem',
-                              background: '#ddd',
-                              color: '#555',
-                              padding: '2px 4px',
-                              borderRadius: '3px',
-                              marginLeft: '6px',
+                          <span 
+                            style={{ 
+                              fontSize: '0.7rem', 
+                              background: '#ddd', 
+                              color: '#555', 
+                              padding: '2px 4px', 
+                              borderRadius: '3px', 
+                              marginLeft: '6px' 
                             }}
                           >
                             Archivé
                           </span>
                         )}
                       </td>
+                      
                       <td>
-                        <span
-                          style={{
-                            fontFamily: 'monospace',
-                            background: w.archived ? '#eee' : 'var(--bg-app)',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
+                        <span 
+                          style={{ 
+                            fontFamily: 'monospace', 
+                            background: w.archived ? '#eee' : 'var(--bg-app)', 
+                            padding: '2px 6px', 
+                            borderRadius: '4px' 
                           }}
                         >
                           {w.national_id}
                         </span>
                       </td>
+                      
                       <td>{getDeptName(w.department_id)}</td>
+                      
                       <td>
                         {w.last_exam_date ? logic.formatDate(new Date(w.last_exam_date)) : '-'}
                       </td>
+                      
                       <td>
                         {w.next_exam_due}
                         {renderStatusBadge(status)}
@@ -587,27 +661,30 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
                           </span>
                         )}
                       </td>
+                      
                       <td style={{ textAlign: 'right' }}>
-                        {/* FIX: Force side-by-side layout with Flexbox */}
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'flex-end',
-                            gap: '0.5rem',
-                            flexWrap: 'nowrap',
+                        <div 
+                          style={{ 
+                            display: 'flex', 
+                            justifyContent: 'flex-end', 
+                            gap: '0.5rem', 
+                            flexWrap: 'nowrap' 
                           }}
                         >
-                          <button
-                            className="btn btn-outline btn-sm"
-                            onClick={(e) => handleEdit(e, w)}
+                          <button 
+                            className="btn btn-outline btn-sm" 
+                            onClick={(e) => handleEdit(e, w)} 
                             title="Modifier"
                           >
                             <FaEdit />
                           </button>
-                          <button
-                            className="btn btn-outline btn-sm"
-                            onClick={(e) => handleDelete(e, w)}
-                            style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                          <button 
+                            className="btn btn-outline btn-sm" 
+                            onClick={(e) => handleDelete(e, w)} 
+                            style={{ 
+                              color: 'var(--danger)', 
+                              borderColor: 'var(--danger)' 
+                            }} 
                             title="Supprimer"
                           >
                             <FaTrash />
@@ -617,26 +694,28 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
                     </tr>
                   );
                 })}
+                
+                {/* EMPTY SEARCH STATE */}
                 {filteredWorkers.length === 0 && (
                   <tr>
-                    <td
-                      colSpan="6"
-                      style={{
-                        textAlign: 'center',
-                        padding: '4rem 2rem',
-                        color: 'var(--text-muted)',
+                    {/* [FIX] Dynamic ColSpan: 7 if Selection Mode is ON, 6 if OFF */}
+                    <td 
+                      colSpan={isSelectionMode ? 7 : 6} 
+                      style={{ 
+                        textAlign: 'center', 
+                        padding: '4rem 2rem', 
+                        color: 'var(--text-muted)' 
                       }}
                     >
-                      <div style={{ opacity: 0.5, fontSize: '2rem', marginBottom: '1rem' }}>🔍</div>
+                      <div style={{ opacity: 0.5, fontSize: '2rem', marginBottom: '1rem' }}>
+                        🔍
+                      </div>
                       <p style={{ fontWeight: 500, marginBottom: '0.5rem' }}>
                         Aucun résultat trouvé
                       </p>
-                      <button
-                        className="btn btn-outline btn-sm"
-                        onClick={() => {
-                          setSearchTerm('');
-                          setFilterDept('');
-                        }}
+                      <button 
+                        className="btn btn-outline btn-sm" 
+                        onClick={() => { setSearchTerm(''); setFilterDept(''); }}
                       >
                         Effacer les filtres
                       </button>
@@ -649,7 +728,7 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
         </>
       )}
 
-      {/* [NEW] Batch UI Elements */}
+      {/* --- BATCH ACTION TOOLBAR --- */}
       {selectedIds.size > 0 && (
         <BulkActionsToolbar
           selectedCount={selectedIds.size}
@@ -660,6 +739,7 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
         />
       )}
 
+      {/* --- MOVE MODAL --- */}
       {showMoveModal && (
         <MoveWorkersModal
           departments={departments}
@@ -668,6 +748,7 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
         />
       )}
 
+      {/* --- ADD/EDIT WORKER FORM --- */}
       {showForm && (
         <AddWorkerForm
           workerToEdit={editingWorker}

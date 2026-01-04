@@ -2,13 +2,19 @@ import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
 import ExamForm from './ExamForm';
-// AJOUT : Import des icônes d'archive
-import { FaArrowLeft, FaFileMedical, FaTrash, FaArchive, FaBoxOpen } from 'react-icons/fa';
+// AJOUT : Import des icônes d'archive et FaCheckSquare
+import { 
+  FaArrowLeft, 
+  FaFileMedical, 
+  FaTrash, 
+  FaArchive, 
+  FaBoxOpen, 
+  FaCheckSquare // [NEW] Icon
+} from 'react-icons/fa';
 import BulkActionsToolbar from './BulkActionsToolbar'; // [NEW] Import Toolbar
 
 export default function WorkerDetail({ workerId, onBack, compactMode }) {
   const [worker, setWorker] = useState(null);
-  // [FIX] Define the missing state
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [exams, setExams] = useState([]);
   const [showExamForm, setShowExamForm] = useState(false);
@@ -17,29 +23,38 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
   const [deptName, setDeptName] = useState('');
   const [workplaceName, setWorkplaceName] = useState('');
 
+  // [NEW] Persistent Selection Mode State
+  const [isSelectionMode, setIsSelectionMode] = useState(
+    () => localStorage.getItem('copro_selection_mode_medical') === 'true'
+  );
+
   // [NEW] Dynamic Style for Table
   const scrollStyle = compactMode
     ? { maxHeight: '350px', overflowY: 'auto' }
     : {};
 
   const loadData = async () => {
-    const w = (await db.getWorkers()).find((x) => x.id === workerId);
-    setWorker(w);
+    try {
+      const w = (await db.getWorkers()).find((x) => x.id === workerId);
+      setWorker(w);
 
-    if (w) {
-      const depts = await db.getDepartments();
-      const works = await db.getWorkplaces();
-      const d = depts.find((x) => x.id == w.department_id);
-      const wp = works.find((x) => x.id == w.workplace_id);
-      setDeptName(d ? d.name : '-');
-      setWorkplaceName(wp ? wp.name : '-');
+      if (w) {
+        const depts = await db.getDepartments();
+        const works = await db.getWorkplaces();
+        const d = depts.find((x) => x.id == w.department_id);
+        const wp = works.find((x) => x.id == w.workplace_id);
+        setDeptName(d ? d.name : '-');
+        setWorkplaceName(wp ? wp.name : '-');
+      }
+
+      const allExams = await db.getExams();
+      const wExams = allExams.filter((e) => e.worker_id === workerId);
+      // Sort desc
+      wExams.sort((a, b) => new Date(b.exam_date) - new Date(a.exam_date));
+      setExams(wExams);
+    } catch (e) {
+      console.error(e);
     }
-
-    const allExams = await db.getExams();
-    const wExams = allExams.filter((e) => e.worker_id === workerId);
-    // Sort desc
-    wExams.sort((a, b) => new Date(b.exam_date) - new Date(a.exam_date));
-    setExams(wExams);
   };
 
   useEffect(() => {
@@ -47,6 +62,16 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
   }, [workerId]);
 
   // --- NEW: Batch Handlers ---
+  
+  // [NEW] Toggle Function
+  const toggleSelectionMode = () => {
+    const newState = !isSelectionMode;
+    setIsSelectionMode(newState);
+    localStorage.setItem('copro_selection_mode_medical', newState);
+    // Clear selection if turning off
+    if (!newState) setSelectedIds(new Set());
+  };
+
   const toggleSelectAll = () => {
     if (selectedIds.size === exams.length) {
       setSelectedIds(new Set());
@@ -68,6 +93,7 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
       await Promise.all(idsToDelete.map(id => db.deleteExam(id)));
 
       setSelectedIds(new Set());
+      // We keep selection mode ON here so you can continue deleting if needed
       loadData();
     }
   };
@@ -88,7 +114,6 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
       loadData();
     }
   };
-
   // NOUVELLE FONCTION : Gère l'archivage
   const handleToggleArchive = async () => {
     const newStatus = !worker.archived;
@@ -184,6 +209,15 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {/* [NEW] Toggle Button */}
+            <button
+              className={`btn ${isSelectionMode ? 'btn-primary' : 'btn-outline'}`}
+              onClick={toggleSelectionMode}
+              title={isSelectionMode ? "Masquer la sélection" : "Sélection multiple"}
+            >
+              <FaCheckSquare /> <span className="hide-mobile">Sélection</span>
+            </button>
+
             {/* Bouton Nouvel Examen */}
             <button className="btn btn-primary" onClick={handleNewExam} disabled={worker.archived}>
               <FaFileMedical /> Nouvel Examen
@@ -261,13 +295,16 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
         <table>
           <thead>
             <tr>
-              <th style={{ textAlign: 'center' }}>
-                <input
-                  type="checkbox"
-                  checked={selectedIds.size === exams.length && exams.length > 0}
-                  onChange={toggleSelectAll}
-                />
-              </th>
+              {/* [NEW] Conditional Header Checkbox */}
+              {isSelectionMode && (
+                <th style={{ textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.size === exams.length && exams.length > 0}
+                    onChange={toggleSelectAll}
+                  />
+                </th>
+              )}
               <th>Date</th>
               <th>Médecin</th>
               <th>Résultat Labo</th>
@@ -278,14 +315,16 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
           <tbody>
             {exams.map((e) => (
               <tr key={e.id}>
-                {/* [NEW] Row Checkbox */}
-                <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(e.id)}
-                    onChange={() => toggleSelectOne(e.id)}
-                  />
-                </td>
+                {/* [NEW] Conditional Row Checkbox */}
+                {isSelectionMode && (
+                  <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(e.id)}
+                      onChange={() => toggleSelectOne(e.id)}
+                    />
+                  </td>
+                )}
                 <td>{e.exam_date}</td>
                 <td>{e.physician_name}</td>
                 <td>
@@ -323,7 +362,8 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
             ))}
             {exams.length === 0 && (
               <tr>
-                <td colSpan="6" style={{ textAlign: 'center' }}>
+                {/* [NEW] Dynamic ColSpan: 6 if Mode ON, 5 if Mode OFF */}
+                <td colSpan={isSelectionMode ? 6 : 5} style={{ textAlign: 'center' }}>
                   Aucun historique.
                 </td>
               </tr>
