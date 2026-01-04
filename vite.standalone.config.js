@@ -4,14 +4,18 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 
 export default defineConfig({
   plugins: [react(), viteSingleFile()],
-  base: './',
+  base: './', // Important pour que les liens soient relatifs (file://)
   build: {
     target: 'esnext',
-    assetsInlineLimit: 100000000,
-    cssCodeSplit: false,
+    assetsInlineLimit: 100000000, // Force tout (images, CSS) dans le JS
+    cssCodeSplit: false, // Empêche de créer un fichier .css séparé
     rollupOptions: {
-      inlineDynamicImports: true,
+      // CORRECTION ICI : on déplace inlineDynamicImports dans 'output'
+      output: {
+        inlineDynamicImports: true,
+      },
     },
-    outDir: 'dist-standalone', // Keeps it separate from your Android build
+    outDir: 'dist-standalone', // Dossier de sortie séparé
+    emptyOutDir: true, // Nettoie le dossier avant de construire
   },
 });
