@@ -9,7 +9,8 @@ import {
   FaTrash, 
   FaArchive, 
   FaBoxOpen, 
-  FaCheckSquare // [NEW] Icon
+  FaCheckSquare, // [NEW] Icon
+  FaEye
 } from 'react-icons/fa';
 import BulkActionsToolbar from './BulkActionsToolbar'; // [NEW] Import Toolbar
 
@@ -28,10 +29,12 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
     () => localStorage.getItem('copro_selection_mode_medical') === 'true'
   );
 
-  // [NEW] Dynamic Style for Table
-  const scrollStyle = compactMode
-    ? { maxHeight: '350px', overflowY: 'auto' }
-    : {};
+  // [SMART GRID] Config for Medical History (Based on your columns)
+  // Cols: Check(50) | Date(0.9) | Médecin(1.2) | Labo(1.1) | Statut(1) | Actions(100)
+  const gridTemplate = isSelectionMode 
+    ? "50px 0.9fr 1.2fr 1.1fr 1fr 100px" 
+    : "0px 0.9fr 1.2fr 1.1fr 1fr 100px";
+  
 
   const loadData = async () => {
     try {
@@ -284,50 +287,63 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
         </div>
       </div>
 
-      <h3>Historique Médical</h3>
-      <div
-        className="card"
-        style={{
-          padding: 0,
-          ...scrollStyle // <--- [NEW] Apply Dynamic Style
-        }}
-      >
-        <table>
-          <thead>
-            <tr>
-              {/* [NEW] Conditional Header Checkbox */}
+      {/* --- TITLE --- */}
+      <h3 style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>Historique Médical</h3>
+
+      {/* --- HYBRID HISTORY LIST --- */}
+      <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '400px' : 'none' }}>
+        <div className="hybrid-container" style={{ minWidth: '700px' }}>
+          
+          {/* 1. HEADER CARD */}
+          <div className="hybrid-header" style={{ gridTemplateColumns: gridTemplate }}>
+            <div style={{ textAlign: 'center' }}>
               {isSelectionMode && (
-                <th style={{ textAlign: 'center' }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.size === exams.length && exams.length > 0}
-                    onChange={toggleSelectAll}
-                  />
-                </th>
+                <input
+                  type="checkbox"
+                  onChange={toggleSelectAll}
+                  checked={exams.length > 0 && selectedIds.size === exams.length}
+                />
               )}
-              <th>Date</th>
-              <th>Médecin</th>
-              <th>Résultat Labo</th>
-              <th>Statut Final</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {exams.map((e) => (
-              <tr key={e.id}>
-                {/* [NEW] Conditional Row Checkbox */}
-                {isSelectionMode && (
-                  <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
+            </div>
+            <div>Date</div>
+            <div>Médecin</div>
+            <div>Résultat Labo</div>
+            <div>Statut Final</div>
+            <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>Actions</div>
+          </div>
+
+          {/* 2. ROW CARDS */}
+          {exams.map((e) => {
+            const isSelected = selectedIds.has(e.id);
+            return (
+              <div 
+                key={e.id}
+                className={`hybrid-row ${isSelected ? 'selected' : ''}`}
+                style={{ gridTemplateColumns: gridTemplate }}
+              >
+                {/* Col 1: Checkbox */}
+                <div style={{ textAlign: 'center', overflow: 'hidden' }}>
+                  {isSelectionMode && (
                     <input
                       type="checkbox"
-                      checked={selectedIds.has(e.id)}
+                      checked={isSelected}
                       onChange={() => toggleSelectOne(e.id)}
                     />
-                  </td>
-                )}
-                <td>{e.exam_date}</td>
-                <td>{e.physician_name}</td>
-                <td>
+                  )}
+                </div>
+                
+                {/* Col 2: Date */}
+                <div className="hybrid-cell" style={{ fontWeight: 800 }}>
+                  {e.exam_date}
+                </div>
+                
+                {/* Col 3: Médecin */}
+                <div className="hybrid-cell">
+                  {e.physician_name || '-'}
+                </div>
+                
+                {/* Col 4: Labo */}
+                <div className="hybrid-cell">
                   {e.lab_result ? (
                     <span
                       className={`badge ${
@@ -337,39 +353,48 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
                       {e.lab_result.result === 'positive' ? 'Positif' : 'Négatif'}
                     </span>
                   ) : (
-                    'En attente'
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>En attente</span>
                   )}
-                </td>
-                <td>{renderStatusBadge(e.decision?.status)}</td>
-                <td>
+                </div>
+                
+                {/* Col 5: Statut */}
+                <div className="hybrid-cell">
+                  {renderStatusBadge(e.decision?.status)}
+                </div>
+                
+                {/* Col 6: Actions */}
+                <div className="hybrid-actions">
                   <button
                     className="btn btn-outline btn-sm"
                     onClick={() => handleOpenExam(e)}
-                    style={{ marginRight: '0.5rem' }}
+                    title="Voir Détails"
                   >
-                    Détails
+                    <FaEye />
                   </button>
                   <button
                     className="btn btn-outline btn-sm"
                     onClick={() => handleDeleteExam(e.id)}
-                    style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+                    style={{ 
+                      color: 'var(--danger)', 
+                      borderColor: 'var(--danger)', 
+                      backgroundColor: '#fff1f2' 
+                    }}
                     title="Supprimer"
                   >
                     <FaTrash />
                   </button>
-                </td>
-              </tr>
-            ))}
-            {exams.length === 0 && (
-              <tr>
-                {/* [NEW] Dynamic ColSpan: 6 if Mode ON, 5 if Mode OFF */}
-                <td colSpan={isSelectionMode ? 6 : 5} style={{ textAlign: 'center' }}>
-                  Aucun historique.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                </div>
+              </div>
+            );
+          })}
+          
+          {exams.length === 0 && (
+             <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+               <div style={{ fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.5 }}>📂</div>
+               <p>Aucun historique médical.</p>
+             </div>
+          )}
+        </div>
       </div>
 
       {/* [NEW] Batch Toolbar (Delete Only) */}

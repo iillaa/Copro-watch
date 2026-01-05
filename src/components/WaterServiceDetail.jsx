@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
 import WaterAnalysisForm from './WaterAnalysisForm';
-import BulkActionsToolbar from './BulkActionsToolbar'; // [NEW] Batch Toolbar
+import BulkActionsToolbar from './BulkActionsToolbar';
 import { 
   FaArrowLeft, 
   FaFlask, 
   FaTrash, 
-  FaEdit, 
-  FaCheckSquare // [NEW] Icon
+  FaEye, // [NEW] Eye Icon for Details
+  FaCheckSquare 
 } from 'react-icons/fa';
 
 export default function WaterServiceDetail({ department, onBack, onSave, compactMode }) {
@@ -16,11 +16,6 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
   // 1. STATE MANAGEMENT
   // ==================================================================================
   
-  // [PRESERVED] Dynamic Style for Compact Mode (Scrolling)
-  const scrollStyle = compactMode
-    ? { maxHeight: '400px', overflowY: 'auto' }
-    : {};
-
   const [analyses, setAnalyses] = useState([]);
   const [allAnalyses, setAllAnalyses] = useState([]);
   
@@ -29,24 +24,25 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
   const [selectedAnalysis, setSelectedAnalysis] = useState(null);
   const [editingAnalysis, setEditingAnalysis] = useState(null);
 
-  // [NEW] BATCH SELECTION STATE
-  // Persistent Toggle: remembers if you left it ON last time
+  // [BATCH SELECTION STATE]
   const [isSelectionMode, setIsSelectionMode] = useState(
     () => localStorage.getItem('copro_selection_mode_water') === 'true'
   );
   const [selectedIds, setSelectedIds] = useState(new Set());
+
+  // [SMART GRID CONFIG] 
+  // Cols: Check(50) | Demande(1) | Prelev(1) | Result(1) | Verdict(1) | Notes(1.5) | Actions(100)
+  const gridTemplate = isSelectionMode 
+    ? "50px 0.9fr 0.9fr 0.9fr 1fr 1.5fr 100px" 
+    : "0px 0.9fr 0.9fr 0.9fr 1fr 1.5fr 100px";
 
   // ==================================================================================
   // 2. DATA LOADING
   // ==================================================================================
   
   const loadData = async () => {
-    // Reload all data to ensure sync
     const all = await db.getWaterAnalyses();
-    
-    // Use the logic helper to get sorted history for this department
     const deptHistory = logic.getDepartmentWaterHistory(department.id, all);
-
     setAnalyses(deptHistory);
     setAllAnalyses(all);
   };
@@ -54,8 +50,9 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
   useEffect(() => {
     loadData();
   }, [department.id]);
+
   // ==================================================================================
-  // 3. STANDARD HANDLERS
+  // 3. HANDLERS
   // ==================================================================================
 
   const handleNewAnalysis = () => {
@@ -86,7 +83,6 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
     if (onSave) onSave();
   };
 
-  // Helper: Status Badges
   const renderStatusBadge = (result) => {
     if (!result || result === 'pending')
       return <span className="badge badge-yellow">En attente</span>;
@@ -95,32 +91,24 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
     return '-';
   };
 
-  // Helper: Current Department Status
   const currentStatus = logic.getServiceWaterStatus(department.id, allAnalyses);
   const statusLabel = logic.getServiceWaterStatusLabel(currentStatus.status);
   const statusColor = logic.getServiceWaterStatusColor(currentStatus.status);
 
   // ==================================================================================
-  // 4. BATCH OPERATIONS HANDLERS
+  // 4. BATCH HANDLERS
   // ==================================================================================
   
   const toggleSelectionMode = () => {
     const newState = !isSelectionMode;
     setIsSelectionMode(newState);
     localStorage.setItem('copro_selection_mode_water', newState);
-    
-    // Clear selection when turning OFF
-    if (!newState) {
-      setSelectedIds(new Set());
-    }
+    if (!newState) setSelectedIds(new Set());
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === analyses.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(analyses.map(a => a.id)));
-    }
+    if (selectedIds.size === analyses.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(analyses.map(a => a.id)));
   };
 
   const toggleSelectOne = (id) => {
@@ -134,15 +122,14 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
     if (window.confirm(`Supprimer définitivement ${selectedIds.size} analyses ?`)) {
       const idsToDelete = Array.from(selectedIds);
       await Promise.all(idsToDelete.map(id => db.deleteWaterAnalysis(id)));
-      
       setSelectedIds(new Set());
-      // [FIX] Keep Mode ON after delete (User Preference)
       loadData();
       if (onSave) onSave();
     }
   };
+
   // ==================================================================================
-  // 5. RENDER COMPONENT
+  // 5. RENDER (Hybrid Card V4)
   // ==================================================================================
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
@@ -165,8 +152,6 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
           </div>
           
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-          
-          {/* [NEW] TOGGLE SELECTION MODE (Icon Only) */}
             <button
               className={`btn ${isSelectionMode ? 'btn-primary' : 'btn-outline'}`}
               onClick={toggleSelectionMode}
@@ -189,89 +174,118 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
         </div>
       </div>
 
-      {/* History Table */}
-      <h3>Historique</h3>
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div
-          className="table-container"
-          style={{
-            boxShadow: 'none',
-            border: 'none',
-            borderRadius: 0,
-            ...scrollStyle // Apply Compact Mode scroll here
-          }}
-        >
-          <table>
-            <thead>
-              <tr>
-                {/* [NEW] CONDITIONAL HEADER CHECKBOX */}
-                {isSelectionMode && (
-                  <th style={{ width: '40px', textAlign: 'center' }}>
+      {/* History Title */}
+      <h3 style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>Historique</h3>
+
+      {/* --- HYBRID LIST CONTAINER --- */}
+      <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '500px' : 'none' }}>
+        <div className="hybrid-container" style={{ minWidth: '800px' }}>
+          
+          {/* 1. STICKY HEADER */}
+          <div className="hybrid-header" style={{ gridTemplateColumns: gridTemplate }}>
+            <div style={{ textAlign: 'center' }}>
+              {isSelectionMode && (
+                <input
+                  type="checkbox"
+                  onChange={toggleSelectAll}
+                  checked={analyses.length > 0 && selectedIds.size === analyses.length}
+                />
+              )}
+            </div>
+            <div>Date Demande</div>
+            <div>Date Prélèvement</div>
+            <div>Date Résultat</div>
+            <div>Verdict</div>
+            <div>Notes</div>
+            <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>Actions</div>
+          </div>
+
+          {/* 2. DATA ROWS */}
+          {analyses.map((a) => {
+            const isSelected = selectedIds.has(a.id);
+            return (
+              <div 
+                key={a.id}
+                className={`hybrid-row ${isSelected ? 'selected' : ''}`}
+                style={{ gridTemplateColumns: gridTemplate }}
+              >
+                {/* Checkbox */}
+                <div style={{ textAlign: 'center' }}>
+                  {isSelectionMode && (
                     <input
                       type="checkbox"
-                      onChange={toggleSelectAll}
-                      checked={analyses.length > 0 && selectedIds.size === analyses.length}
+                      checked={isSelected}
+                      onChange={() => toggleSelectOne(a.id)}
+                      onClick={(e) => e.stopPropagation()}
                     />
-                  </th>
-                )}
-                
-                <th>Date Demande</th>
-                <th>Date Prélèvement</th>
-                <th>Date Résultat</th>
-                <th>Verdict</th>
-                <th>Notes</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {analyses.map((a) => (
-                <tr key={a.id}>
-                  {/* [NEW] CONDITIONAL ROW CHECKBOX */}
-                  {isSelectionMode && (
-                    <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(a.id)}
-                        onChange={() => toggleSelectOne(a.id)}
-                      />
-                    </td>
                   )}
-                  
-                  <td>{logic.formatDateDisplay(a.request_date)}</td>
-                  <td style={{ fontWeight: 600 }}>{logic.formatDateDisplay(a.sample_date)}</td>
-                  <td>{logic.formatDateDisplay(a.result_date)}</td>
-                  <td>{renderStatusBadge(a.result)}</td>
-                  <td style={{ maxWidth: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {a.notes || '-'}
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button className="btn btn-outline btn-sm" onClick={() => handleEdit(a)} style={{ marginRight: '0.5rem' }}>
-                      <FaEdit /> Détails
-                    </button>
-                    <button className="btn btn-outline btn-sm" onClick={() => handleDeleteAnalysis(a.id)} style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}>
-                      <FaTrash />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              
-              {analyses.length === 0 && (
-                <tr>
-                  {/* [FIX] Dynamic ColSpan: 7 if Selection Mode is ON, 6 if OFF */}
-                  <td 
-                    colSpan={isSelectionMode ? 7 : 6} 
-                    style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}
+                </div>
+
+                {/* Date Demande */}
+                <div className="hybrid-cell">
+                  {logic.formatDateDisplay(a.request_date)}
+                </div>
+
+                {/* Date Prélèvement */}
+                <div className="hybrid-cell" style={{ fontWeight: 800 }}>
+                  {logic.formatDateDisplay(a.sample_date)}
+                </div>
+
+                {/* Date Résultat */}
+                <div className="hybrid-cell">
+                  {logic.formatDateDisplay(a.result_date)}
+                </div>
+
+                {/* Verdict */}
+                <div className="hybrid-cell">
+                  {renderStatusBadge(a.result)}
+                </div>
+
+                {/* Notes */}
+                <div className="hybrid-cell" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                  {a.notes ? (
+                    <span title={a.notes}>
+                      {a.notes.length > 30 ? `${a.notes.substring(0, 30)}...` : a.notes}
+                    </span>
+                  ) : '-'}
+                </div>
+
+                {/* Actions */}
+                <div className="hybrid-actions">
+                  <button 
+                    className="btn btn-outline btn-sm" 
+                    onClick={() => handleEdit(a)} 
+                    title="Voir Détails"
                   >
-                    Aucune analyse enregistrée.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    <FaEye />
+                  </button>
+                  <button 
+                    className="btn btn-outline btn-sm" 
+                    onClick={() => handleDeleteAnalysis(a.id)} 
+                    style={{ 
+                      color: 'var(--danger)', 
+                      borderColor: 'var(--danger)', 
+                      backgroundColor: '#fff1f2' 
+                    }}
+                    title="Supprimer"
+                  >
+                    <FaTrash />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          
+          {analyses.length === 0 && (
+             <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+               <div style={{ fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.5 }}>🧪</div>
+               <p>Aucune analyse enregistrée.</p>
+             </div>
+          )}
         </div>
       </div>
 
-      {/* [NEW] BATCH TOOLBAR (Delete Only) */}
+      {/* Batch Toolbar */}
       {selectedIds.size > 0 && (
         <BulkActionsToolbar
           selectedCount={selectedIds.size}

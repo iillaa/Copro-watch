@@ -7,6 +7,7 @@ import {
   FaExclamationTriangle,
   FaMicroscope,
   FaClock,
+  FaEye
 } from 'react-icons/fa';
 
 export default function Dashboard({ onNavigateWorker, compactMode }) {
@@ -22,10 +23,8 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   // [END INJECTION]
-  // Dynamic style for tables
-  const scrollStyle = compactMode 
-    ? { maxHeight: '350px', overflowY: 'auto' } // Internal Scroll ON
-    : {}; // Internal Scroll OFF (Full Height)
+  // [GRID CONFIG] Name(1.5) | Date(1) | Action(80)
+const gridDashboard = "1.5fr 1fr 80px";
 
   const loadStats = async () => {
     try {
@@ -138,7 +137,10 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
                   padding: '0.5rem 0.2rem',
                   textAlign: 'center',
                   margin: 0,
-                  gap: '2px' // Small gap between items
+                  gap: '2px', // Small gap between items
+                  boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
+                  border: '2px solid #000000',
+                  
                 }
               : {
                   // DESKTOP STYLE: Your Original (Horizontal)
@@ -146,6 +148,8 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   background: 'var(--warning-light)',
+                  boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
+                  border: '2px solid #000000',
                   padding: '1.5rem',
                 }
           }
@@ -212,7 +216,11 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
                   padding: '0.5rem 0.2rem',
                   textAlign: 'center',
                   margin: 0,
+                  border: '2px solid #000000', // [NEW]
+                  boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
                   gap: '2px' // Small gap between items
+                  // [NEW]
+                
                 }
               : {
                   // DESKTOP STYLE
@@ -221,6 +229,9 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
                   alignItems: 'center',
                   background: 'var(--danger-light)',
                   padding: '1.5rem',
+                  border: '2px solid #000000', // [NEW]
+                  boxShadow: '4px 4px 0px rgba(0,0,0,0.1)', // [NEW]
+                
                 }
           }
         >
@@ -286,7 +297,11 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
                   padding: '0.5rem 0.2rem',
                   textAlign: 'center',
                   margin: 0,
+                  border: '2px solid #000000', // [NEW]
+                  boxShadow: '4px 4px 0px rgba(0,0,0,0.1)', 
                   gap: '2px' // Small gap between items
+                  // [NEW]
+                
                 }
               : {
                   // DESKTOP STYLE
@@ -295,6 +310,9 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
                   alignItems: 'center',
                   background: 'var(--primary-light)',
                   padding: '1.5rem',
+                  border: '2px solid #000000', // [NEW]
+                  boxShadow: '4px 4px 0px rgba(0,0,0,0.1)' // [NEW]
+                
                 }
           }
         >
@@ -350,205 +368,124 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
           gap: '1.5rem',
         }}
       >
-        {/* TABLEAU 1 : Examens à prévoir (Retard & Bientôt) */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div
-            style={{
-              padding: '1.5rem',
-              borderBottom: 'var(--border-width) solid var(--border-color)',
-              background: 'white',
-            }}
-          >
+       {/* TABLEAU 1 : Examens à prévoir */}
+        <div className="card" style={{ padding: 0, overflow: 'hidden', border: 'none', boxShadow: 'none', background: 'transparent' }}>
+          
+          {/* Title */}
+          <div style={{ paddingBottom: '0.5rem', background: 'transparent' }}>
             <h3 style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <FaClock /> Examens à prévoir
             </h3>
           </div>
 
           {stats.dueSoon.length === 0 && stats.overdue.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', background: 'white', borderRadius: '12px', border: '2px solid #eee' }}>
               Rien à signaler. Tout est à jour !
             </div>
           ) : (
-            <div
-              className="table-container"
-              style={{
-                border: 'none',
-                boxShadow: 'none',
-                borderRadius: 0,
-                ...scrollStyle // <--- THIS APPLIES THE DYNAMIC LOGIC
-              }}
-            >
-              <table>
-                <thead>
-                  <tr>
-                    <th>Nom</th>
-                    {/* FIX: Added whiteSpace: 'nowrap' to prevent header splitting */}
-                    <th style={{ whiteSpace: 'nowrap' }}>Date Prévue</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* D'abord les retards (Priorité absolue) */}
-                  {stats.overdue.map((w) => (
-                    <tr key={w.id} className="overdue-worker-row">
-                      <td>
-                        {/* FIX: Flexbox puts Name + Badge side-by-side */}
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            flexWrap: 'wrap',
-                          }}
-                        >
-                          <span style={{ fontWeight: 700, color: 'var(--danger-text)' }}>
-                            {w.full_name}
-                          </span>
-                          {/* FIX: Smaller, compact badge */}
-                          <span
-                            className="badge badge-red"
-                            style={{
-                              fontSize: '0.65rem',
-                              padding: '2px 6px',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            En Retard
-                          </span>
-                        </div>
-                      </td>
-                      <td
-                        style={{ color: 'var(--danger)', fontWeight: 'bold', whiteSpace: 'nowrap' }}
-                      >
-                        {logic.formatDate(new Date(w.next_exam_due))}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <button
-                          className="btn btn-sm btn-outline"
-                          onClick={() => onNavigateWorker(w.id)}
-                        >
-                          Voir <FaChevronRight size={10} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+            <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '350px' : 'none', background: 'transparent', border: 'none', padding: 0, margin: 0 }}>
+              <div className="hybrid-container" style={{ minWidth: '100%' }}>
+                
+                {/* HEADER */}
+                <div className="hybrid-header" style={{ gridTemplateColumns: gridDashboard }}>
+                  <div>Nom</div>
+                  <div style={{ whiteSpace: 'nowrap' }}>Date Prévue</div>
+                  <div style={{ textAlign: 'right' }}>Action</div>
+                </div>
 
+                {/* 1. OVERDUE ROWS (Red) */}
+                {stats.overdue.map((w) => (
+                  <div key={w.id} className="hybrid-row overdue-worker-row" style={{ gridTemplateColumns: gridDashboard }}>
+                    {/* Name + Badge */}
+                    <div className="hybrid-cell" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontWeight: 800, color: 'var(--danger-text)' }}>{w.full_name}</span>
+                      <span className="badge badge-red" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>RETARD</span>
+                    </div>
+                    {/* Date */}
+                    <div className="hybrid-cell" style={{ color: 'var(--danger)', fontWeight: 'bold' }}>
+                      {logic.formatDate(new Date(w.next_exam_due))}
+                    </div>
+                    {/* Action */}
+                    <div className="hybrid-actions">
+                      <button className="btn btn-sm btn-outline" onClick={() => onNavigateWorker(w.id)} title="Voir Dossier">
+                        <FaEye />
               
-                 {/* Ensuite les examens à venir */}
-                  {stats.dueSoon.map((w) => (
-                    <tr key={w.id}>
-                      {/* Column 1: Name */}
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{w.full_name}</div>
-                      </td>
+                      </button>
+                    </div>
+                  </div>
+                ))}
 
-                      {/* Column 2: Date (Fixed NOWRAP) */}
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        {logic.formatDate(new Date(w.next_exam_due))}
-                      </td>
+                {/* 2. UPCOMING ROWS (Normal) */}
+                {stats.dueSoon.map((w) => (
+                  <div key={w.id} className="hybrid-row" style={{ gridTemplateColumns: gridDashboard }}>
+                    <div className="hybrid-cell" style={{ fontWeight: 600 }}>
+                      {w.full_name}
+                    </div>
+                    <div className="hybrid-cell">
+                      {logic.formatDate(new Date(w.next_exam_due))}
+                    </div>
+                    <div className="hybrid-actions">
+                      <button className="btn btn-sm btn-outline" onClick={() => onNavigateWorker(w.id)} title="Voir Dossier">
+                        <FaEye />
+                      </button>
+                    </div>
+                  </div>
+                ))}
 
-                      {/* Column 3: Button */}
-                      <td style={{ textAlign: 'right' }}>
-                        <button
-                          className="btn btn-sm btn-outline"
-                          onClick={() => onNavigateWorker(w.id)}
-                        >
-                          Voir <FaChevronRight size={10} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              </div>
             </div>
           )}
         </div>
 
-        {/* TABLEAU 2 : Contre-visites (Suivi) */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div
-            style={{
-              padding: '1.5rem',
-              borderBottom: 'var(--border-width) solid var(--border-color)',
-              background: 'white',
-            }}
-          >
-            <h3 style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        {/* TABLEAU 2 : Contre-visites */}
+        <div className="card" style={{ padding: 0, overflow: 'hidden', border: 'none', boxShadow: 'none', background: 'transparent' }}>
+          
+          {/* Title */}
+          <div style={{ paddingBottom: '0.5rem', background: 'transparent' }}>
+             <h3 style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <FaMicroscope color="var(--primary)" /> Contre-visites
             </h3>
           </div>
 
           {stats.retests.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', background: 'white', borderRadius: '12px', border: '2px solid #eee' }}>
               Aucune contre-visite prévue.
             </div>
           ) : (
-            <div
-              className="table-container"
-              style={{
-                border: 'none',
-                boxShadow: 'none',
-                borderRadius: 0,
-                ...scrollStyle // <--- THIS APPLIES THE DYNAMIC LOGIC
-              }}
-            >
-              <table>
-                <thead>
-                  <tr>
-                    <th>Patient (Suivi)</th>
-                    <th>Date Prévue</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.retests.map((item) => (
-                    <tr key={item.worker.id}>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          {/* ICÔNE DE SUIVI */}
-                          <div
-                            style={{
-                              background: 'var(--primary-light)',
-                              padding: '6px',
-                              borderRadius: '50%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <FaMicroscope size={14} color="var(--primary)" />
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: 600 }}>{item.worker.full_name}</div>
-                            {/* BADGE DISCRET */}
-                            <span
-                              style={{
-                                fontSize: '0.7rem',
-                                background: '#e0f2fe',
-                                color: '#0284c7',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                fontWeight: '600',
-                              }}
-                            >
-                              Suivi requis
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>{logic.formatDate(new Date(item.date))}</td>
-                      <td style={{ textAlign: 'right' }}>
-                        <button
-                          className="btn btn-sm btn-outline"
-                          onClick={() => onNavigateWorker(item.worker.id)}
-                        >
-                          Ouvrir <FaChevronRight size={10} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '350px' : 'none', background: 'transparent', border: 'none', padding: 0, margin: 0 }}>
+              <div className="hybrid-container" style={{ minWidth: '100%' }}>
+                
+                {/* HEADER */}
+                <div className="hybrid-header" style={{ gridTemplateColumns: gridDashboard }}>
+                  <div>Patient (Suivi)</div>
+                  <div>Date Prévue</div>
+                  <div style={{ textAlign: 'right' }}>Action</div>
+                </div>
+
+                {/* ROWS */}
+                {stats.retests.map((item) => (
+                  <div key={item.worker.id} className="hybrid-row" style={{ gridTemplateColumns: gridDashboard }}>
+                    {/* Patient Name + Icon */}
+                    <div className="hybrid-cell" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                       <div style={{ background: 'var(--primary-light)', padding: '6px', borderRadius: '50%', display: 'flex' }}>
+                         <FaMicroscope size={10} color="var(--primary)" />
+                       </div>
+                       <span style={{ fontWeight: 700 }}>{item.worker.full_name}</span>
+                    </div>
+                    {/* Date */}
+                    <div className="hybrid-cell">
+                      {logic.formatDate(new Date(item.date))}
+                    </div>
+                    {/* Action */}
+                    <div className="hybrid-actions">
+                      <button className="btn btn-sm btn-outline" onClick={() => onNavigateWorker(item.worker.id)} title="Ouvrir Dossier">
+                        <FaEye />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+              </div>
             </div>
           )}
         </div>

@@ -4,7 +4,7 @@ import { logic } from '../services/logic';
 import WaterAnalysisForm from './WaterAnalysisForm';
 import { FaTrash, FaEye } from 'react-icons/fa';
 
-export default function WaterAnalysesHistory() {
+export default function WaterAnalysesHistory({ compactMode }) {
   const [workplaces, setWorkplaces] = useState([]);
   const [waterAnalyses, setWaterAnalyses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -131,6 +131,8 @@ export default function WaterAnalysesHistory() {
     });
     return Array.from(months).sort().reverse();
   };
+// [GRID CONFIG] Structure(1.3) | Date E(0.9) | Date R(0.9) | Result(1) | Notes(1.5) | Actions(100)
+  const gridTemplate = "1.3fr 0.9fr 0.9fr 1fr 1.5fr 100px";
 
   if (loading) {
     return (
@@ -245,77 +247,89 @@ export default function WaterAnalysesHistory() {
         </h3>
       </div>
 
-      {/* History Table */}
+     {/* --- HYBRID WATER ANALYSIS LIST (V4) --- */}
       {filteredAnalyses.length === 0 ? (
-        <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-muted)', margin: 0 }}>
-            Aucune analyse trouvée avec les filtres sélectionnés.
-          </p>
+        <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>🧪</div>
+          <p>Aucune analyse trouvée avec les filtres sélectionnés.</p>
         </div>
       ) : (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div
-            className="table-container"
-            style={{ border: 'none', boxShadow: 'none', borderRadius: 0 }}
-          >
-            <table>
-              <thead>
-                <tr>
-                  <th>Structure</th>
-                  <th>Date Échantillon</th>
-                  <th>Date Résultat</th>
-                  <th>Résultat</th>
-                  <th>Notes</th>
-                  <th style={{ width: '100px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAnalyses.map((analysis) => (
-                  <tr key={analysis.id}>
-                    <td style={{ fontWeight: '600' }}>
-                      {analysis.workplace ? analysis.workplace.name : 'Structure inconnue'}
-                    </td>
-                    <td>{analysis.sample_date}</td>
-                    <td>{analysis.result_date || '-'}</td>
-                    <td>{getResultBadge(analysis.result)}</td>
-                    <td>
-                      {analysis.notes ? (
-                        <span title={analysis.notes}>
-                          {analysis.notes.length > 50
-                            ? `${analysis.notes.substring(0, 50)}...`
-                            : analysis.notes}
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>-</span>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'flex-end' }}>
-                        <button
-                          className="btn btn-sm btn-outline"
-                          onClick={() => handleEditDetail(analysis)}
-                          title="Éditer les détails"
-                        >
-                          <FaEye size={12} />
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline"
-                          onClick={() => handleDelete(analysis.id)}
-                          title="Supprimer"
-                          style={{ color: 'var(--danger)' }}
-                        >
-                          <FaTrash size={12} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '600px' : 'none' }}>
+          <div className="hybrid-container" style={{ minWidth: '800px' }}>    
+            
+            {/* 1. HEADER CARD */}
+            <div className="hybrid-header" style={{ gridTemplateColumns: gridTemplate }}>
+              <div>Structure</div>
+              <div>Date Échantillon</div>
+              <div>Date Résultat</div>
+              <div>Résultat</div>
+              <div>Notes</div>
+              <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>Actions</div>
+            </div>
+
+            {/* 2. ROW CARDS */}
+            {filteredAnalyses.map((analysis) => (
+              <div 
+                key={analysis.id}
+                className="hybrid-row"
+                style={{ gridTemplateColumns: gridTemplate }}
+              >
+                {/* Structure */}
+                <div className="hybrid-cell" style={{ fontWeight: 800 }}>
+                  {analysis.workplace ? analysis.workplace.name : 'Inconnue'}
+                </div>
+
+                {/* Date Echantillon */}
+                <div className="hybrid-cell">
+                  {analysis.sample_date}
+                </div>
+
+                {/* Date Résultat */}
+                <div className="hybrid-cell">
+                  {analysis.result_date || '-'}
+                </div>
+
+                {/* Résultat Badge */}
+                <div className="hybrid-cell">
+                  {getResultBadge(analysis.result)}
+                </div>
+
+                {/* Notes */}
+                <div className="hybrid-cell" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                  {analysis.notes ? (
+                    <span title={analysis.notes}>
+                      {analysis.notes.length > 30 ? `${analysis.notes.substring(0, 30)}...` : analysis.notes}
+                    </span>
+                  ) : '-'}
+                </div>
+
+                {/* Actions */}
+                <div className="hybrid-actions">
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => handleEditDetail(analysis)}
+                    title="Voir Détails"
+                  >
+                    <FaEye />
+                  </button>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => handleDelete(analysis.id)}
+                    style={{ 
+                      color: 'var(--danger)', 
+                      borderColor: 'var(--danger)', 
+                      backgroundColor: '#fff1f2' 
+                    }}
+                    title="Supprimer"
+                  >
+                    <FaTrash />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
-
       {/* Water Analysis Form Modal */}
       {showForm && selectedAnalysis && (
         <WaterAnalysisForm
