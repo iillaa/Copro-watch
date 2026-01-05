@@ -433,7 +433,7 @@ const handleBatchArchive = async () => {
       </div>
 
       {/* SCROLLABLE TABLE WINDOW */}
-          <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '75vh' : 'none' }}>
+          <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '75vh' : 'none', paddingBottom: '120px' }}>
             <div className="hybrid-container">
           
           {/* 1. STICKY HEADER ROW */}
