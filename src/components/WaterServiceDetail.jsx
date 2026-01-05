@@ -68,7 +68,7 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
     }
   };
 
-  const handleFormSuccess = ()_ => {
+  const handleFormSuccess = () => {
     setShowForm(false);
     setSelectedAnalysis(null);
     setEditingAnalysis(null);
