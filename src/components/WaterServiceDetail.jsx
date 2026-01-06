@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
 import WaterAnalysisForm from './WaterAnalysisForm';
@@ -91,9 +91,18 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
     return '-';
   };
 
-  const currentStatus = logic.getServiceWaterStatus(department.id, allAnalyses);
-  const statusLabel = logic.getServiceWaterStatusLabel(currentStatus.status);
-  const statusColor = logic.getServiceWaterStatusColor(currentStatus.status);
+  const currentStatus = useMemo(
+    () => logic.getServiceWaterStatus(department.id, allAnalyses),
+    [department.id, allAnalyses]
+  );
+  const statusLabel = useMemo(
+    () => logic.getServiceWaterStatusLabel(currentStatus.status),
+    [currentStatus.status]
+  );
+  const statusColor = useMemo(
+    () => logic.getServiceWaterStatusColor(currentStatus.status),
+    [currentStatus.status]
+  );
 
   // ==================================================================================
   // 4. BATCH HANDLERS
