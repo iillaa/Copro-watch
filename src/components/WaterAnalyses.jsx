@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
-import { FaSearch, FaHistory, FaList, FaTint } from 'react-icons/fa';
+import { FaSearch, FaHistory, FaList, FaTint, FaColumns } from 'react-icons/fa';
 import WaterAnalysisPanel from './WaterAnalysisPanel';
 import WaterServiceDetail from './WaterServiceDetail';
 
@@ -21,6 +21,7 @@ export default function WaterAnalyses({ compactMode }) {
   // View Mode: 'dashboard' (default) or 'history'
   const [viewMode, setViewMode] = useState('dashboard');
   const [historyDept, setHistoryDept] = useState(null);
+  const [isPanelVisible, setIsPanelVisible] = useState(true);
 
   const loadData = async () => {
     const [depts, analyses] = await Promise.all([db.getWaterDepartments(), db.getWaterAnalyses()]);
@@ -148,7 +149,7 @@ export default function WaterAnalyses({ compactMode }) {
         {/* LEFT PANEL: LIST */}
         <div
           style={{
-            flex: '1 1 300px',
+            flex: isPanelVisible ? '1 1 300px' : '1 1 100%',
             minWidth: '280px',
             display: 'flex',
             flexDirection: 'column',
@@ -157,16 +158,25 @@ export default function WaterAnalyses({ compactMode }) {
         >
           {/* Header & Search */}
           <div>
-            <h2
-              style={{
-                marginBottom: '0.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-              }}
-            >
-              <FaList /> Services
-            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <h2
+                style={{
+                  margin: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                <FaList /> Services
+              </h2>
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={() => setIsPanelVisible(!isPanelVisible)}
+                title={isPanelVisible ? "Masquer le panneau" : "Afficher le panneau"}
+              >
+                <FaColumns />
+              </button>
+            </div>
             <div
               className="input"
               style={{ display: 'flex', alignItems: 'center', padding: '0.5rem' }}
@@ -188,9 +198,9 @@ export default function WaterAnalyses({ compactMode }) {
               overflowY: 'auto',
               flex: 1,
               // [FIX 1] Compact Mode Logic
-              maxHeight: compactMode ? '850px' : '105vh',
+              maxHeight: compactMode ? '500px' : '80vh',
               // [FIX 2] Safety Padding (Anti-Crop)
-              paddingBottom: '10px',
+              paddingBottom: '120px',
               padding: '0.25rem',
               margin: '-0.25rem',
             }}
@@ -255,9 +265,10 @@ export default function WaterAnalyses({ compactMode }) {
         </div>
 
         {/* RIGHT PANEL: DETAILS */}
-        <div
-          style={{ flex: '3 1 400px', minWidth: '300px', display: 'flex', flexDirection: 'column' }}
-        >
+        {isPanelVisible && (
+          <div
+            style={{ flex: '3 1 400px', minWidth: '300px', display: 'flex', flexDirection: 'column' }}
+          >
           {selectedDept ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
               {/* History Button at TOP */}
@@ -292,6 +303,7 @@ export default function WaterAnalyses({ compactMode }) {
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );

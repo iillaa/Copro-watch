@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import {
   FaSave,
@@ -12,27 +12,19 @@ import {
 export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
   // 1. Find the relevant analysis for the CURRENT MONTH
   // Sort by newest first (Date DESC, then ID DESC for same-day items)
-  const history = useMemo(
-    () =>
-      [...analyses].sort((a, b) => {
-        const dateA = new Date(a.request_date || a.sample_date);
-        const dateB = new Date(b.request_date || b.sample_date);
-        const diff = dateB - dateA;
-        // If dates are different, sort by date. If same, sort by ID (newest first).
-        return diff !== 0 ? diff : b.id - a.id;
-      }),
-    [analyses]
-  );
+  const history = [...analyses].sort((a, b) => {
+    const dateA = new Date(a.request_date || a.sample_date);
+    const dateB = new Date(b.request_date || b.sample_date);
+    const diff = dateB - dateA;
+    // If dates are different, sort by date. If same, sort by ID (newest first).
+    return diff !== 0 ? diff : b.id - a.id;
+  });
 
-  const currentMonthAnalysis = useMemo(
-    () =>
-      history.find((a) => {
-        const d = new Date(a.request_date || a.sample_date);
-        const now = new Date();
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      }),
-    [history]
-  );
+  const currentMonthAnalysis = history.find((a) => {
+    const d = new Date(a.request_date || a.sample_date);
+    const now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
 
   // 2. Form State
   const [formData, setFormData] = useState({
