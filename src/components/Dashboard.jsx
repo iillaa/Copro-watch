@@ -383,7 +383,7 @@ const gridDashboard = "1.5fr 1fr 80px";
               Rien à signaler. Tout est à jour !
             </div>
           ) : (
-            <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '350px' : 'none', background: 'transparent', border: 'none', padding: 0, margin: 0 }}>
+            <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '350px' : 'none', background: 'transparent', border: 'none', padding: 0,paddingBottom: '30px', margin: 0 }}>
               <div className="hybrid-container" style={{ minWidth: '100%' }}>
                 
                 {/* HEADER */}
@@ -452,7 +452,7 @@ const gridDashboard = "1.5fr 1fr 80px";
               Aucune contre-visite prévue.
             </div>
           ) : (
-            <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '350px' : 'none', background: 'transparent', border: 'none', padding: 0, margin: 0 }}>
+            <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '350px' : 'none', background: 'transparent', border: 'none', padding: 0,paddingBottom: '30px' , margin: 0 }}>
               <div className="hybrid-container" style={{ minWidth: '100%' }}>
                 
                 {/* HEADER */}

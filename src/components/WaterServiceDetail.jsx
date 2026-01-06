@@ -178,7 +178,7 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
       <h3 style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>Historique</h3>
 
       {/* --- HYBRID LIST CONTAINER --- */}
-      <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '500px' : 'none' }}>
+      <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '500px' : 'none',paddingBottom: '30px' }}>
         <div className="hybrid-container" style={{ minWidth: '800px' }}>
           
           {/* 1. STICKY HEADER */}

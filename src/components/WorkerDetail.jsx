@@ -291,7 +291,7 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
       <h3 style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>Historique Médical</h3>
 
       {/* --- HYBRID HISTORY LIST --- */}
-      <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '400px' : 'none' }}>
+      <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '400px' : 'none',paddingBottom: '30px' }}>
         <div className="hybrid-container" style={{ minWidth: '700px' }}>
           
           {/* 1. HEADER CARD */}

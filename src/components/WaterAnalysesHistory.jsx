@@ -254,7 +254,7 @@ export default function WaterAnalysesHistory({ compactMode }) {
           <p>Aucune analyse trouvée avec les filtres sélectionnés.</p>
         </div>
       ) : (
-        <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '600px' : 'none' }}>
+        <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '600px' : 'none', paddingBottom: '30px' }}>
           <div className="hybrid-container" style={{ minWidth: '800px' }}>    
             
             {/* 1. HEADER CARD */}

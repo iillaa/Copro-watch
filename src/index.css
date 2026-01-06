@@ -1255,7 +1255,7 @@ tr {
   min-height: 300px; /* Never collapses completely */
   
   overflow-y: auto; /* Vertical Scroll is KEY for sticky header */
-  overscroll-behavior: contain;
+  overscroll-behavior: auto;
   
   /* Spacing */
   padding-bottom: 80px; 
