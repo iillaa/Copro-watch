@@ -181,42 +181,40 @@ export default function WaterAnalyses({ compactMode }) {
             </div>
           </div>
 
-          {/* V4 Card List */}
+          {/* List Card - Added flex: 1 to stretch */}
           <div
-            style={{
-              overflowY: 'auto',
-              flex: 1,
-              maxHeight: '80vh',
-              padding: '0.25rem',
-              margin: '-0.25rem',
-            }}
+            className="card"
+            style={{ padding: 0, overflowY: 'auto', flex: 1, maxHeight: '80vh' }}
           >
             {filteredDepartments.map((dept) => {
               const isSelected = dept.id === selectedDeptId;
               const statusColor = logic.getServiceWaterStatusColor(dept.waterStatus);
+
+              // Use deferred search for visual feedback (opacity)
               const isStale = searchTerm !== deferredSearch;
 
               return (
                 <div
                   key={dept.id}
                   onClick={() => setSelectedDeptId(dept.id)}
-                  className="card"
                   style={{
-                    border: '2px solid black',
-                    marginBottom: '0.75rem',
+                    padding: '1rem',
+                    borderBottom: '1px solid var(--border-color)',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease-in-out',
-                    boxShadow: '4px 4px 0px rgba(0,0,0,0.15)',
+                    backgroundColor: isSelected ? 'var(--primary-light)' : 'transparent',
+                    borderLeft: isSelected ? `5px solid var(--primary)` : `5px solid transparent`,
+                    transition: 'all 0.2s ease',
                     opacity: isStale ? 0.6 : 1,
-                    ...(isSelected && {
-                      borderColor: 'var(--primary)',
-                      boxShadow: '6px 6px 0px var(--primary)',
-                      transform: 'translate(-3px, -3px)',
-                    }),
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>{dept.name}</span>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <span style={{ fontWeight: 600, fontSize: '1.05rem' }}>{dept.name}</span>
                     <span
                       className="badge"
                       style={{
@@ -231,18 +229,28 @@ export default function WaterAnalyses({ compactMode }) {
                       {logic.getServiceWaterStatusLabel(dept.waterStatus)}
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
-                    {dept.lastDate ? `Date: ${logic.formatDateDisplay(dept.lastDate)}` : 'Aucune donnée récente'}
+                  <div
+                    style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}
+                  >
+                    {dept.lastDate
+                      ? `Date: ${logic.formatDateDisplay(dept.lastDate)}`
+                      : 'Aucune donnée récente'}
                   </div>
                 </div>
               );
             })}
-            {/* No Search Results State */}
+            {/* 2. NO SEARCH RESULTS STATE (New) */}
             {filteredDepartments.length === 0 && (
-              <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div
+                style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}
+              >
                 <div style={{ opacity: 0.5, fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
                 <p>Aucun service trouvé pour "{searchTerm}"</p>
-                <button className="btn btn-outline btn-sm" onClick={() => setSearchTerm('')} style={{ marginTop: '0.5rem' }}>
+                <button
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setSearchTerm('')}
+                  style={{ marginTop: '0.5rem' }}
+                >
                   Effacer la recherche
                 </button>
               </div>
