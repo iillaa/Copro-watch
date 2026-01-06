@@ -188,9 +188,9 @@ export default function WaterAnalyses({ compactMode }) {
               overflowY: 'auto',
               flex: 1,
               // [FIX 1] Compact Mode Logic
-              maxHeight: compactMode ? '500px' : '80vh',
+              maxHeight: compactMode ? '850px' : '105vh',
               // [FIX 2] Safety Padding (Anti-Crop)
-              paddingBottom: '120px',
+              paddingBottom: '10px',
               padding: '0.25rem',
               margin: '-0.25rem',
             }}
