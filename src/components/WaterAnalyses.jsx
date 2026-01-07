@@ -37,9 +37,18 @@ export default function WaterAnalyses({ compactMode }) {
   const filteredDepartments = useMemo(() => {
     const withStatus = logic.getDepartmentsWaterStatus(departments, waterAnalyses);
 
-    if (!deferredSearch) return withStatus;
+    const withStats = withStatus.map(dept => {
+      const analysesForDept = waterAnalyses.filter(a => a.department_id === dept.id || a.structure_id === dept.id);
+      const potable = analysesForDept.filter(a => a.result === 'potable').length;
+      const nonPotable = analysesForDept.filter(a => a.result === 'non_potable').length;
+      const pending = analysesForDept.filter(a => a.result === 'pending' || !a.result).length;
+      const total = analysesForDept.length;
+      return { ...dept, stats: { potable, nonPotable, pending, total } };
+    });
 
-    return withStatus.filter((d) => d.name.toLowerCase().includes(deferredSearch.toLowerCase()));
+    if (!deferredSearch) return withStats;
+
+    return withStats.filter((d) => d.name.toLowerCase().includes(deferredSearch.toLowerCase()));
   }, [departments, waterAnalyses, deferredSearch]);
 
   // Auto-select first item if nothing selected (Handled via effect to avoid loop)
@@ -248,6 +257,47 @@ export default function WaterAnalyses({ compactMode }) {
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
                     {dept.lastDate ? `Date: ${logic.formatDateDisplay(dept.lastDate)}` : 'Aucune donnée récente'}
                   </div>
+
+                  <div style={{ borderTop: '2px solid black', marginTop: '1rem', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      className="btn btn-sm btn-outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewHistory(dept);
+                      }}
+                    >
+                      <FaHistory style={{ marginRight: '0.5rem' }} />
+                      Voir l'historique
+                    </button>
+                  </div>
+
+                  {!isPanelVisible && (
+                    <div style={{ marginTop: '1rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', textAlign: 'center', marginBottom: '1rem' }}>
+                        <div>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--success)' }}>{dept.stats.potable}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Potable</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--danger)' }}>{dept.stats.nonPotable}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Non Potable</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>{dept.stats.pending}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>En Attente</div>
+                        </div>
+                      </div>
+                      <div style={{ height: '8px', display: 'flex', borderRadius: '4px', overflow: 'hidden' }}>
+                        {dept.stats.total > 0 && (
+                          <>
+                            <div style={{ width: `${(dept.stats.potable / dept.stats.total) * 100}%`, background: 'var(--success)' }}></div>
+                            <div style={{ width: `${(dept.stats.nonPotable / dept.stats.total) * 100}%`, background: 'var(--danger)' }}></div>
+                            <div style={{ width: `${(dept.stats.pending / dept.stats.total) * 100}%`, background: 'var(--border-color)' }}></div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
