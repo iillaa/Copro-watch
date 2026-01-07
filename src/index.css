@@ -749,8 +749,7 @@ tr:nth-child(even):hover td {
     overflow: visible !important;
     padding: 1rem;
     padding-top: 0.5rem;
-    /* FIX: Reduced from 120px to 85px to kill the white space */
-    padding-bottom: calc(85px + env(safe-area-inset-bottom));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
   }
 }
 /* Enhanced loading states */

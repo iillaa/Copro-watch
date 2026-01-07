@@ -191,11 +191,11 @@ export const logic = {
 
   getServiceWaterStatusLabel(status) {
     const map = {
-      todo: 'À Faire',
-      requested: 'Demandé',
-      pending: 'En Cours',
-      ok: 'OK',
-      alert: 'ALERTE',
+      todo: 'À PLANIFIER',           // We need to decide a date
+      requested: 'DEMANDE ENVOYÉE',  // We called the lab, waiting for them to come
+      pending: 'EN COURS',     // They took the sample, analyzing it now
+      ok: 'CONFORME',                // Safe
+      alert: 'NON CONFORME',         // Danger,
     };
     return map[status] || '-';
   },
