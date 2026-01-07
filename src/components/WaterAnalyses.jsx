@@ -154,14 +154,9 @@ export default function WaterAnalyses({ compactMode }) {
     <div style={{ height: '100%' }}>
       {/* Container: Stretches nicely */}
       <div
-        style={{
-          display: 'flex',
-          gap: '1.5rem',
-          flexWrap: 'wrap',
-          alignItems: 'stretch',
-          height: '100%',
-        }}
+       className="water-dashboard-layout"
       >
+        
         {/* LEFT PANEL: LIST */}
         <div
           style={{
@@ -208,17 +203,12 @@ export default function WaterAnalyses({ compactMode }) {
           </div>
 
           {/* V4 Card List */}
-          <div
-            className="scroll-wrapper"
+ {/* SCROLLABLE LIST AREA */}
+          <div 
+            className="water-panel-scroll" 
             style={{
-              overflowY: 'auto',
               flex: 1,
-              // [FIX 1] Compact Mode Logic
-              maxHeight: compactMode ? '800px' : '100vh',
-              // [FIX 2] Safety Padding (Anti-Crop)
-              paddingBottom: '10px',
-              padding: '0.25rem',
-              margin: '-0.25rem',
+              padding: '1rem', /* Enough space for shadow/pop effect */
             }}
           >
             {filteredDepartments.map((dept) => {
@@ -238,11 +228,11 @@ export default function WaterAnalyses({ compactMode }) {
                     transition: 'all 0.2s ease-in-out',
                     boxShadow: '4px 4px 0px rgba(0,0,0,0.15)',
                     opacity: isStale ? 0.6 : 1,
-                    ...(isSelected && {
-                      borderColor: 'var(--primary)',
-                      boxShadow: '6px 6px 0px var(--primary)',
-                      transform: 'translate(-3px, -3px)',
-                    }),
+                   ...(isSelected && {
+        borderColor: statusColor,            // Border takes the status color
+        boxShadow: `6px 6px 0px ${statusColor}`, // Shadow takes the status color
+        transform: 'translate(-3px, -3px)',
+      }),
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -322,47 +312,47 @@ export default function WaterAnalyses({ compactMode }) {
           </div>
         </div>
 
-        {/* RIGHT PANEL: DETAILS */}
+       {/* RIGHT PANEL: DETAILS */}
         {isPanelVisible && (
-          <div
-            style={{ flex: '3 1 400px', minWidth: '300px', display: 'flex', flexDirection: 'column' }}
-          >
-          {selectedDept ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
-              {/* History Button at TOP */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button className="btn btn-outline" onClick={() => handleViewHistory(selectedDept)}>
-                  <FaHistory style={{ marginRight: '0.5rem' }} /> Voir l'historique complet
-                </button>
-              </div>
+          <div style={{ flex: '3 1 400px', minWidth: '300px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {selectedDept ? (
+              <>
+                {/* 1. FIXED HEADER (Stays at top) */}
+                <div style={{ flexShrink: 0, paddingBottom: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button className="btn btn-outline" onClick={() => handleViewHistory(selectedDept)}>
+                    <FaHistory style={{ marginRight: '0.5rem' }} /> Voir l'historique complet
+                  </button>
+                </div>
 
-              <WaterAnalysisPanel
-                department={selectedDept}
-                analyses={waterAnalyses.filter(
-                  (a) => (a.department_id || a.structure_id) === selectedDept.id
-                )}
-                onUpdate={loadData}
-              />
-            </div>
-          ) : (
-            <div
-              className="card"
-              style={{
-                textAlign: 'center',
-                color: 'var(--text-muted)',
-                padding: '3rem',
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              Sélectionnez un service pour voir les détails.
-            </div>
-          )}
-        </div>
+                {/* 2. SCROLLABLE BODY (Only this moves) */}
+                <div className="water-panel-scroll" style={{ flex: 1, paddingRight: '0.5rem' }}>
+                  <WaterAnalysisPanel
+                    department={selectedDept}
+                    analyses={waterAnalyses.filter(
+                      (a) => (a.department_id || a.structure_id) === selectedDept.id
+                    )}
+                    onUpdate={loadData}
+                  />
+                </div>
+              </>
+            ) : (
+              <div
+                className="card"
+                style={{
+                  textAlign: 'center',
+                  color: 'var(--text-muted)',
+                  padding: '3rem',
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                Sélectionnez un service pour voir les détails.
+              </div>
+            )}
+          </div>
         )}
-      </div>
     </div>
-  );
-}
+    </div>
+  )}

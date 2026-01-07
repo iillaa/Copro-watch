@@ -1356,3 +1356,38 @@ tr {
   border-width: 2px;
   box-shadow: none;
 }
+/* --- SURGICAL FIX: WATER DASHBOARD LAYOUT --- */
+
+/* DESKTOP: Locks the window height, enables side-by-side scrolling */
+@media (min-width: 769px) {
+  .water-dashboard-layout {
+    /* Height = Screen - Header/Margins (approx 100px) */
+    height: calc(100vh - 100px); 
+    display: flex;
+    gap: 1.5rem;
+    overflow: hidden; /* STOP the main page from scrolling */
+    align-items: stretch;
+  }
+
+  .water-panel-scroll {
+    overflow-y: auto;      /* Scroll INSIDE this box only */
+    height: 100%;          /* Fill the height of the parent */
+    padding-right: 0.5rem; /* Prevent scrollbar overlapping content */
+    padding-bottom: 2rem;  /* Space at bottom for scrolling */
+  }
+}
+
+/* MOBILE: Normal stacking, page scrolls naturally */
+@media (max-width: 768px) {
+  .water-dashboard-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    height: auto; 
+  }
+  
+  .water-panel-scroll {
+    overflow-y: visible; /* No internal scroll */
+    height: auto;
+  }
+}
