@@ -21,7 +21,10 @@ export default function WaterAnalyses({ compactMode }) {
   // View Mode: 'dashboard' (default) or 'history'
   const [viewMode, setViewMode] = useState('dashboard');
   const [historyDept, setHistoryDept] = useState(null);
-  const [isPanelVisible, setIsPanelVisible] = useState(true);
+  const [isPanelVisible, setIsPanelVisible] = useState(() => {
+    const saved = localStorage.getItem('isPanelVisible');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
 
   const loadData = async () => {
     const [depts, analyses] = await Promise.all([db.getWaterDepartments(), db.getWaterAnalyses()]);
@@ -32,6 +35,10 @@ export default function WaterAnalyses({ compactMode }) {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('isPanelVisible', JSON.stringify(isPanelVisible));
+  }, [isPanelVisible]);
 
   // 3. OPTIMIZATION: Calculate filtered list on-the-fly
   const filteredDepartments = useMemo(() => {
@@ -258,7 +265,7 @@ export default function WaterAnalyses({ compactMode }) {
                     {dept.lastDate ? `Date: ${logic.formatDateDisplay(dept.lastDate)}` : 'Aucune donnée récente'}
                   </div>
 
-                  <div style={{ borderTop: '2px solid black', marginTop: '1rem', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                  <div style={{ marginTop: '1rem', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
                     <button
                       className="btn btn-sm btn-outline"
                       onClick={(e) => {
