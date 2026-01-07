@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
-import { FaSearch, FaHistory, FaList, FaTint, FaColumns } from 'react-icons/fa';
+import { FaSearch, FaHistory, FaList, FaTint, FaColumns, FaChartBar } from 'react-icons/fa';
 import WaterAnalysisPanel from './WaterAnalysisPanel';
 import WaterServiceDetail from './WaterServiceDetail';
 
@@ -272,7 +272,8 @@ export default function WaterAnalyses({ compactMode }) {
                   </div>
 
                   {!isPanelVisible && (
-                    <div style={{ marginTop: '1rem' }}>
+                    <div style={{ borderTop: '2px solid black', marginTop: '1rem', paddingTop: '1rem' }}>
+                      <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}><FaChartBar /> Aperçu Annuel</h4>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', textAlign: 'center', marginBottom: '1rem' }}>
                         <div>
                           <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--success)' }}>{dept.stats.potable}</div>
