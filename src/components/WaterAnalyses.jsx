@@ -26,10 +26,6 @@ export default function WaterAnalyses({ compactMode }) {
     return saved !== null ? JSON.parse(saved) : true;
   });
 
-  useEffect(() => {
-    localStorage.setItem('isPanelVisible', JSON.stringify(isPanelVisible));
-  }, [isPanelVisible]);
-
   const loadData = async () => {
     const [depts, analyses] = await Promise.all([db.getWaterDepartments(), db.getWaterAnalyses()]);
     setDepartments(depts);
@@ -39,6 +35,10 @@ export default function WaterAnalyses({ compactMode }) {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('isPanelVisible', JSON.stringify(isPanelVisible));
+  }, [isPanelVisible]);
 
   // 3. OPTIMIZATION: Calculate filtered list on-the-fly
   const filteredDepartments = useMemo(() => {
@@ -214,9 +214,9 @@ export default function WaterAnalyses({ compactMode }) {
               overflowY: 'auto',
               flex: 1,
               // [FIX 1] Compact Mode Logic
-              maxHeight: compactMode ? '850px' : '105vh',
+              maxHeight: compactMode ? '500px' : '80vh',
               // [FIX 2] Safety Padding (Anti-Crop)
-              paddingBottom: '10px',
+              paddingBottom: '120px',
               padding: '0.25rem',
               margin: '-0.25rem',
             }}
@@ -324,11 +324,18 @@ export default function WaterAnalyses({ compactMode }) {
 
         {/* RIGHT PANEL: DETAILS */}
         {isPanelVisible && (
-        <div
-          style={{ flex: '3 1 400px', minWidth: '300px', display: 'flex', flexDirection: 'column' }}
-        >
+          <div
+            style={{ flex: '3 1 400px', minWidth: '300px', display: 'flex', flexDirection: 'column' }}
+          >
           {selectedDept ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
+              {/* History Button at TOP */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button className="btn btn-outline" onClick={() => handleViewHistory(selectedDept)}>
+                  <FaHistory style={{ marginRight: '0.5rem' }} /> Voir l'historique complet
+                </button>
+              </div>
+
               <WaterAnalysisPanel
                 department={selectedDept}
                 analyses={waterAnalyses.filter(
