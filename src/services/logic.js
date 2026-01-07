@@ -168,11 +168,27 @@ export const logic = {
     if (!currentMonthAnalysis) return { status: 'todo', analysis: null, lastDate };
 
     let status = 'todo';
-    if (currentMonthAnalysis.request_date && !currentMonthAnalysis.sample_date)
+
+    // 1. STEP 1: Request made, no sample yet -> "Demandé"
+    if (currentMonthAnalysis.request_date && !currentMonthAnalysis.sample_date) {
       status = 'requested';
-    else if (currentMonthAnalysis.result === 'pending') status = 'pending';
-    else if (currentMonthAnalysis.result === 'potable') status = 'ok';
-    else if (currentMonthAnalysis.result === 'non_potable') status = 'alert';
+    }
+    // 2. STEP 2: Sample taken, no result yet -> "En cours" (ROBUST FIX)
+    // We strictly check: Has Sample? Yes. Has Result Date? No. => MUST BE PENDING.
+    else if (currentMonthAnalysis.sample_date && !currentMonthAnalysis.result_date) {
+      status = 'pending';
+    }
+    // 3. STEP 3: Result is in -> Check Verdict
+    else if (currentMonthAnalysis.result === 'potable') {
+      status = 'ok';
+    } 
+    else if (currentMonthAnalysis.result === 'non_potable') {
+      status = 'alert';
+    }
+    // Fallback: If result date exists but result is 'pending' or unknown
+    else {
+      status = 'pending';
+    }
 
     return { status, analysis: currentMonthAnalysis, lastDate };
   },
