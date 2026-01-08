@@ -151,12 +151,19 @@ export default function WaterAnalyses({ compactMode }) {
   if (departments.length === 0) return emptyStateUI; // <--- 1. Check for Empty DB
 
   return (
-    <div style={{ height: '100%' }}>
+    <div style={{ height: compactMode ? '100%' : 'auto' }}>
       {/* Container: Stretches nicely */}
+      
       <div
-       className="water-dashboard-layout"
+        className="water-dashboard-layout"
+        style={{
+          /* FIX: If Compact Mode is OFF, override the CSS class to allow natural page scrolling */
+          height: compactMode ? undefined : 'auto', 
+          overflow: compactMode ? undefined : 'visible',
+          display: 'flex', gap: '1.5rem', alignItems: 'stretch' // Ensure flex persists
+        }}
       >
-        
+   
         {/* LEFT PANEL: LIST */}
         <div
           style={{
@@ -204,11 +211,15 @@ export default function WaterAnalyses({ compactMode }) {
 
           {/* V4 Card List */}
  {/* SCROLLABLE LIST AREA */}
+          {/* SCROLLABLE LIST AREA */}
           <div 
-            className="water-panel-scroll" 
+            /* FIX: Removed class "water-panel-scroll" to avoid conflicts */
             style={{
               flex: 1,
-              padding: '1rem', /* Enough space for shadow/pop effect */
+              padding: compactMode ? '0.5rem' : '1rem',
+              /* FIX: Internal scroll vs Page scroll */
+              overflowY: compactMode ? 'auto' : 'visible',
+              height: compactMode ? '100%' : 'auto'
             }}
           >
             {filteredDepartments.map((dept) => {
@@ -311,21 +322,55 @@ export default function WaterAnalyses({ compactMode }) {
             )}
           </div>
         </div>
-
-       {/* RIGHT PANEL: DETAILS */}
+{/* RIGHT PANEL: DETAILS */}
         {isPanelVisible && (
-          <div style={{ flex: '3 1 400px', minWidth: '300px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div 
+            style={{ 
+              flex: '3 1 400px', 
+              minWidth: '300px', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              /* FIX 1: Lock container height in Compact Mode */
+              height: compactMode ? '100%' : 'auto', 
+              overflow: 'hidden',
+              position: 'relative' 
+            }}
+          >
             {selectedDept ? (
               <>
-                {/* 1. FIXED HEADER (Stays at top) */}
-                <div style={{ flexShrink: 0, paddingBottom: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                {/* 1. HEADER (Non-sticky, clean) */}
+                <div 
+                  style={{ 
+                    flexShrink: 0, 
+                    paddingBottom: '0.5rem', 
+                    display: 'flex', 
+                    justifyContent: 'flex-end',
+                    background: 'var(--bg-app)'
+                  }}
+                >
                   <button className="btn btn-outline" onClick={() => handleViewHistory(selectedDept)}>
                     <FaHistory style={{ marginRight: '0.5rem' }} /> Voir l'historique complet
                   </button>
                 </div>
 
-                {/* 2. SCROLLABLE BODY (Only this moves) */}
-                <div className="water-panel-scroll" style={{ flex: 1, paddingRight: '0.5rem' }}>
+                {/* 2. BODY (Scrollable) */}
+                <div 
+                  /* FIX 2: Inline styles only, no classes */
+                  style={{ 
+                    flex: '1 1 auto', 
+                    paddingRight: '0.5rem',
+                    /* FIX 3: Add padding to prevent border clipping */
+                    padding: '4px',
+                    margin: '-4px',
+                    /* FIX 4: Toggle Internal Scroll */
+                    overflowY: compactMode ? 'auto' : 'visible',
+                    height: compactMode ? '0px' : 'auto', 
+                    minHeight: '0',
+                    /* FIX 5: Remove Blue Focus Box */
+                    outline: 'none'
+                  }}
+                  tabIndex="-1"
+                >
                   <WaterAnalysisPanel
                     department={selectedDept}
                     analyses={waterAnalyses.filter(
@@ -353,6 +398,7 @@ export default function WaterAnalyses({ compactMode }) {
             )}
           </div>
         )}
+      </div>
     </div>
-    </div>
-  )}
+  );
+}
