@@ -151,16 +151,13 @@ export default function WaterAnalyses({ compactMode }) {
   if (departments.length === 0) return emptyStateUI; // <--- 1. Check for Empty DB
 
     return (
-    <div style={{ height: compactMode ? '100%' : 'auto' }}>
+    <div style={{ height: compactMode ? 'calc(100vh - 90px)' : 'auto', overflowY: compactMode ? 'auto' : 'visible' }}>
       <div
         className="water-dashboard-layout"
         style={{
-          display: 'flex', 
-          gap: '1.5rem', 
-          alignItems: 'stretch',
-          /* FIX: Subtract 260px to ensure it fits on screen (no big panel at bottom) */
-          height: compactMode ? 'calc(100vh - 90px)' : 'auto', 
-          overflow: compactMode ? 'hidden' : 'visible'
+          display: 'flex',
+          gap: '1.5rem',
+          alignItems: 'flex-start', // Let panels have their own height
         }}
       >
    
@@ -172,6 +169,10 @@ export default function WaterAnalyses({ compactMode }) {
             display: 'flex',
             flexDirection: 'column',
             gap: '1rem',
+            // Make left panel sticky and take full height
+            position: 'sticky',
+            top: 0,
+            height: compactMode ? 'calc(100vh - 90px)' : 'auto',
           }}
         >
           {/* Header & Search */}
@@ -216,10 +217,9 @@ export default function WaterAnalyses({ compactMode }) {
             /* FIX: Removed class "water-panel-scroll" to avoid conflicts */
             style={{
               flex: 1,
-              padding: compactMode ? '0.5rem' : '1rem',
-              /* FIX: Internal scroll vs Page scroll */
-              overflowY: compactMode ? 'auto' : 'visible',
-              height: compactMode ? '100%' : 'auto'
+              padding: '0.5rem',
+              overflowY: 'auto', // Always allow internal scroll
+              minHeight: 0, // Needed for flexbox scrolling
             }}
           >
             {filteredDepartments.map((dept) => {
@@ -328,45 +328,18 @@ export default function WaterAnalyses({ compactMode }) {
             style={{
               flex: '1.2 1 280px',
               minWidth: '280px',
-              display: 'flex',
-              flexDirection: 'column',
-              height: compactMode ? '100%' : 'auto',
-              // Use auto scrolling for the panel itself
-              overflowY: 'auto',
-              position: 'relative',
+              // Let the panel grow with its content
+              overflow: 'visible', // IMPORTANT: Fixes the border being cut off
             }}
           >
             {selectedDept ? (
-              <>
-                {/* 1. HEADER (Non-sticky, clean) */}
-                <div
-                  style={{
-                    flexShrink: 0,
-                    paddingBottom: '0.5rem',
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    background: 'var(--bg-app)',
-                     // Add padding to not have the button stick to the scrollbar
-                    paddingRight: '1rem',
-                  }}
-                >
-                  <button className="btn btn-outline" onClick={() => handleViewHistory(selectedDept)}>
-                    <FaHistory style={{ marginRight: '0.5rem' }} /> Voir l'historique complet
-                  </button>
-                </div>
-
-                {/* 2. BODY (Scrollable content) */}
-                {/* This div takes up the remaining space */}
-                <div style={{ flex: '1 1 auto', minHeight: 0, paddingRight: '1rem' }}>
-                  <WaterAnalysisPanel
-                    department={selectedDept}
-                    analyses={waterAnalyses.filter(
-                      (a) => (a.department_id || a.structure_id) === selectedDept.id
-                    )}
-                    onUpdate={loadData}
-                  />
-                </div>
-              </>
+              <WaterAnalysisPanel
+                department={selectedDept}
+                analyses={waterAnalyses.filter(
+                  (a) => (a.department_id || a.structure_id) === selectedDept.id
+                )}
+                onUpdate={loadData}
+              />
             ) : (
               <div
                 className="card"
