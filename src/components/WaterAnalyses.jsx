@@ -326,14 +326,12 @@ export default function WaterAnalyses({ compactMode }) {
         {isPanelVisible && (
           <div 
             style={{ 
-              /* FIX: Narrower Width (1.2 instead of 1.5 or 3) */
               flex: '1.2 1 280px', 
               minWidth: '280px', 
               display: 'flex', 
               flexDirection: 'column', 
-              /* FIX: Lock the container */
               height: compactMode ? '100%' : 'auto', 
-              overflow: 'hidden', 
+              overflowY: 'auto',
               position: 'relative' 
             }}
           >
@@ -356,27 +354,13 @@ export default function WaterAnalyses({ compactMode }) {
                 </div>
 
                 {/* 2. BODY (Scrollable) */}
-               <div 
-                  style={{ 
-                    flex: '1 1 auto', 
-                    padding: '10px',
-                    margin: '-10px',
-                    /* FIX: FULLY DISSOCIATED = NO SCROLLING */
-                    overflowY: compactMode ? 'hidden' : 'visible',
-                    height: compactMode ? '100%' : 'auto', 
-                    minHeight: '0',
-                    outline: 'none'
-                  }}
-                  tabIndex="-1"
-                >
-                  <WaterAnalysisPanel
-                    department={selectedDept}
-                    analyses={waterAnalyses.filter(
-                      (a) => (a.department_id || a.structure_id) === selectedDept.id
-                    )}
-                    onUpdate={loadData}
-                  />
-                </div>
+                <WaterAnalysisPanel
+                  department={selectedDept}
+                  analyses={waterAnalyses.filter(
+                    (a) => (a.department_id || a.structure_id) === selectedDept.id
+                  )}
+                  onUpdate={loadData}
+                />
               </>
             ) : (
               <div
