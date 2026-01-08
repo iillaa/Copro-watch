@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
-import { FaSearch, FaHistory, FaList, FaTint } from 'react-icons/fa';
+import { FaSearch, FaHistory, FaList, FaTint, FaColumns, FaChartBar } from 'react-icons/fa';
 import WaterAnalysisPanel from './WaterAnalysisPanel';
 import WaterServiceDetail from './WaterServiceDetail';
 
@@ -21,6 +21,10 @@ export default function WaterAnalyses({ compactMode }) {
   // View Mode: 'dashboard' (default) or 'history'
   const [viewMode, setViewMode] = useState('dashboard');
   const [historyDept, setHistoryDept] = useState(null);
+  const [isPanelVisible, setIsPanelVisible] = useState(() => {
+    const saved = localStorage.getItem('isPanelVisible');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
 
   const loadData = async () => {
     const [depts, analyses] = await Promise.all([db.getWaterDepartments(), db.getWaterAnalyses()]);
@@ -32,13 +36,26 @@ export default function WaterAnalyses({ compactMode }) {
     loadData();
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem('isPanelVisible', JSON.stringify(isPanelVisible));
+  }, [isPanelVisible]);
+
   // 3. OPTIMIZATION: Calculate filtered list on-the-fly
   const filteredDepartments = useMemo(() => {
     const withStatus = logic.getDepartmentsWaterStatus(departments, waterAnalyses);
 
-    if (!deferredSearch) return withStatus;
+    const withStats = withStatus.map(dept => {
+      const analysesForDept = waterAnalyses.filter(a => a.department_id === dept.id || a.structure_id === dept.id);
+      const potable = analysesForDept.filter(a => a.result === 'potable').length;
+      const nonPotable = analysesForDept.filter(a => a.result === 'non_potable').length;
+      const pending = analysesForDept.filter(a => a.result === 'pending' || !a.result).length;
+      const total = analysesForDept.length;
+      return { ...dept, stats: { potable, nonPotable, pending, total } };
+    });
 
-    return withStatus.filter((d) => d.name.toLowerCase().includes(deferredSearch.toLowerCase()));
+    if (!deferredSearch) return withStats;
+
+    return withStats.filter((d) => d.name.toLowerCase().includes(deferredSearch.toLowerCase()));
   }, [departments, waterAnalyses, deferredSearch]);
 
   // Auto-select first item if nothing selected (Handled via effect to avoid loop)
@@ -133,22 +150,24 @@ export default function WaterAnalyses({ compactMode }) {
   // RENDER DASHBOARD VIEW
   if (departments.length === 0) return emptyStateUI; // <--- 1. Check for Empty DB
 
-  return (
-    <div style={{ height: '100%' }}>
-      {/* Container: Stretches nicely */}
+    return (
+    <div style={{ height: compactMode ? '100%' : 'auto' }}>
       <div
+        className="water-dashboard-layout"
         style={{
-          display: 'flex',
-          gap: '1.5rem',
-          flexWrap: 'wrap',
+          display: 'flex', 
+          gap: '1.5rem', 
           alignItems: 'stretch',
-          height: '100%',
+          /* FIX: Subtract 260px to ensure it fits on screen (no big panel at bottom) */
+          height: compactMode ? 'calc(100vh - 90px)' : 'auto', 
+          overflow: compactMode ? 'hidden' : 'visible'
         }}
       >
+   
         {/* LEFT PANEL: LIST */}
         <div
           style={{
-            flex: '1 1 300px',
+            flex: isPanelVisible ? '1 1 300px' : '1 1 100%',
             minWidth: '280px',
             display: 'flex',
             flexDirection: 'column',
@@ -157,16 +176,25 @@ export default function WaterAnalyses({ compactMode }) {
         >
           {/* Header & Search */}
           <div>
-            <h2
-              style={{
-                marginBottom: '0.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-              }}
-            >
-              <FaList /> Services
-            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <h2
+                style={{
+                  margin: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                <FaList /> Services
+              </h2>
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={() => setIsPanelVisible(!isPanelVisible)}
+                title={isPanelVisible ? "Masquer le panneau" : "Afficher le panneau"}
+              >
+                <FaColumns />
+              </button>
+            </div>
             <div
               className="input"
               style={{ display: 'flex', alignItems: 'center', padding: '0.5rem' }}
@@ -181,40 +209,45 @@ export default function WaterAnalyses({ compactMode }) {
             </div>
           </div>
 
-          {/* List Card - Added flex: 1 to stretch */}
-          <div
-            className="card"
-            style={{ padding: 0, overflowY: 'auto', flex: 1, maxHeight: '80vh' }}
+          {/* V4 Card List */}
+ {/* SCROLLABLE LIST AREA */}
+          {/* SCROLLABLE LIST AREA */}
+          <div 
+            /* FIX: Removed class "water-panel-scroll" to avoid conflicts */
+            style={{
+              flex: 1,
+              padding: compactMode ? '0.5rem' : '1rem',
+              /* FIX: Internal scroll vs Page scroll */
+              overflowY: compactMode ? 'auto' : 'visible',
+              height: compactMode ? '100%' : 'auto'
+            }}
           >
             {filteredDepartments.map((dept) => {
               const isSelected = dept.id === selectedDeptId;
               const statusColor = logic.getServiceWaterStatusColor(dept.waterStatus);
-
-              // Use deferred search for visual feedback (opacity)
               const isStale = searchTerm !== deferredSearch;
 
               return (
                 <div
                   key={dept.id}
                   onClick={() => setSelectedDeptId(dept.id)}
+                  className="card"
                   style={{
-                    padding: '1rem',
-                    borderBottom: '1px solid var(--border-color)',
+                    border: '2px solid black',
+                    marginBottom: '0.75rem',
                     cursor: 'pointer',
-                    backgroundColor: isSelected ? 'var(--primary-light)' : 'transparent',
-                    borderLeft: isSelected ? `5px solid var(--primary)` : `5px solid transparent`,
-                    transition: 'all 0.2s ease',
+                    transition: 'all 0.2s ease-in-out',
+                    boxShadow: '4px 4px 0px rgba(0,0,0,0.15)',
                     opacity: isStale ? 0.6 : 1,
+                   ...(isSelected && {
+        borderColor: statusColor,            // Border takes the status color
+        boxShadow: `6px 6px 0px ${statusColor}`, // Shadow takes the status color
+        transform: 'translate(-3px, -3px)',
+      }),
                   }}
                 >
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <span style={{ fontWeight: 600, fontSize: '1.05rem' }}>{dept.name}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>{dept.name}</span>
                     <span
                       className="badge"
                       style={{
@@ -229,73 +262,140 @@ export default function WaterAnalyses({ compactMode }) {
                       {logic.getServiceWaterStatusLabel(dept.waterStatus)}
                     </span>
                   </div>
-                  <div
-                    style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}
-                  >
-                    {dept.lastDate
-                      ? `Date: ${logic.formatDateDisplay(dept.lastDate)}`
-                      : 'Aucune donnée récente'}
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+                    {dept.lastDate ? `Date: ${logic.formatDateDisplay(dept.lastDate)}` : 'Aucune donnée récente'}
                   </div>
+
+                  <div style={{ marginTop: '1rem', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      className="btn btn-sm btn-outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewHistory(dept);
+                      }}
+                    >
+                      <FaHistory style={{ marginRight: '0.5rem' }} />
+                      Voir l'historique
+                    </button>
+                  </div>
+
+                  {!isPanelVisible && (
+                    <div style={{ borderTop: '2px solid black', marginTop: '1rem', paddingTop: '1rem' }}>
+                      <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}><FaChartBar /> Aperçu Annuel</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', textAlign: 'center', marginBottom: '1rem' }}>
+                        <div>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--success)' }}>{dept.stats.potable}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Potable</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--danger)' }}>{dept.stats.nonPotable}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Non Potable</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>{dept.stats.pending}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>En Attente</div>
+                        </div>
+                      </div>
+                      <div style={{ height: '8px', display: 'flex', borderRadius: '4px', overflow: 'hidden' }}>
+                        {dept.stats.total > 0 && (
+                          <>
+                            <div style={{ width: `${(dept.stats.potable / dept.stats.total) * 100}%`, background: 'var(--success)' }}></div>
+                            <div style={{ width: `${(dept.stats.nonPotable / dept.stats.total) * 100}%`, background: 'var(--danger)' }}></div>
+                            <div style={{ width: `${(dept.stats.pending / dept.stats.total) * 100}%`, background: 'var(--border-color)' }}></div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
-            {/* 2. NO SEARCH RESULTS STATE (New) */}
+            {/* No Search Results State */}
             {filteredDepartments.length === 0 && (
-              <div
-                style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}
-              >
+              <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                 <div style={{ opacity: 0.5, fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
                 <p>Aucun service trouvé pour "{searchTerm}"</p>
-                <button
-                  className="btn btn-outline btn-sm"
-                  onClick={() => setSearchTerm('')}
-                  style={{ marginTop: '0.5rem' }}
-                >
+                <button className="btn btn-outline btn-sm" onClick={() => setSearchTerm('')} style={{ marginTop: '0.5rem' }}>
                   Effacer la recherche
                 </button>
               </div>
             )}
           </div>
         </div>
+{/* RIGHT PANEL: DETAILS */}
+        {isPanelVisible && (
+          <div 
+            style={{ 
+              /* FIX: Narrower Width (1.2 instead of 1.5 or 3) */
+              flex: '1.2 1 280px', 
+              minWidth: '280px', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              /* FIX: Lock the container */
+              height: compactMode ? '100%' : 'auto', 
+              overflow: 'hidden', 
+              position: 'relative' 
+            }}
+          >
 
-        {/* RIGHT PANEL: DETAILS */}
-        <div
-          style={{ flex: '3 1 400px', minWidth: '300px', display: 'flex', flexDirection: 'column' }}
-        >
-          {selectedDept ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
-              {/* History Button at TOP */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button className="btn btn-outline" onClick={() => handleViewHistory(selectedDept)}>
-                  <FaHistory style={{ marginRight: '0.5rem' }} /> Voir l'historique complet
-                </button>
+                        {selectedDept ? (
+              <>
+                {/* 1. HEADER (Non-sticky, clean) */}
+                <div 
+                  style={{ 
+                    flexShrink: 0, 
+                    paddingBottom: '0.5rem', 
+                    display: 'flex', 
+                    justifyContent: 'flex-end',
+                    background: 'var(--bg-app)'
+                  }}
+                >
+                  <button className="btn btn-outline" onClick={() => handleViewHistory(selectedDept)}>
+                    <FaHistory style={{ marginRight: '0.5rem' }} /> Voir l'historique complet
+                  </button>
+                </div>
+
+                {/* 2. BODY (Scrollable) */}
+               <div 
+                  style={{ 
+                    flex: '1 1 auto', 
+                    padding: '10px',
+                    margin: '-10px',
+                    /* FIX: FULLY DISSOCIATED = NO SCROLLING */
+                    overflowY: compactMode ? 'hidden' : 'visible',
+                    height: compactMode ? '100%' : 'auto', 
+                    minHeight: '0',
+                    outline: 'none'
+                  }}
+                  tabIndex="-1"
+                >
+                  <WaterAnalysisPanel
+                    department={selectedDept}
+                    analyses={waterAnalyses.filter(
+                      (a) => (a.department_id || a.structure_id) === selectedDept.id
+                    )}
+                    onUpdate={loadData}
+                  />
+                </div>
+              </>
+            ) : (
+              <div
+                className="card"
+                style={{
+                  textAlign: 'center',
+                  color: 'var(--text-muted)',
+                  padding: '3rem',
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                Sélectionnez un service pour voir les détails.
               </div>
-
-              <WaterAnalysisPanel
-                department={selectedDept}
-                analyses={waterAnalyses.filter(
-                  (a) => (a.department_id || a.structure_id) === selectedDept.id
-                )}
-                onUpdate={loadData}
-              />
-            </div>
-          ) : (
-            <div
-              className="card"
-              style={{
-                textAlign: 'center',
-                color: 'var(--text-muted)',
-                padding: '3rem',
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              Sélectionnez un service pour voir les détails.
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

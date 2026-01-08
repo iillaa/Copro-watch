@@ -168,11 +168,27 @@ export const logic = {
     if (!currentMonthAnalysis) return { status: 'todo', analysis: null, lastDate };
 
     let status = 'todo';
-    if (currentMonthAnalysis.request_date && !currentMonthAnalysis.sample_date)
+
+    // 1. STEP 1: Request made, no sample yet -> "Demandé"
+    if (currentMonthAnalysis.request_date && !currentMonthAnalysis.sample_date) {
       status = 'requested';
-    else if (currentMonthAnalysis.result === 'pending') status = 'pending';
-    else if (currentMonthAnalysis.result === 'potable') status = 'ok';
-    else if (currentMonthAnalysis.result === 'non_potable') status = 'alert';
+    }
+    // 2. STEP 2: Sample taken, no result yet -> "En cours" (ROBUST FIX)
+    // We strictly check: Has Sample? Yes. Has Result Date? No. => MUST BE PENDING.
+    else if (currentMonthAnalysis.sample_date && !currentMonthAnalysis.result_date) {
+      status = 'pending';
+    }
+    // 3. STEP 3: Result is in -> Check Verdict
+    else if (currentMonthAnalysis.result === 'potable') {
+      status = 'ok';
+    } 
+    else if (currentMonthAnalysis.result === 'non_potable') {
+      status = 'alert';
+    }
+    // Fallback: If result date exists but result is 'pending' or unknown
+    else {
+      status = 'pending';
+    }
 
     return { status, analysis: currentMonthAnalysis, lastDate };
   },
@@ -191,11 +207,11 @@ export const logic = {
 
   getServiceWaterStatusLabel(status) {
     const map = {
-      todo: 'À Faire',
-      requested: 'Demandé',
-      pending: 'En Cours',
-      ok: 'OK',
-      alert: 'ALERTE',
+      todo: 'À PLANIFIER',           // We need to decide a date
+      requested: 'DEMANDE ENVOYÉE',  // We called the lab, waiting for them to come
+      pending: 'EN COURS',     // They took the sample, analyzing it now
+      ok: 'CONFORME',                // Safe
+      alert: 'NON CONFORME',         // Danger,
     };
     return map[status] || '-';
   },

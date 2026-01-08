@@ -5,10 +5,10 @@ import WaterAnalysisForm from './WaterAnalysisForm';
 import BulkActionsToolbar from './BulkActionsToolbar';
 import { 
   FaArrowLeft, 
-  FaFlask, 
-  FaTrash, 
+  FaFlask,
+  FaTrash,
   FaEye, // [NEW] Eye Icon for Details
-  FaCheckSquare 
+  FaCheckSquare
 } from 'react-icons/fa';
 
 export default function WaterServiceDetail({ department, onBack, onSave, compactMode }) {
@@ -30,10 +30,10 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
   );
   const [selectedIds, setSelectedIds] = useState(new Set());
 
-  // [SMART GRID CONFIG] 
+  // [SMART GRID CONFIG]
   // Cols: Check(50) | Demande(1) | Prelev(1) | Result(1) | Verdict(1) | Notes(1.5) | Actions(100)
-  const gridTemplate = isSelectionMode 
-    ? "50px 0.9fr 0.9fr 0.9fr 1fr 1.5fr 100px" 
+  const gridTemplate = isSelectionMode
+    ? "50px 0.9fr 0.9fr 0.9fr 1fr 1.5fr 100px"
     : "0px 0.9fr 0.9fr 0.9fr 1fr 1.5fr 100px";
 
   // ==================================================================================
@@ -98,7 +98,7 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
   // ==================================================================================
   // 4. BATCH HANDLERS
   // ==================================================================================
-  
+
   const toggleSelectionMode = () => {
     const newState = !isSelectionMode;
     setIsSelectionMode(newState);
@@ -180,7 +180,7 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
       {/* --- HYBRID LIST CONTAINER --- */}
       <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '500px' : 'none',paddingBottom: '30px' }}>
         <div className="hybrid-container" style={{ minWidth: '800px' }}>
-          
+
           {/* 1. STICKY HEADER */}
           <div className="hybrid-header" style={{ gridTemplateColumns: gridTemplate }}>
             <div style={{ textAlign: 'center' }}>
@@ -204,7 +204,7 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
           {analyses.map((a) => {
             const isSelected = selectedIds.has(a.id);
             return (
-              <div 
+              <div
                 key={a.id}
                 className={`hybrid-row ${isSelected ? 'selected' : ''}`}
                 style={{ gridTemplateColumns: gridTemplate }}
@@ -252,20 +252,20 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
 
                 {/* Actions */}
                 <div className="hybrid-actions">
-                  <button 
-                    className="btn btn-outline btn-sm" 
-                    onClick={() => handleEdit(a)} 
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => handleEdit(a)}
                     title="Voir Détails"
                   >
                     <FaEye />
                   </button>
-                  <button 
-                    className="btn btn-outline btn-sm" 
-                    onClick={() => handleDeleteAnalysis(a.id)} 
-                    style={{ 
-                      color: 'var(--danger)', 
-                      borderColor: 'var(--danger)', 
-                      backgroundColor: '#fff1f2' 
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => handleDeleteAnalysis(a.id)}
+                    style={{
+                      color: 'var(--danger)',
+                      borderColor: 'var(--danger)',
+                      backgroundColor: '#fff1f2'
                     }}
                     title="Supprimer"
                   >
@@ -275,7 +275,7 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
               </div>
             );
           })}
-          
+
           {analyses.length === 0 && (
              <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                <div style={{ fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.5 }}>🧪</div>
