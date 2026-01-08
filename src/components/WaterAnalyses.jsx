@@ -151,13 +151,15 @@ export default function WaterAnalyses({ compactMode }) {
   if (departments.length === 0) return emptyStateUI; // <--- 1. Check for Empty DB
 
     return (
-    <div style={{ height: compactMode ? 'calc(100vh - 90px)' : 'auto', overflowY: compactMode ? 'auto' : 'visible' }}>
+    <div style={{ height: compactMode ? '100%' : 'auto' }}>
       <div
         className="water-dashboard-layout"
         style={{
           display: 'flex',
           gap: '1.5rem',
-          alignItems: 'flex-start', // Let panels have their own height
+          alignItems: 'flex-start',
+          height: compactMode ? 'calc(100vh - 90px)' : 'auto',
+          overflowY: compactMode ? 'auto' : 'visible',
         }}
       >
    
@@ -169,10 +171,6 @@ export default function WaterAnalyses({ compactMode }) {
             display: 'flex',
             flexDirection: 'column',
             gap: '1rem',
-            // Make left panel sticky and take full height
-            position: 'sticky',
-            top: 0,
-            height: compactMode ? 'calc(100vh - 90px)' : 'auto',
           }}
         >
           {/* Header & Search */}
@@ -217,9 +215,10 @@ export default function WaterAnalyses({ compactMode }) {
             /* FIX: Removed class "water-panel-scroll" to avoid conflicts */
             style={{
               flex: 1,
-              padding: '0.5rem',
-              overflowY: 'auto', // Always allow internal scroll
-              minHeight: 0, // Needed for flexbox scrolling
+              padding: compactMode ? '0.5rem' : '1rem',
+              /* FIX: Internal scroll vs Page scroll */
+              overflowY: compactMode ? 'auto' : 'visible',
+              height: compactMode ? '100%' : 'auto'
             }}
           >
             {filteredDepartments.map((dept) => {
@@ -328,18 +327,47 @@ export default function WaterAnalyses({ compactMode }) {
             style={{
               flex: '1.2 1 280px',
               minWidth: '280px',
-              // Let the panel grow with its content
-              overflow: 'visible', // IMPORTANT: Fixes the border being cut off
+              display: 'flex',
+              flexDirection: 'column',
+              position: 'relative',
             }}
           >
-            {selectedDept ? (
-              <WaterAnalysisPanel
-                department={selectedDept}
-                analyses={waterAnalyses.filter(
-                  (a) => (a.department_id || a.structure_id) === selectedDept.id
-                )}
-                onUpdate={loadData}
-              />
+
+                        {selectedDept ? (
+              <>
+                {/* 1. HEADER (Non-sticky, clean) */}
+                <div
+                  style={{
+                    flexShrink: 0,
+                    paddingBottom: '0.5rem',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    background: 'var(--bg-app)'
+                  }}
+                >
+                  <button className="btn btn-outline" onClick={() => handleViewHistory(selectedDept)}>
+                    <FaHistory style={{ marginRight: '0.5rem' }} /> Voir l'historique complet
+                  </button>
+                </div>
+
+                {/* 2. BODY (Scrollable) */}
+               <div
+                  style={{
+                    flex: '1 1 auto',
+                    /* Let the main container handle scrolling */
+                    overflowY: 'visible'
+                    /* Removed margin/padding trick that clipped borders */
+                  }}
+                >
+                  <WaterAnalysisPanel
+                    department={selectedDept}
+                    analyses={waterAnalyses.filter(
+                      (a) => (a.department_id || a.structure_id) === selectedDept.id
+                    )}
+                    onUpdate={loadData}
+                  />
+                </div>
+              </>
             ) : (
               <div
                 className="card"
