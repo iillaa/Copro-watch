@@ -150,17 +150,17 @@ export default function WaterAnalyses({ compactMode }) {
   // RENDER DASHBOARD VIEW
   if (departments.length === 0) return emptyStateUI; // <--- 1. Check for Empty DB
 
-  return (
+    return (
     <div style={{ height: compactMode ? '100%' : 'auto' }}>
-      {/* Container: Stretches nicely */}
-      
       <div
         className="water-dashboard-layout"
         style={{
-          /* FIX: If Compact Mode is OFF, override the CSS class to allow natural page scrolling */
-          height: compactMode ? undefined : 'auto', 
-          overflow: compactMode ? undefined : 'visible',
-          display: 'flex', gap: '1.5rem', alignItems: 'stretch' // Ensure flex persists
+          display: 'flex', 
+          gap: '1.5rem', 
+          alignItems: 'stretch',
+          /* FIX: Subtract 260px to ensure it fits on screen (no big panel at bottom) */
+          height: compactMode ? 'calc(100vh - 90px)' : 'auto', 
+          overflow: compactMode ? 'hidden' : 'visible'
         }}
       >
    
@@ -326,17 +326,19 @@ export default function WaterAnalyses({ compactMode }) {
         {isPanelVisible && (
           <div 
             style={{ 
-              flex: '3 1 400px', 
-              minWidth: '300px', 
+              /* FIX: Narrower Width (1.2 instead of 1.5 or 3) */
+              flex: '1.2 1 280px', 
+              minWidth: '280px', 
               display: 'flex', 
               flexDirection: 'column', 
-              /* FIX 1: Lock container height in Compact Mode */
+              /* FIX: Lock the container */
               height: compactMode ? '100%' : 'auto', 
-              overflow: 'hidden',
+              overflow: 'hidden', 
               position: 'relative' 
             }}
           >
-            {selectedDept ? (
+
+                        {selectedDept ? (
               <>
                 {/* 1. HEADER (Non-sticky, clean) */}
                 <div 
@@ -354,19 +356,15 @@ export default function WaterAnalyses({ compactMode }) {
                 </div>
 
                 {/* 2. BODY (Scrollable) */}
-                <div 
-                  /* FIX 2: Inline styles only, no classes */
+               <div 
                   style={{ 
                     flex: '1 1 auto', 
-                    paddingRight: '0.5rem',
-                    /* FIX 3: Add padding to prevent border clipping */
-                    padding: '4px',
-                    margin: '-4px',
-                    /* FIX 4: Toggle Internal Scroll */
-                    overflowY: compactMode ? 'auto' : 'visible',
-                    height: compactMode ? '0px' : 'auto', 
+                    padding: '10px',
+                    margin: '-10px',
+                    /* FIX: FULLY DISSOCIATED = NO SCROLLING */
+                    overflowY: compactMode ? 'hidden' : 'visible',
+                    height: compactMode ? '100%' : 'auto', 
                     minHeight: '0',
-                    /* FIX 5: Remove Blue Focus Box */
                     outline: 'none'
                   }}
                   tabIndex="-1"
