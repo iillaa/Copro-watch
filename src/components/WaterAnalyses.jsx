@@ -324,28 +324,30 @@ export default function WaterAnalyses({ compactMode }) {
         </div>
 {/* RIGHT PANEL: DETAILS */}
         {isPanelVisible && (
-          <div 
-            style={{ 
-              flex: '1.2 1 280px', 
-              minWidth: '280px', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              height: compactMode ? '100%' : 'auto', 
+          <div
+            style={{
+              flex: '1.2 1 280px',
+              minWidth: '280px',
+              display: 'flex',
+              flexDirection: 'column',
+              height: compactMode ? '100%' : 'auto',
+              // Use auto scrolling for the panel itself
               overflowY: 'auto',
-              position: 'relative' 
+              position: 'relative',
             }}
           >
-
-                        {selectedDept ? (
+            {selectedDept ? (
               <>
                 {/* 1. HEADER (Non-sticky, clean) */}
-                <div 
-                  style={{ 
-                    flexShrink: 0, 
-                    paddingBottom: '0.5rem', 
-                    display: 'flex', 
+                <div
+                  style={{
+                    flexShrink: 0,
+                    paddingBottom: '0.5rem',
+                    display: 'flex',
                     justifyContent: 'flex-end',
-                    background: 'var(--bg-app)'
+                    background: 'var(--bg-app)',
+                     // Add padding to not have the button stick to the scrollbar
+                    paddingRight: '1rem',
                   }}
                 >
                   <button className="btn btn-outline" onClick={() => handleViewHistory(selectedDept)}>
@@ -353,14 +355,17 @@ export default function WaterAnalyses({ compactMode }) {
                   </button>
                 </div>
 
-                {/* 2. BODY (Scrollable) */}
-                <WaterAnalysisPanel
-                  department={selectedDept}
-                  analyses={waterAnalyses.filter(
-                    (a) => (a.department_id || a.structure_id) === selectedDept.id
-                  )}
-                  onUpdate={loadData}
-                />
+                {/* 2. BODY (Scrollable content) */}
+                {/* This div takes up the remaining space */}
+                <div style={{ flex: '1 1 auto', minHeight: 0, paddingRight: '1rem' }}>
+                  <WaterAnalysisPanel
+                    department={selectedDept}
+                    analyses={waterAnalyses.filter(
+                      (a) => (a.department_id || a.structure_id) === selectedDept.id
+                    )}
+                    onUpdate={loadData}
+                  />
+                </div>
               </>
             ) : (
               <div
