@@ -155,12 +155,11 @@ export default function WaterAnalyses({ compactMode }) {
       <div
         className="water-dashboard-layout"
         style={{
-          display: 'flex', 
-          gap: '1.5rem', 
-          alignItems: 'stretch',
-          /* FIX: Subtract 260px to ensure it fits on screen (no big panel at bottom) */
-          height: compactMode ? 'calc(100vh - 90px)' : 'auto', 
-          overflow: compactMode ? 'hidden' : 'visible'
+          display: 'flex',
+          gap: '1.5rem',
+          alignItems: 'flex-start',
+          height: compactMode ? 'calc(100vh - 85px)' : 'auto',
+          overflowY: compactMode ? 'auto' : 'visible',
         }}
       >
    
@@ -172,6 +171,8 @@ export default function WaterAnalyses({ compactMode }) {
             display: 'flex',
             flexDirection: 'column',
             gap: '1rem',
+            // In compact mode, the panel should not shrink and should occupy the full available height
+            height: compactMode ? 'calc(100vh - 01px)' : 'auto',
           }}
         >
           {/* Header & Search */}
@@ -214,12 +215,12 @@ export default function WaterAnalyses({ compactMode }) {
           {/* SCROLLABLE LIST AREA */}
           <div 
             /* FIX: Removed class "water-panel-scroll" to avoid conflicts */
-            style={{
+           style={{
               flex: 1,
-              padding: compactMode ? '0.5rem' : '1rem',
-              /* FIX: Internal scroll vs Page scroll */
+              padding: '0.5rem',
+              // In Compact mode, the list should scroll within its container.
+              // Otherwise, it should grow naturally.
               overflowY: compactMode ? 'auto' : 'visible',
-              height: compactMode ? '100%' : 'auto'
             }}
           >
             {filteredDepartments.map((dept) => {
@@ -324,28 +325,24 @@ export default function WaterAnalyses({ compactMode }) {
         </div>
 {/* RIGHT PANEL: DETAILS */}
         {isPanelVisible && (
-          <div 
-            style={{ 
-              /* FIX: Narrower Width (1.2 instead of 1.5 or 3) */
-              flex: '1.2 1 280px', 
-              minWidth: '280px', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              /* FIX: Lock the container */
-              height: compactMode ? '100%' : 'auto', 
-              overflow: 'hidden', 
-              position: 'relative' 
+          <div
+            style={{
+              flex: '1.2 1 300px',
+              minWidth: '280px',
+              display: 'flex',
+              flexDirection: 'column',
+              position: 'relative',
             }}
           >
 
                         {selectedDept ? (
               <>
                 {/* 1. HEADER (Non-sticky, clean) */}
-                <div 
-                  style={{ 
-                    flexShrink: 0, 
-                    paddingBottom: '0.5rem', 
-                    display: 'flex', 
+                <div
+                  style={{
+                    flexShrink: 0,
+                    paddingBottom: '0.5rem',
+                    display: 'flex',
                     justifyContent: 'flex-end',
                     background: 'var(--bg-app)'
                   }}
@@ -356,18 +353,13 @@ export default function WaterAnalyses({ compactMode }) {
                 </div>
 
                 {/* 2. BODY (Scrollable) */}
-               <div 
-                  style={{ 
-                    flex: '1 1 auto', 
-                    padding: '10px',
-                    margin: '-10px',
-                    /* FIX: FULLY DISSOCIATED = NO SCROLLING */
-                    overflowY: compactMode ? 'hidden' : 'visible',
-                    height: compactMode ? '100%' : 'auto', 
-                    minHeight: '0',
-                    outline: 'none'
+               <div
+                  style={{
+                    flex: '1 1 auto',
+                    /* Let the main container handle scrolling */
+                    overflowY: 'visible'
+                    /* Removed margin/padding trick that clipped borders */
                   }}
-                  tabIndex="-1"
                 >
                   <WaterAnalysisPanel
                     department={selectedDept}
