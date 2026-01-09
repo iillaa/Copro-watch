@@ -154,38 +154,38 @@ export const logic = {
   },
 
   getServiceWaterStatus(departmentId, allAnalyses) {
-    const { start, end } = this.getCurrentMonthRange();
+    // [FIX] Use String comparison (YYYY-MM) to match Panel logic exactly
+    const currentMonthStr = new Date().toISOString().substring(0, 7); // "2023-10"
+
     const deptAnalyses = this.getDepartmentWaterHistory(departmentId, allAnalyses);
     const lastActivity = deptAnalyses[0];
     const lastDate = lastActivity ? lastActivity.sample_date || lastActivity.request_date : null;
 
     const currentMonthAnalysis = deptAnalyses.find((analysis) => {
-      const dateToCheck = analysis.sample_date || analysis.request_date;
-      const pDate = safeDate(dateToCheck);
-      return pDate && pDate >= start && pDate <= end;
+      const dateToCheck = analysis.request_date || analysis.sample_date;
+      if (!dateToCheck) return false;
+      return dateToCheck.startsWith(currentMonthStr);
     });
 
     if (!currentMonthAnalysis) return { status: 'todo', analysis: null, lastDate };
 
     let status = 'todo';
 
-    // 1. STEP 1: Request made, no sample yet -> "Demandé"
+    // 1. STEP 1: Request made, no sample yet
     if (currentMonthAnalysis.request_date && !currentMonthAnalysis.sample_date) {
       status = 'requested';
     }
-    // 2. STEP 2: Sample taken, no result yet -> "En cours" (ROBUST FIX)
-    // We strictly check: Has Sample? Yes. Has Result Date? No. => MUST BE PENDING.
+    // 2. STEP 2: Sample taken, no result yet
     else if (currentMonthAnalysis.sample_date && !currentMonthAnalysis.result_date) {
       status = 'pending';
     }
-    // 3. STEP 3: Result is in -> Check Verdict
+    // 3. STEP 3: Result is in
     else if (currentMonthAnalysis.result === 'potable') {
       status = 'ok';
     } 
     else if (currentMonthAnalysis.result === 'non_potable') {
       status = 'alert';
     }
-    // Fallback: If result date exists but result is 'pending' or unknown
     else {
       status = 'pending';
     }

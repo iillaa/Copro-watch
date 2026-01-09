@@ -38,10 +38,15 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
 
   const loadData = async () => {
     try {
-      const w = (await db.getWorkers()).find((x) => x.id === workerId);
+      // [OPTIMIZATION] Use specific queries instead of loading everything
+      // Convert workerId to Number to ensure match
+      const id = Number(workerId);
+      const w = await db.getWorker(id);
       setWorker(w);
 
       if (w) {
+        // We still load lists for mapping names, but these are usually smaller.
+        // For maximum speed, you could stick to IDs or fetch single dept/workplace too.
         const depts = await db.getDepartments();
         const works = await db.getWorkplaces();
         const d = depts.find((x) => x.id == w.department_id);
@@ -50,8 +55,8 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
         setWorkplaceName(wp ? wp.name : '-');
       }
 
-      const allExams = await db.getExams();
-      const wExams = allExams.filter((e) => e.worker_id === workerId);
+      // [OPTIMIZATION] Load only this worker's exams
+      const wExams = await db.getExamsByWorker(id);
       // Sort desc
       wExams.sort((a, b) => new Date(b.exam_date) - new Date(a.exam_date));
       setExams(wExams);

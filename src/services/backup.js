@@ -1,4 +1,5 @@
-import { db } from './db';
+// [FIX] REMOVED: import { db } from './db'; 
+// We do NOT import db here to avoid circular dependency loop.
 
 const BACKUP_STORE = 'backup_settings';
 const MANUAL_BACKUP_FILE_NAME = 'backup-manuel.json';
@@ -12,9 +13,21 @@ let lastImported = 0;
 let backupDir = null;
 let isInitialized = false;
 
-export async function init() {
+// [FIX] New internal variable for DB
+let dbApi = null; 
+
+// [FIX] Update init to accept the db instance
+export async function init(providedDb) {
+  if (providedDb) dbApi = providedDb;
+
+  if (!dbApi) {
+    console.warn('[Backup] Init called without DB instance');
+    return;
+  }
+
   try {
-    const settings = await db.getSettings();
+    // [FIX] Use dbApi instead of db
+    const settings = await dbApi.getSettings();
     threshold = settings.backup_threshold || DEFAULT_THRESHOLD;
     autoImportEnabled = !!settings.backup_autoImport;
     lastImported = settings.backup_lastImported || 0;
@@ -28,11 +41,13 @@ export async function init() {
 }
 
 async function saveMeta() {
-  await db.saveSettings({
-    backup_threshold: threshold,
-    backup_autoImport: autoImportEnabled,
-    backup_lastImported: lastImported,
-  });
+  if (dbApi) {
+    await dbApi.saveSettings({
+      backup_threshold: threshold,
+      backup_autoImport: autoImportEnabled,
+      backup_lastImported: lastImported,
+    });
+  }
 }
 
 export async function chooseDirectory() {
@@ -121,7 +136,6 @@ export async function saveBackupJSON(jsonString, filename = MANUAL_BACKUP_FILE_N
 async function getFileContent(filename) {
   const { Capacitor } = await import('@capacitor/core');
 
-  // ANDROID
   if (Capacitor.isNativePlatform()) {
     const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem');
     try {
@@ -139,7 +153,6 @@ async function getFileContent(filename) {
       return null;
     }
   }
-  // WEB
   else if (backupDir) {
     try {
       const handle = await backupDir.getFileHandle(filename);
@@ -202,7 +215,6 @@ export async function checkAndAutoImport(dbInstance) {
     if (!backup) return { imported: false, reason: 'no_data' };
 
     const last = backup.lastModified;
-    // Tolerance of 1000ms
     if (last > lastImported + 1000) {
       console.log('[Backup] Newer backup found. Importing...');
       const ok = await dbInstance.importData(backup.text);
@@ -220,13 +232,14 @@ export async function checkAndAutoImport(dbInstance) {
 
 export async function clearDirectory() {
   backupDir = null;
-  // No need to do anything with settings, just clear the handle
 }
 
 export async function registerChange() {
-  if (!isInitialized) await init();
+  if (!isInitialized || !dbApi) await init(dbApi); // Try to init if missing
+  if (!dbApi) return false; // Fail safe
+
   counter++;
-  await db.saveSettings({ backup_counter: counter });
+  await dbApi.saveSettings({ backup_counter: counter });
   if (counter >= threshold) return true;
   return false;
 }
@@ -255,7 +268,7 @@ export async function performAutoExport(getJsonCallback) {
 
 export async function resetCounter() {
   counter = 0;
-  await db.saveSettings({ backup_counter: 0 });
+  if (dbApi) await dbApi.saveSettings({ backup_counter: 0 });
 }
 
 export function getThreshold() {
@@ -265,7 +278,7 @@ export async function getCurrentThreshold() {
   return threshold;
 }
 export async function getBackupStatus() {
-  if (!isInitialized) await init();
+  if (!isInitialized) await init(dbApi);
   return {
     counter,
     threshold,

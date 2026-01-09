@@ -88,6 +88,11 @@ export const db = {
   async getWorkers() {
     return await dbInstance.workers.toArray();
   },
+  async getWorker(id) {
+    // Fetch only ONE worker (Fast)
+    // Ensure ID is a number
+    return await dbInstance.workers.get(Number(id));
+  },
   async saveWorker(worker) {
     const id = await dbInstance.workers.put(worker);
     await triggerBackupCheck();
@@ -101,6 +106,10 @@ export const db = {
   // --- EXAMS ---
   async getExams() {
     return await dbInstance.exams.toArray();
+  },
+  async getExamsByWorker(workerId) {
+    // Fetch only exams for this worker (Fast)
+    return await dbInstance.exams.where('worker_id').equals(Number(workerId)).toArray();
   },
   async saveExam(exam) {
     const id = await dbInstance.exams.put(exam);
@@ -188,3 +197,5 @@ export const db = {
     }
   },
 };
+// [FIX] ADD THIS LINE TO START BACKUP SERVICE
+backupService.init(db);
