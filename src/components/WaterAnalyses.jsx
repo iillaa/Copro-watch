@@ -171,6 +171,8 @@ export default function WaterAnalyses({ compactMode }) {
             display: 'flex',
             flexDirection: 'column',
             gap: '1rem',
+            // In compact mode, the panel should not shrink and should occupy the full available height
+            height: compactMode ? 'calc(100vh - 90px)' : 'auto',
           }}
         >
           {/* Header & Search */}
@@ -213,12 +215,12 @@ export default function WaterAnalyses({ compactMode }) {
           {/* SCROLLABLE LIST AREA */}
           <div 
             /* FIX: Removed class "water-panel-scroll" to avoid conflicts */
-            style={{
+           style={{
               flex: 1,
-              padding: compactMode ? '0.5rem' : '1rem',
-              /* FIX: Internal scroll vs Page scroll */
+              padding: '0.5rem',
+              // In Compact mode, the list should scroll within its container.
+              // Otherwise, it should grow naturally.
               overflowY: compactMode ? 'auto' : 'visible',
-              height: compactMode ? '100%' : 'auto'
             }}
           >
             {filteredDepartments.map((dept) => {
