@@ -403,7 +403,7 @@ const gridDashboard = "1.5fr 1fr 80px";
                     </div>
                     {/* Date */}
                     <div className="hybrid-cell" style={{ color: 'var(--danger)', fontWeight: 'bold' }}>
-                      {logic.formatDate(new Date(w.next_exam_due))}
+                      {logic.formatDateDisplay(new Date(w.next_exam_due))}
                     </div>
                     {/* Action */}
                     <div className="hybrid-actions">
@@ -422,7 +422,7 @@ const gridDashboard = "1.5fr 1fr 80px";
                       {w.full_name}
                     </div>
                     <div className="hybrid-cell">
-                      {logic.formatDate(new Date(w.next_exam_due))}
+                      {logic.formatDateDisplay(new Date(w.next_exam_due))}
                     </div>
                     <div className="hybrid-actions">
                       <button className="btn btn-sm btn-outline" onClick={() => onNavigateWorker(w.id)} title="Voir Dossier">
@@ -474,7 +474,7 @@ const gridDashboard = "1.5fr 1fr 80px";
                     </div>
                     {/* Date */}
                     <div className="hybrid-cell">
-                      {logic.formatDate(new Date(item.date))}
+                      {logic.formatDateDisplay(new Date(item.date))}
                     </div>
                     {/* Action */}
                     <div className="hybrid-actions">

@@ -1,5 +1,4 @@
 import Dexie from 'dexie';
-import localforage from 'localforage';
 import backupService from './backup';
 import { encryptString, decryptString } from './crypto'; // IMPORT ADDED
 
@@ -20,50 +19,6 @@ class CoproDatabase extends Dexie {
 }
 
 const dbInstance = new CoproDatabase();
-
-// 2. Migration Helper (Run once)
-async function migrateFromLocalForage() {
-  const OLD_STORES = {
-    WORKERS: 'workers',
-    DEPARTMENTS: 'departments',
-    WORKPLACES: 'workplaces',
-    EXAMS: 'exams',
-    WATER_ANALYSES: 'water_analyses',
-    WATER_DEPARTMENTS: 'water_departments',
-  };
-
-  try {
-    const workerCount = await dbInstance.workers.count();
-    if (workerCount > 0) return;
-
-    console.log('[DB] Checking for legacy data to migrate...');
-    const workers = await localforage.getItem(OLD_STORES.WORKERS);
-
-    if (workers && Array.isArray(workers) && workers.length > 0) {
-      console.log(`[DB] Migrating ${workers.length} workers...`);
-      await dbInstance.workers.bulkPut(workers);
-
-      const departments = (await localforage.getItem(OLD_STORES.DEPARTMENTS)) || [];
-      await dbInstance.departments.bulkPut(departments);
-
-      const workplaces = (await localforage.getItem(OLD_STORES.WORKPLACES)) || [];
-      await dbInstance.workplaces.bulkPut(workplaces);
-
-      const exams = (await localforage.getItem(OLD_STORES.EXAMS)) || [];
-      await dbInstance.exams.bulkPut(exams);
-
-      const waterAnalyses = (await localforage.getItem(OLD_STORES.WATER_ANALYSES)) || [];
-      await dbInstance.water_analyses.bulkPut(waterAnalyses);
-
-      const waterDepts = (await localforage.getItem(OLD_STORES.WATER_DEPARTMENTS)) || [];
-      await dbInstance.water_departments.bulkPut(waterDepts);
-
-      console.log('[DB] Migration successful!');
-    }
-  } catch (e) {
-    console.error('[DB] Migration Failed', e);
-  }
-}
 
 // 3. Helper to trigger auto-backup check
 async function triggerBackupCheck() {
@@ -93,7 +48,6 @@ async function exportData() {
 // 5. The Public API
 export const db = {
   async init() {
-    await migrateFromLocalForage();
     const deptCount = await dbInstance.departments.count();
     if (deptCount === 0) {
       console.log('Seeding database (First Run)...');
@@ -135,7 +89,6 @@ export const db = {
     return await dbInstance.workers.toArray();
   },
   async saveWorker(worker) {
-    if (!worker.id) worker.id = Date.now();
     await dbInstance.workers.put(worker);
     await triggerBackupCheck();
     return worker;
@@ -150,7 +103,6 @@ export const db = {
     return await dbInstance.exams.toArray();
   },
   async saveExam(exam) {
-    if (!exam.id) exam.id = Date.now();
     await dbInstance.exams.put(exam);
     await triggerBackupCheck();
     return exam;
@@ -165,7 +117,6 @@ export const db = {
     return await dbInstance.departments.toArray();
   },
   async saveDepartment(dept) {
-    if (!dept.id) dept.id = Date.now();
     await dbInstance.departments.put(dept);
     await triggerBackupCheck();
     return dept;
@@ -180,7 +131,6 @@ export const db = {
     return await dbInstance.workplaces.toArray();
   },
   async saveWorkplace(workplace) {
-    if (!workplace.id) workplace.id = Date.now();
     await dbInstance.workplaces.put(workplace);
     await triggerBackupCheck();
     return workplace;
@@ -195,7 +145,6 @@ export const db = {
     return await dbInstance.water_analyses.toArray();
   },
   async saveWaterAnalysis(analysis) {
-    if (!analysis.id) analysis.id = Date.now();
     await dbInstance.water_analyses.put(analysis);
     await triggerBackupCheck();
     return analysis;
@@ -208,7 +157,6 @@ export const db = {
     return await dbInstance.water_departments.toArray();
   },
   async saveWaterDepartment(dept) {
-    if (!dept.id) dept.id = Date.now();
     await dbInstance.water_departments.put(dept);
     await triggerBackupCheck();
     return dept;

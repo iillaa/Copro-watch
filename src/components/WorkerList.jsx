@@ -501,14 +501,14 @@ const handleBatchArchive = async () => {
 
                 {/* Dernier Exam */}
                 <div className="hybrid-cell">
-                  {w.last_exam_date ? logic.formatDate(new Date(w.last_exam_date)) : '-'}
+                  {w.last_exam_date ? logic.formatDateDisplay(new Date(w.last_exam_date)) : '-'}
                 </div>
 
                {/* Col 6: Prochain Dû */}
                 <div className="hybrid-cell" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {/* [FIX] Fixed width '85px' prevents wiggling when scrolling */}
                   <span style={{ fontWeight: 600, minWidth: '85px', display: 'inline-block' }}>
-                    {w.next_exam_due}
+                    {logic.formatDateDisplay(w.next_exam_due)}
                   </span>
                   {renderStatusBadge(status)}
                   {!w.archived && isOverdue && (

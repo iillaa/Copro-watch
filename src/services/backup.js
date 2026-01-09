@@ -1,4 +1,4 @@
-import localforage from 'localforage';
+import { db } from './db';
 
 const BACKUP_STORE = 'backup_settings';
 const MANUAL_BACKUP_FILE_NAME = 'backup-manuel.json';
@@ -14,14 +14,11 @@ let isInitialized = false;
 
 export async function init() {
   try {
-    const meta = await localforage.getItem(BACKUP_STORE);
-    if (meta) {
-      threshold = meta.threshold || DEFAULT_THRESHOLD;
-      autoImportEnabled = !!meta.autoImport;
-      lastImported = meta.lastImported || 0;
-    }
-    const savedCounter = await localforage.getItem('backup_counter');
-    counter = parseInt(savedCounter, 10) || 0;
+    const settings = await db.getSettings();
+    threshold = settings.backup_threshold || DEFAULT_THRESHOLD;
+    autoImportEnabled = !!settings.backup_autoImport;
+    lastImported = settings.backup_lastImported || 0;
+    counter = settings.backup_counter || 0;
     isInitialized = true;
     console.log('[Backup] initialized. Counter:', counter);
   } catch (e) {
@@ -31,10 +28,10 @@ export async function init() {
 }
 
 async function saveMeta() {
-  await localforage.setItem(BACKUP_STORE, {
-    threshold,
-    autoImport: autoImportEnabled,
-    lastImported,
+  await db.saveSettings({
+    backup_threshold: threshold,
+    backup_autoImport: autoImportEnabled,
+    backup_lastImported: lastImported,
   });
 }
 
@@ -222,15 +219,14 @@ export async function checkAndAutoImport(dbInstance) {
 }
 
 export async function clearDirectory() {
-  const meta = (await localforage.getItem(BACKUP_STORE)) || {};
   backupDir = null;
-  await localforage.setItem(BACKUP_STORE, meta);
+  // No need to do anything with settings, just clear the handle
 }
 
 export async function registerChange() {
   if (!isInitialized) await init();
   counter++;
-  await localforage.setItem('backup_counter', counter);
+  await db.saveSettings({ backup_counter: counter });
   if (counter >= threshold) return true;
   return false;
 }
@@ -259,7 +255,7 @@ export async function performAutoExport(getJsonCallback) {
 
 export async function resetCounter() {
   counter = 0;
-  await localforage.setItem('backup_counter', 0);
+  await db.saveSettings({ backup_counter: 0 });
 }
 
 export function getThreshold() {

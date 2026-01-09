@@ -21,9 +21,13 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
   });
 
   const currentMonthAnalysis = history.find((a) => {
-    const d = new Date(a.request_date || a.sample_date);
-    const now = new Date();
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    if (!a.request_date && !a.sample_date) return false;
+    // Get YYYY-MM string from the record
+    const recordMonth = (a.request_date || a.sample_date).substring(0, 7);
+    // Get YYYY-MM string for today
+    const currentMonth = new Date().toISOString().substring(0, 7);
+
+    return recordMonth === currentMonth;
   });
 
   // 2. Form State

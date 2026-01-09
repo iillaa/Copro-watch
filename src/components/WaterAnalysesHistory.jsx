@@ -281,12 +281,12 @@ export default function WaterAnalysesHistory({ compactMode }) {
 
                 {/* Date Echantillon */}
                 <div className="hybrid-cell">
-                  {analysis.sample_date}
+                  {logic.formatDateDisplay(analysis.sample_date)}
                 </div>
 
                 {/* Date Résultat */}
                 <div className="hybrid-cell">
-                  {analysis.result_date || '-'}
+                  {analysis.result_date ? logic.formatDateDisplay(analysis.result_date) : '-'}
                 </div>
 
                 {/* Résultat Badge */}

@@ -211,7 +211,7 @@ export const logic = {
       requested: 'DEMANDE ENVOYÉE',  // We called the lab, waiting for them to come
       pending: 'EN COURS',     // They took the sample, analyzing it now
       ok: 'CONFORME',                // Safe
-      alert: 'NON CONFORME',         // Danger,
+      alert: 'EAU NON POTABLE',         // Danger,
     };
     return map[status] || '-';
   },
