@@ -89,9 +89,9 @@ export const db = {
     return await dbInstance.workers.toArray();
   },
   async saveWorker(worker) {
-    await dbInstance.workers.put(worker);
+    const id = await dbInstance.workers.put(worker);
     await triggerBackupCheck();
-    return worker;
+    return { ...worker, id };
   },
   async deleteWorker(id) {
     await dbInstance.workers.delete(id);
@@ -103,9 +103,9 @@ export const db = {
     return await dbInstance.exams.toArray();
   },
   async saveExam(exam) {
-    await dbInstance.exams.put(exam);
+    const id = await dbInstance.exams.put(exam);
     await triggerBackupCheck();
-    return exam;
+    return { ...exam, id };
   },
   async deleteExam(id) {
     await dbInstance.exams.delete(id);
@@ -117,9 +117,9 @@ export const db = {
     return await dbInstance.departments.toArray();
   },
   async saveDepartment(dept) {
-    await dbInstance.departments.put(dept);
+    const id = await dbInstance.departments.put(dept);
     await triggerBackupCheck();
-    return dept;
+    return { ...dept, id };
   },
   async deleteDepartment(id) {
     await dbInstance.departments.delete(id);
@@ -131,9 +131,9 @@ export const db = {
     return await dbInstance.workplaces.toArray();
   },
   async saveWorkplace(workplace) {
-    await dbInstance.workplaces.put(workplace);
+    const id = await dbInstance.workplaces.put(workplace);
     await triggerBackupCheck();
-    return workplace;
+    return { ...workplace, id };
   },
   async deleteWorkplace(id) {
     await dbInstance.workplaces.delete(id);
@@ -145,9 +145,9 @@ export const db = {
     return await dbInstance.water_analyses.toArray();
   },
   async saveWaterAnalysis(analysis) {
-    await dbInstance.water_analyses.put(analysis);
+    const id = await dbInstance.water_analyses.put(analysis);
     await triggerBackupCheck();
-    return analysis;
+    return { ...analysis, id };
   },
   async deleteWaterAnalysis(id) {
     await dbInstance.water_analyses.delete(id);
@@ -157,9 +157,9 @@ export const db = {
     return await dbInstance.water_departments.toArray();
   },
   async saveWaterDepartment(dept) {
-    await dbInstance.water_departments.put(dept);
+    const id = await dbInstance.water_departments.put(dept);
     await triggerBackupCheck();
-    return dept;
+    return { ...dept, id };
   },
   async deleteWaterDepartment(id) {
     await dbInstance.water_departments.delete(id);
