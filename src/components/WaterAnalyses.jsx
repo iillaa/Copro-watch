@@ -158,7 +158,7 @@ export default function WaterAnalyses({ compactMode }) {
           display: 'flex',
           gap: '1.5rem',
           alignItems: 'flex-start',
-          height: compactMode ? 'calc(100vh - 90px)' : 'auto',
+          height: compactMode ? 'calc(100vh - 85px)' : 'auto',
           overflowY: compactMode ? 'auto' : 'visible',
         }}
       >
@@ -172,7 +172,7 @@ export default function WaterAnalyses({ compactMode }) {
             flexDirection: 'column',
             gap: '1rem',
             // In compact mode, the panel should not shrink and should occupy the full available height
-            height: compactMode ? 'calc(100vh - 90px)' : 'auto',
+            height: compactMode ? 'calc(100vh - 01px)' : 'auto',
           }}
         >
           {/* Header & Search */}
@@ -327,7 +327,7 @@ export default function WaterAnalyses({ compactMode }) {
         {isPanelVisible && (
           <div
             style={{
-              flex: '1.2 1 280px',
+              flex: '1.2 1 300px',
               minWidth: '280px',
               display: 'flex',
               flexDirection: 'column',

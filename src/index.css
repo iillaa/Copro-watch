@@ -1365,7 +1365,7 @@ tr {
     height: calc(100vh - 100px); 
     display: flex;
     gap: 1.5rem;
-    overflow: hidden; /* STOP the main page from scrolling */
+    overflow: visible; 
     align-items: stretch;
   }
 
@@ -1390,4 +1390,13 @@ tr {
     overflow-y: visible; /* No internal scroll */
     height: auto;
   }
+}
+/* Reduce shadow specifically for cards inside the right panel */
+.water-dashboard-layout > div:last-child .card {
+  box-shadow: 2px 2px 0px var(--border-color) !important;
+}
+
+.water-dashboard-layout > div:last-child .card:hover {
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 3px 3px 0px var(--border-color) !important;
 }
