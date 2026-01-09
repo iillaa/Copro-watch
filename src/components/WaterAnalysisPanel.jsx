@@ -135,6 +135,10 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
     return 'var(--warning)';
   };
 
+  // [LOGIC FIX] Helper to check if the Sample Step is ACTUALLY saved in DB
+  const isSampleSaved = !!currentMonthAnalysis?.sample_date;
+  const isResultSaved = !!currentMonthAnalysis?.result_date;
+
   return (
     <div
       className="card"
@@ -208,8 +212,9 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
         ></div>
 
         <StepIndicator active={!!formData.request_date} label="Demandé" color="var(--primary)" />
-        <StepIndicator active={!!formData.sample_date} label="Prélevé" color="var(--warning)" />
-        <StepIndicator active={!!formData.result_date} label="Résultat" color={getResultColor()} />
+        {/* Use isSampleSaved to show progress only when CONFIRMED */}
+        <StepIndicator active={isSampleSaved} label="Prélevé" color="var(--warning)" />
+        <StepIndicator active={isResultSaved} label="Résultat" color={getResultColor()} />
       </div>
 
       {/* Steps Form Container */}
@@ -261,12 +266,12 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
         {/* STEP 2: SAMPLE */}
         {formData.id && !isCreatingRetest && (
           <div
-            className={`card ${formData.result_date ? 'completed' : ''}`}
+            className={`card ${isResultSaved ? 'completed' : ''}`}
             style={{
               border: '2px solid var(--border-color)',
               margin: 0,
               padding: '1rem',
-              borderColor: !formData.sample_date ? 'var(--warning)' : 'var(--border-color)',
+              borderColor: !isSampleSaved ? 'var(--warning)' : 'var(--border-color)',
             }}
           >
             <div
@@ -278,7 +283,8 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
               }}
             >
               <h4 style={{ margin: 0 }}>2. Prélèvement</h4>
-              {formData.sample_date && !formData.result_date && (
+              {/* Show 'Corriger' only if SAVED but not yet finalized with a result */}
+              {isSampleSaved && !isResultSaved && (
                 <button
                   className="btn btn-sm btn-outline"
                   onClick={() => handleUndo('sample')}
@@ -296,14 +302,21 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
                   className="input"
                   value={formData.sample_date}
                   onChange={(e) => setFormData({ ...formData, sample_date: e.target.value })}
-                  disabled={!!formData.result_date}
+                  // Lock input if SAVED. User must click 'Corriger' to unlock.
+                  disabled={isSampleSaved}
                 />
               </div>
-              {!formData.sample_date && (
+              
+              {/* Show Confirm button if NOT SAVED (even if date is selected) */}
+              {!isSampleSaved && (
                 <button
                   className="btn btn-warning"
                   onClick={() => handleSave('sample')}
-                  style={{ color: 'black' }}
+                  disabled={!formData.sample_date}
+                  style={{ 
+                    color: 'black',
+                    opacity: !formData.sample_date ? 0.5 : 1 
+                  }}
                 >
                   <FaCheckCircle /> Confirmer
                 </button>
@@ -313,7 +326,8 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
         )}
 
         {/* STEP 3: RESULT */}
-        {formData.sample_date && !isCreatingRetest && (
+        {/* Only show if Sample is SAVED in DB */}
+        {isSampleSaved && !isCreatingRetest && (
           <div
             className="card"
             style={{
