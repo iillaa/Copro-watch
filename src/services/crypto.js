@@ -1,8 +1,11 @@
 // Minimal cross-runtime webcrypto helpers for symmetric AES-GCM encryption.
-const subtle =
-  typeof window !== 'undefined' && window.crypto && window.crypto.subtle
-    ? window.crypto.subtle
-    : (globalThis.crypto && globalThis.crypto.subtle) || require('crypto').webcrypto.subtle;
+// [FIX] Remove Node.js 'require' dependency for Android compatibility
+const crypto = window.crypto || window.msCrypto;
+const subtle = crypto ? crypto.subtle : null;
+
+if (!subtle) {
+  console.error("WebCrypto API not supported on this device!");
+}
 
 function toUint8Array(str) {
   return new TextEncoder().encode(str);

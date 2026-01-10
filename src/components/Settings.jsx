@@ -483,10 +483,11 @@ export default function Settings({ onReset, compactMode, setCompactMode ,current
             Code PIN (4 chiffres)
           </label>
           <input
-            type="password" // [CHANGED] Hide characters
+            type="password"
             maxLength="4"
-            placeholder="****" // Show stars
-            value={pin.length === 4 ? pin : ''} // If hash (len 64), show empty. If plain (len 4), show it.
+            // [FIX] Don't show the hash. Show placeholder when PIN is set.
+            placeholder={pin ? "PIN Défini (saisir pour modifier)" : "Définir un code PIN"}
+            value={pin.length === 4 ? pin : ''}
             onChange={(e) => setPin(e.target.value)}
             style={{
               padding: '0.5rem',

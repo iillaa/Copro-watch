@@ -100,7 +100,8 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
 
     // B. Filter Department
     if (filterDept) {
-      result = result.filter((w) => w.department_id == filterDept);
+      // [FIX] Strict equality with type conversion
+      result = result.filter((w) => w.department_id === Number(filterDept));
     }
 
     // C. Filter Search (Using the deferred value!)

@@ -31,9 +31,16 @@ export const logic = {
     return d ? format(d, 'yyyy-MM-dd') : '';
   },
 
-  formatDateDisplay(date) {
-    const d = safeDate(date);
-    return d ? format(d, 'dd/MM/yyyy') : '-';
+  formatDateDisplay(dateInput) {
+    if (!dateInput) return '-';
+    try {
+      const d = new Date(dateInput);
+      // [FIX] Check if date is valid
+      if (isNaN(d.getTime())) return '-';
+      return format(d, 'dd/MM/yyyy');
+    } catch (e) {
+      return 'Err';
+    }
   },
 
   getCurrentMonthRange() {
