@@ -5,7 +5,6 @@ import backupService from '../services/backup';
 import AddWorkerForm from './AddWorkerForm';
 import BulkActionsToolbar from './BulkActionsToolbar'; // [NEW] Batch Toolbar
 import MoveWorkersModal from './MoveWorkersModal'; // [NEW] Move Modal
-import { Virtuoso } from 'react-virtuoso';
 import {
   FaPlus,
   FaSearch,
@@ -95,7 +94,6 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
 
     // B. Filter Department
     if (filterDept) {
-      // [FIX] Strict equality with type conversion
       result = result.filter((w) => w.department_id === Number(filterDept));
     }
 
@@ -357,120 +355,6 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     ? '50px 1.9fr 0.8fr 1fr 0.9fr 2.2fr 100px'
     : '0px 1.5fr 0.8fr 1fr 0.9fr 2.2fr 100px';
 
-  // [START NEW CODE: Row Component]
-  const Row = (index, w) => {
-    const isOverdue = logic.isOverdue(w.next_exam_due);
-    const status = w.latest_status || null;
-    const isSelected = selectedIds.has(w.id);
-
-    return (
-      <div
-        onClick={() => (isSelectionMode ? toggleSelectOne(w.id) : onNavigateWorker(w.id))}
-        className={`hybrid-row ${isSelected ? 'selected' : ''} ${
-          !w.archived && isOverdue ? 'overdue-worker-row' : ''
-        }`}
-        style={{
-          gridTemplateColumns: gridTemplate,
-          opacity: w.archived ? 0.6 : 1,
-          marginBottom: '0.6rem',
-        }}
-      >
-        <div style={{ textAlign: 'center' }}>
-          {isSelectionMode && (
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={() => toggleSelectOne(w.id)}
-              onClick={(e) => e.stopPropagation()}
-            />
-          )}
-        </div>
-
-        <div className="hybrid-cell cell-name">
-          {w.full_name}
-          {w.archived && (
-            <span
-              className="badge"
-              style={{
-                fontSize: '0.6rem',
-                marginLeft: '5px',
-                background: '#eee',
-                color: '#666',
-                border: 'none',
-              }}
-            >
-              Archivé
-            </span>
-          )}
-        </div>
-
-        <div className="hybrid-cell">
-          <span
-            style={{
-              fontFamily: 'monospace',
-              background: '#f1f5f9',
-              padding: '2px 6px',
-              borderRadius: '4px',
-              fontSize: '0.8rem',
-              color: '#64748b',
-            }}
-          >
-            {w.national_id}
-          </span>
-        </div>
-
-        <div className="hybrid-cell">{getDeptName(w.department_id)}</div>
-
-        <div className="hybrid-cell">
-          {w.last_exam_date ? logic.formatDateDisplay(new Date(w.last_exam_date)) : '-'}
-        </div>
-
-        <div className="hybrid-cell" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontWeight: 600, minWidth: '85px', display: 'inline-block' }}>
-            {logic.formatDateDisplay(w.next_exam_due)}
-          </span>
-          {renderStatusBadge(status)}
-          {!w.archived && isOverdue && (
-            <span className="badge badge-red" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>
-              RETARD
-            </span>
-          )}
-        </div>
-
-        <div className="hybrid-actions">
-          <button
-            className="btn btn-outline btn-sm"
-            onClick={(e) => handleEdit(e, w)}
-            title="Modifier"
-          >
-            <FaEdit />
-          </button>
-          <button
-            className="btn btn-outline btn-sm"
-            onClick={(e) => handleDelete(e, w)}
-            disabled={deletingId === w.id}
-            style={{
-              color: 'var(--danger)',
-              borderColor: 'var(--danger)',
-              backgroundColor: '#fff1f2',
-            }}
-            title="Supprimer"
-          >
-            {deletingId === w.id ? (
-              <div
-                className="loading-spinner"
-                style={{ width: '12px', height: '12px', borderWidth: '2px' }}
-              ></div>
-            ) : (
-              <FaTrash />
-            )}
-          </button>
-        </div>
-      </div>
-    );
-  };
-  // [END NEW CODE]
-
   return (
     <div>
       {/* HEADER BAR */}
@@ -591,73 +475,188 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
         )}
       </div>
 
-      {/* [START REPLACEMENT: Virtualized List] */}
+      {/* SCROLLABLE TABLE WINDOW */}
       <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          height: compactMode ? '75vh' : '600px',
-          paddingBottom: '1rem',
-        }}
+        className="scroll-wrapper"
+        style={{ maxHeight: compactMode ? '75vh' : 'none', paddingBottom: '120px' }}
       >
-        {/* Sticky Header Row (Outside the scroll area) */}
-        <div
-          className="hybrid-header"
-          style={{ gridTemplateColumns: gridTemplate, margin: '0 0 0.5rem 0', flexShrink: 0 }}
-        >
-          <div style={{ textAlign: 'center' }}>
-            {isSelectionMode && (
-              <input
-                type="checkbox"
-                onChange={toggleSelectAll}
-                checked={filteredWorkers.length > 0 && selectedIds.size === filteredWorkers.length}
-              />
-            )}
+        <div className="hybrid-container">
+          {/* 1. STICKY HEADER ROW */}
+          <div className="hybrid-header" style={{ gridTemplateColumns: gridTemplate }}>
+            <div style={{ textAlign: 'center' }}>
+              {isSelectionMode && (
+                <input
+                  type="checkbox"
+                  onChange={toggleSelectAll}
+                  checked={
+                    filteredWorkers.length > 0 && selectedIds.size === filteredWorkers.length
+                  }
+                />
+              )}
+            </div>
+            <div onClick={() => handleSort('full_name')} style={{ cursor: 'pointer' }}>
+              Nom et prénom {getSortIcon('full_name')}
+            </div>
+            <div onClick={() => handleSort('national_id')} style={{ cursor: 'pointer' }}>
+              Matricule {getSortIcon('national_id')}
+            </div>
+            <div onClick={() => handleSort('department_id')} style={{ cursor: 'pointer' }}>
+              Service {getSortIcon('department_id')}
+            </div>
+            <div onClick={() => handleSort('last_exam_date')} style={{ cursor: 'pointer' }}>
+              Dernier Exam {getSortIcon('last_exam_date')}
+            </div>
+            <div onClick={() => handleSort('next_exam_due')} style={{ cursor: 'pointer' }}>
+              Prochain Dû {getSortIcon('next_exam_due')}
+            </div>
+            <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>Actions</div>
           </div>
-          <div onClick={() => handleSort('full_name')} style={{ cursor: 'pointer' }}>
-            Nom et prénom {getSortIcon('full_name')}
-          </div>
-          <div onClick={() => handleSort('national_id')} style={{ cursor: 'pointer' }}>
-            Matricule {getSortIcon('national_id')}
-          </div>
-          <div onClick={() => handleSort('department_id')} style={{ cursor: 'pointer' }}>
-            Service {getSortIcon('department_id')}
-          </div>
-          <div onClick={() => handleSort('last_exam_date')} style={{ cursor: 'pointer' }}>
-            Dernier Exam {getSortIcon('last_exam_date')}
-          </div>
-          <div onClick={() => handleSort('next_exam_due')} style={{ cursor: 'pointer' }}>
-            Prochain Dû {getSortIcon('next_exam_due')}
-          </div>
-          <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>Actions</div>
-        </div>
 
-        {/* The Magic: Virtual Window */}
-        {filteredWorkers.length > 0 ? (
-          <Virtuoso
-            data={filteredWorkers}
-            itemContent={Row}
-            style={{ height: '100%' }}
-            overscan={200}
-          />
-        ) : (
-          <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>🔍</div>
-            <p>Aucun résultat trouvé.</p>
-            <button
-              className="btn btn-outline btn-sm"
-              onClick={() => {
-                setSearchTerm('');
-                setFilterDept('');
-              }}
-            >
-              Effacer les filtres
-            </button>
-          </div>
-        )}
+          {/* 2. SCROLLABLE DATA ROWS */}
+          {filteredWorkers.map((w) => {
+            const isOverdue = logic.isOverdue(w.next_exam_due);
+            const status = w.latest_status; // [FIX] Use cached status from worker object
+            const isSelected = selectedIds.has(w.id);
+
+            return (
+              <div
+                key={w.id}
+                onClick={() => (isSelectionMode ? toggleSelectOne(w.id) : onNavigateWorker(w.id))}
+                className={`hybrid-row ${isSelected ? 'selected' : ''} ${
+                  !w.archived && isOverdue ? 'overdue-worker-row' : ''
+                }`}
+                style={{
+                  gridTemplateColumns: gridTemplate,
+                  opacity: w.archived ? 0.6 : 1,
+                }}
+              >
+                {/* Checkbox */}
+                <div style={{ textAlign: 'center', overflow: 'hidden' }}>
+                  {isSelectionMode && (
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelectOne(w.id)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  )}
+                </div>
+
+                {/* Nom et prénom */}
+                <div className="hybrid-cell cell-name">
+                  {w.full_name}
+                  {w.archived && (
+                    <span
+                      className="badge"
+                      style={{
+                        fontSize: '0.6rem',
+                        marginLeft: '5px',
+                        background: '#eee',
+                        color: '#666',
+                        border: 'none',
+                      }}
+                    >
+                      Archivé
+                    </span>
+                  )}
+                </div>
+
+                {/* Matricule */}
+                <div className="hybrid-cell">
+                  <span
+                    style={{
+                      fontFamily: 'monospace',
+                      background: '#f1f5f9',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontSize: '0.8rem',
+                      color: '#64748b',
+                    }}
+                  >
+                    {w.national_id}
+                  </span>
+                </div>
+
+                {/* Service */}
+                <div className="hybrid-cell">{getDeptName(w.department_id)}</div>
+
+                {/* Dernier Exam */}
+                <div className="hybrid-cell">
+                  {w.last_exam_date ? logic.formatDateDisplay(new Date(w.last_exam_date)) : '-'}
+                </div>
+
+                {/* Col 6: Prochain Dû */}
+                <div
+                  className="hybrid-cell"
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  {/* [FIX] Fixed width '85px' prevents wiggling when scrolling */}
+                  <span style={{ fontWeight: 600, minWidth: '85px', display: 'inline-block' }}>
+                    {logic.formatDateDisplay(w.next_exam_due)}
+                  </span>
+                  {renderStatusBadge(status)}
+                  {!w.archived && isOverdue && (
+                    <span
+                      className="badge badge-red"
+                      style={{ fontSize: '0.65rem', padding: '2px 6px' }}
+                    >
+                      RETARD
+                    </span>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="hybrid-actions">
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={(e) => handleEdit(e, w)}
+                    title="Modifier"
+                  >
+                    <FaEdit />
+                  </button>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={(e) => handleDelete(e, w)}
+                    disabled={deletingId === w.id} // Disable if deleting this one
+                    style={{
+                      color: 'var(--danger)',
+                      borderColor: 'var(--danger)',
+                      backgroundColor: '#fff1f2',
+                    }}
+                    title="Supprimer"
+                  >
+                    {/* Show Spinner or Icon */}
+                    {deletingId === w.id ? (
+                      <div
+                        className="loading-spinner"
+                        style={{ width: '12px', height: '12px', borderWidth: '2px' }}
+                      ></div>
+                    ) : (
+                      <FaTrash />
+                    )}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+
+          {filteredWorkers.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>🔍</div>
+              <p>Aucun résultat trouvé.</p>
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilterDept('');
+                }}
+              >
+                Effacer les filtres
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-      {/* [END REPLACEMENT] */}
 
       {/* FLOATERS */}
       {selectedIds.size > 0 && (

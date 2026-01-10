@@ -21,7 +21,8 @@ export default function Settings({
   currentPin,
   onPinChange,
 }) {
-  const [pin, setPin] = useState(currentPin);
+  // Initialize empty. We only set it if the user types a NEW pin.
+  const [pin, setPin] = useState('');
   const [doctorName, setDoctorName] = useState(''); // [NEW]
   const [msg, setMsg] = useState('');
   const fileRef = useRef();
@@ -51,24 +52,33 @@ export default function Settings({
   const [waterDepartmentsLoading, setWaterDepartmentsLoading] = useState(false);
 
   const handleSave = async () => {
-    if (pin.length !== 4 || isNaN(pin)) {
-      setMsg('Le PIN doit être composé de 4 chiffres.');
-      return;
+    // 1. Logic: If pin is empty, we KEEP the old one.
+    let pinToSave = currentPin;
+
+    // 2. Only if user TYPED something, we validate and update
+    if (pin.length > 0) {
+      if (pin.length !== 4 || isNaN(pin)) {
+        setMsg('Le PIN doit être composé de 4 chiffres.');
+        setTimeout(() => setMsg(''), 3000);
+        return;
+      }
+      // Hash the NEW pin
+      pinToSave = await hashString(pin);
     }
 
-    // [NEW] Hash the PIN before saving
-    const hashedPin = await hashString(pin);
-
-    // Save Hash to DB
+    // 3. Save everything
     await db.saveSettings({
-      pin: hashedPin,
+      pin: pinToSave,
       doctor_name: doctorName,
     });
 
-    // Update App State
-    onPinChange(hashedPin);
+    // 4. Update App State
+    if (pin.length > 0) {
+      onPinChange(pinToSave);
+      setPin(''); // Clear the field for security
+    }
 
-    setMsg('Paramètres sauvegardés (PIN Sécurisé) !');
+    setMsg('Paramètres sauvegardés !');
     setTimeout(() => setMsg(''), 3000);
   };
 
@@ -499,9 +509,8 @@ export default function Settings({
           <input
             type="password"
             maxLength="4"
-            // [FIX] Don't show the hash. Show placeholder when PIN is set.
-            placeholder={pin ? 'PIN Défini (saisir pour modifier)' : 'Définir un code PIN'}
-            value={pin.length === 4 ? pin : ''}
+            placeholder="****"
+            value={pin}
             onChange={(e) => setPin(e.target.value)}
             style={{
               padding: '0.5rem',

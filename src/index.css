@@ -1315,11 +1315,21 @@ tr {
   cursor: pointer;
 }
 
-.hybrid-row:hover {
-  transform: translateY(-2px);
-  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.15);
-  border-color: var(--primary);
-  z-index: 10;
+/* Only hover if the user has a mouse */
+@media (hover: hover) {
+  .hybrid-row:hover {
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary);
+    z-index: 10;
+  }
+}
+
+/* Add tactile feedback for Touch devices */
+.hybrid-row:active {
+  transform: scale(0.98);
+  background-color: var(--primary-light);
+  transition: transform 0.1s;
 }
 
 /* Selection State */
