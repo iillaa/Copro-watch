@@ -22,7 +22,7 @@ function App() {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [waterResetKey, setWaterResetKey] = useState(0);
   const [compactMode, setCompactMode] = useState(true);
-  const [pin, setPin] = useState('0011');
+  const [pin, setPin] = useState('0000');
   // --- ENGINE STARTUP (The Only Change) ---
   const initApp = async () => {
     try {
@@ -45,7 +45,7 @@ function App() {
         setPin(settings.pin);
       } else {
         // Migration: If no PIN in DB, use default "0011" hashed
-        setPin('0011');
+        setPin('0000');
       }
     } catch (error) {
       console.error('App Initialization Failed:', error);

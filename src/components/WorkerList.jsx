@@ -28,7 +28,6 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   // Data State
   const [workers, setWorkers] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [exams, setExams] = useState([]);
 
   // UI State
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,14 +66,12 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   
   const loadData = async () => {
     try {
-      const [w, d, e] = await Promise.all([
+      const [w, d] = await Promise.all([
         db.getWorkers(),
-        db.getDepartments(),
-        db.getExams()
+        db.getDepartments()
       ]);
       setWorkers(w);
       setDepartments(d);
-      setExams(e);
     } catch (error) {
       console.error("Failed to load data:", error);
     }
@@ -297,14 +294,6 @@ const handleBatchArchive = async () => {
     return departments.find((x) => x.id == id)?.name || '-';
   };
 
-  const getWorkerLastStatus = (workerId) => {
-    const workerExams = exams.filter((e) => e.worker_id === workerId);
-    if (workerExams.length === 0) return null;
-    // Quick sort just for this worker (cheap operation)
-    workerExams.sort((a, b) => new Date(b.exam_date) - new Date(a.exam_date));
-    return workerExams[0]?.decision?.status;
-  };
-
   const renderStatusBadge = (status) => {
     if (!status) return null;
     const configs = {
@@ -467,7 +456,7 @@ const handleBatchArchive = async () => {
           {/* 2. SCROLLABLE DATA ROWS */}
           {filteredWorkers.map((w) => {
             const isOverdue = logic.isOverdue(w.next_exam_due);
-            const status = getWorkerLastStatus(w.id);
+            const status = w.latest_status;  // [FIX] Use cached status from worker object
             const isSelected = selectedIds.has(w.id);
 
             return (

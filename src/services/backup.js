@@ -232,12 +232,13 @@ export async function checkAndAutoImport(dbInstance) {
     const backup = await readBackupJSON();
     if (!backup) return { imported: false, reason: 'no_data' };
 
-    const last = backup.lastModified;
-    if (last > lastImported + 1000) {
+    // Use the REAL embedded date, not file system date
+    const realDate = getRealDate(backup);
+    if (realDate > lastImported + 1000) {
       console.log('[Backup] Newer backup found. Importing...');
       const ok = await dbInstance.importData(backup.text);
       if (ok) {
-        lastImported = last;
+        lastImported = realDate;
         await saveMeta();
         return { imported: true };
       }

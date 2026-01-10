@@ -109,6 +109,8 @@ export const logic = {
     return {
       last_exam_date: lastExam.exam_date,
       next_exam_due: nextDue || this.formatDate(new Date()),
+      // [FIX] Save the status string directly to the worker so we don't need to fetch exams later
+      latest_status: lastValidExam?.decision?.status || null,
     };
   },
 
