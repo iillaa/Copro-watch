@@ -4,7 +4,7 @@ const crypto = window.crypto || window.msCrypto;
 const subtle = crypto ? crypto.subtle : null;
 
 if (!subtle) {
-  console.error("WebCrypto API not supported on this device!");
+  console.error('WebCrypto API not supported on this device!');
 }
 
 function toUint8Array(str) {

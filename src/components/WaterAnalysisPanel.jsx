@@ -3,34 +3,30 @@ import { db } from '../services/db';
 import {
   FaSave,
   FaCheckCircle,
-  FaTrash,
-  FaUndo,
   FaExclamationTriangle,
   FaNotesMedical,
+  FaVial,
+  FaCalendarAlt,
+  FaClipboardList,
+  FaTrash,
 } from 'react-icons/fa';
 
-export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
-  // 1. Find the relevant analysis for the CURRENT MONTH
-  // Sort by newest first (Date DESC, then ID DESC for same-day items)
-  const history = [...analyses].sort((a, b) => {
-    const dateA = new Date(a.request_date || a.sample_date);
-    const dateB = new Date(b.request_date || b.sample_date);
-    const diff = dateB - dateA;
-    // If dates are different, sort by date. If same, sort by ID (newest first).
-    return diff !== 0 ? diff : b.id - a.id;
-  });
+// [FIX] Default empty array for analyses to prevent "undefined" crash
+export default function WaterAnalysisPanel({
+  department,
+  analyses = [],
+  onUpdate,
+  isEmbedded = false,
+}) {
+  // 1. DATA FINDER (Current Month Only)
+  const currentMonthISO = new Date().toISOString().substring(0, 7);
 
-  const currentMonthAnalysis = history.find((a) => {
-    if (!a.request_date && !a.sample_date) return false;
-    // Get YYYY-MM string from the record
-    const recordMonth = (a.request_date || a.sample_date).substring(0, 7);
-    // Get YYYY-MM string for today
-    const currentMonth = new Date().toISOString().substring(0, 7);
+  // [FIX] Sort by ID desc to get LATEST action (Retest Fix) + Safety Check
+  const savedRecord = (analyses || [])
+    .filter((a) => (a.request_date || a.sample_date || '').startsWith(currentMonthISO))
+    .sort((a, b) => b.id - a.id)[0];
 
-    return recordMonth === currentMonth;
-  });
-
-  // 2. Form State
+  // 2. FORM STATE
   const [formData, setFormData] = useState({
     request_date: '',
     sample_date: '',
@@ -39,28 +35,26 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
     notes: '',
   });
 
-  // NEW: State to handle the "Retest" (Contre-visite) workflow
   const [isCreatingRetest, setIsCreatingRetest] = useState(false);
 
-  // 3. Load Data
+  // 3. SYNC DATA
   useEffect(() => {
-    // If we are explicitly creating a retest, DO NOT load the old data
     if (isCreatingRetest) return;
 
-    if (currentMonthAnalysis) {
+    if (savedRecord) {
       setFormData({
-        id: currentMonthAnalysis.id,
-        request_date: currentMonthAnalysis.request_date || '',
-        sample_date: currentMonthAnalysis.sample_date || '',
-        result_date: currentMonthAnalysis.result_date || '',
-        result: currentMonthAnalysis.result || 'pending',
-        notes: currentMonthAnalysis.notes || '',
+        id: savedRecord.id,
+        request_date: savedRecord.request_date || '',
+        sample_date: savedRecord.sample_date || '',
+        result_date: savedRecord.result_date || '',
+        result: savedRecord.result || 'pending',
+        notes: savedRecord.notes || '',
         department_id: department.id,
       });
     } else {
       resetForm();
     }
-  }, [department, currentMonthAnalysis, isCreatingRetest]);
+  }, [department, savedRecord, isCreatingRetest]);
 
   const resetForm = () => {
     setFormData({
@@ -73,408 +67,349 @@ export default function WaterAnalysisPanel({ department, analyses, onUpdate }) {
     });
   };
 
-  // 4. Save Handler
+  // 4. HANDLERS
   const handleSave = async (step) => {
     let dataToSave = { ...formData, department_id: department.id };
     const today = new Date().toISOString().split('T')[0];
 
-    // Auto-fill dates logic if missing
-    if (step === 'sample' && !dataToSave.sample_date) dataToSave.sample_date = today;
-    if (step === 'result' && !dataToSave.result_date) dataToSave.result_date = today;
+    // [FIX] Allow blank dates (Deleted auto-fill logic)
+    // if (step === 'sample' && !dataToSave.sample_date) dataToSave.sample_date = today;
+    // if (step === 'result' && !dataToSave.result_date) dataToSave.result_date = today;
 
     await db.saveWaterAnalysis(dataToSave);
-    setIsCreatingRetest(false); // Exit retest mode after saving
+    setIsCreatingRetest(false);
     onUpdate();
   };
 
-  // 5. Undo/Reset Handler
   const handleUndo = async (step) => {
-    if (!window.confirm('Voulez-vous vraiment annuler cette étape ?')) return;
+    if (step === 'request' && !window.confirm("⚠️ Cela effacera toute l'analyse. Continuer ?"))
+      return;
+    if (step === 'result' && !window.confirm('Modifier le résultat ?')) return;
 
     let dataToSave = { ...formData };
 
     if (step === 'result') {
       dataToSave.result_date = '';
       dataToSave.result = 'pending';
-    } else if (step === 'sample') {
-      dataToSave.sample_date = '';
-      dataToSave.result_date = '';
-      dataToSave.result = 'pending';
+      await db.saveWaterAnalysis(dataToSave);
+      onUpdate(); // <--- [CRITICAL FIX] Refresh the parent so the inputs unlock!
     } else if (step === 'request') {
-      // Deleting the request deletes the analysis for this month
       if (dataToSave.id) {
         await db.deleteWaterAnalysis(dataToSave.id);
+        resetForm();
         onUpdate();
         return;
       }
     }
-
-    setFormData(dataToSave);
-    await db.saveWaterAnalysis(dataToSave);
-    onUpdate();
   };
 
-  // 6. Retest Handler (Starts the "Contre-visite" process)
   const handleStartRetest = () => {
-    setIsCreatingRetest(true); // Lock the effect from reloading old data
+    setIsCreatingRetest(true);
     setFormData({
       department_id: department.id,
-      request_date: new Date().toISOString().split('T')[0], // New Request Today
+      request_date: new Date().toISOString().split('T')[0],
       sample_date: '',
       result_date: '',
       result: 'pending',
-      notes: 'Contre-visite : ', // Pre-fill notes
+      notes: 'Contre-visite : ',
     });
   };
 
-  // Helper to determine status color
-  const getResultColor = () => {
-    if (!formData.result_date) return 'var(--border-color)';
-    if (formData.result === 'potable') return 'var(--success)';
-    if (formData.result === 'non_potable') return 'var(--danger)';
-    return 'var(--warning)';
+  // 5. STATUS LOGIC
+  // [FIX] If retesting, ignore the saved record so the form is unlocked (Fresh Start)
+  const activeRecord = isCreatingRetest ? null : savedRecord;
+
+  const isRequestSaved = !!activeRecord?.request_date;
+  const isSampleSaved = !!activeRecord?.sample_date;
+  const isResultSaved = !!activeRecord?.result_date;
+
+  const getStatusHeader = () => {
+    if (isCreatingRetest)
+      return {
+        bg: 'var(--danger)',
+        text: 'CONTRE-VISITE (NOUVELLE)',
+        icon: <FaExclamationTriangle />,
+      };
+
+    if (activeRecord?.result === 'non_potable')
+      return { bg: 'var(--danger)', text: 'EAU NON POTABLE', icon: <FaExclamationTriangle /> };
+    if (activeRecord?.result === 'potable')
+      return { bg: 'var(--success)', text: 'EAU POTABLE', icon: <FaCheckCircle /> };
+
+    if (isResultSaved)
+      return { bg: 'var(--warning)', text: 'EN ATTENTE VALIDATION', icon: <FaClipboardList /> };
+    if (isSampleSaved) return { bg: 'var(--warning)', text: 'ANALYSE EN COURS', icon: <FaVial /> };
+    if (isRequestSaved)
+      return { bg: 'var(--primary)', text: 'DEMANDE CRÉÉE', icon: <FaCalendarAlt /> };
+    return { bg: '#94a3b8', text: 'AUCUNE ANALYSE', icon: <FaClipboardList /> };
   };
+  const status = getStatusHeader();
 
-  // [LOGIC FIX] Helper to check if the Sample Step is ACTUALLY saved in DB
-  const isSampleSaved = !!currentMonthAnalysis?.sample_date;
-  const isResultSaved = !!currentMonthAnalysis?.result_date;
-
-  return (
-    <div
-      className="card"
-      style={{
-        height: 'auto',
-        minHeight: '400px',
-        margin: 0,
+  // STYLES
+  const containerStyle = isEmbedded
+    ? {
         display: 'flex',
         flexDirection: 'column',
-        border: '3px solid var(--border-color)',
-      }}
-    >
-      {/* Header */}
+        gap: '1rem',
+      }
+    : {
+        border: '1px solid black',
+        display: 'flex',
+        flexDirection: 'column',
+        boxShadow: '4px 4px 0px rgba(2, 1, 1, 0.2)',
+        marginBottom: '1rem',
+        borderRadius: '16px',
+        overflow: 'hidden',
+      };
+
+  return (
+    <div style={containerStyle}>
+      {/* HEADER */}
       <div
         style={{
-          borderBottom: '3px solid var(--border-color)',
-          paddingBottom: '1rem',
-          marginBottom: '1.5rem',
-        }}
-      >
-        <h1 style={{ margin: 0, fontSize: '1.8rem', color: 'var(--primary)' }}>
-          {department.name}
-        </h1>
-        <p style={{ margin: 0, color: 'var(--text-muted)' }}>Suivi Mensuel</p>
-      </div>
-
-      {/* ALERT: CONTRE-VISITE (Shows when creating a retest) */}
-      {isCreatingRetest && (
-        <div
-          style={{
-            background: 'var(--danger-light)',
-            padding: '1rem',
-            borderRadius: '8px',
-            marginBottom: '1.5rem',
-            border: '2px dashed var(--danger)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem',
-          }}
-        >
-          <FaExclamationTriangle color="var(--danger)" size={24} />
-          <div>
-            <strong>CONTRE-VISITE EN COURS</strong>
-            <div style={{ fontSize: '0.9rem' }}>
-              Suite à une non-conformité. Veuillez documenter la nouvelle demande.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Visual Timeline */}
-      <div
-        style={{
+          backgroundColor: status.bg,
+          color: 'white',
+          padding: '1rem',
           display: 'flex',
           justifyContent: 'space-between',
-          marginBottom: '2rem',
-          position: 'relative',
-          padding: '0 2rem',
+          alignItems: 'center',
+          border: isEmbedded ? '2px solid rgba(23, 23, 23, 0.1)' : 'none',
+          borderBottom: '1px solid black',
+          borderRadius: isEmbedded ? '12px' : '0',
         }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            top: '15px',
-            left: '3rem',
-            right: '3rem',
-            height: '4px',
-            background: '#e2e8f0',
-            zIndex: 0,
-          }}
-        ></div>
-
-        <StepIndicator active={!!formData.request_date} label="Demandé" color="var(--primary)" />
-        {/* Use isSampleSaved to show progress only when CONFIRMED */}
-        <StepIndicator active={isSampleSaved} label="Prélevé" color="var(--warning)" />
-        <StepIndicator active={isResultSaved} label="Résultat" color={getResultColor()} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span style={{ fontSize: '1.5rem' }}>{status.icon}</span>
+          <div>
+            <div
+              style={{
+                fontSize: '0.75rem',
+                opacity: 0.9,
+                fontWeight: 700,
+                letterSpacing: '0.05em',
+              }}
+            >
+              ÉTAT DU MOIS
+            </div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 900 }}>{status.text}</div>
+          </div>
+        </div>
       </div>
 
-      {/* Steps Form Container */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        {/* STEP 1: REQUEST */}
-        <div
-          className={`card ${formData.sample_date ? 'completed' : ''}`}
-          style={{ border: '2px solid var(--border-color)', margin: 0, padding: '1rem' }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '0.5rem',
-            }}
-          >
-            <h4 style={{ margin: 0 }}>1. Demande d'analyse</h4>
-            {/* Show delete button only if we are NOT in the middle of a confirmed retest flow (optional check) */}
-            {formData.request_date && !formData.sample_date && !isCreatingRetest && (
-              <button
-                className="btn btn-sm btn-outline"
-                onClick={() => handleUndo('request')}
-                style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
-              >
-                <FaTrash size={12} /> Annuler
-              </button>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-            <div style={{ flex: 1 }}>
-              <label className="label">Date de la demande</label>
+      {/* BODY */}
+      <div
+        style={{
+          padding: isEmbedded ? '0' : '1.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.5rem',
+          background: '#fff',
+        }}
+      >
+        {/* LOGISTICS */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          {/* STEP 1: REQUEST */}
+          <div style={{ opacity: isSampleSaved ? 0.6 : 1 }}>
+            <div
+              style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}
+            >
+              <label className="label" style={{ fontSize: '0.75rem', marginBottom: 0 }}>
+                1. Demande
+              </label>
+              {isRequestSaved && !isSampleSaved && !isCreatingRetest && (
+                <span
+                  onClick={() => handleUndo('request')}
+                  style={{
+                    cursor: 'pointer',
+                    color: 'var(--danger)',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <FaTrash size={10} /> SUPPRIMER
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
               <input
                 type="date"
                 className="input"
                 value={formData.request_date}
                 onChange={(e) => setFormData({ ...formData, request_date: e.target.value })}
-                disabled={!!formData.sample_date}
+                // [FIX] Only lock if the Final Result is saved. Allows editing while in progress.
+                disabled={isResultSaved}
+                style={{ borderRadius: '8px' }}
               />
+              {/* [FIX] Show OK if unsaved OR changed */}
+              {(!savedRecord?.id ||
+                isCreatingRetest ||
+                formData.request_date !== savedRecord.request_date) && (
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => handleSave('request')}
+                  style={{ borderRadius: '8px' }}
+                >
+                  OK
+                </button>
+              )}
             </div>
-            {(!formData.id || isCreatingRetest) && (
-              <button className="btn btn-primary" onClick={() => handleSave('request')}>
-                <FaSave /> {isCreatingRetest ? 'Lancer Contre-visite' : 'Créer'}
-              </button>
-            )}
+          </div>
+
+          {/* STEP 2: SAMPLE */}
+          <div style={{ opacity: !isRequestSaved ? 0.4 : 1 }}>
+            <div
+              style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}
+            >
+              <label className="label" style={{ fontSize: '0.75rem', marginBottom: 0 }}>
+                2. Prélèvement
+              </label>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="date"
+                className="input"
+                value={formData.sample_date}
+                onChange={(e) => setFormData({ ...formData, sample_date: e.target.value })}
+                // [FIX] Unlock input even if saved, as long as Result is NOT final
+                disabled={!isRequestSaved || isResultSaved}
+                style={{ borderRadius: '8px' }}
+              />
+              {/* [FIX] Show OK button if data changed */}
+              {isRequestSaved &&
+                !isResultSaved &&
+                (!isSampleSaved || formData.sample_date !== savedRecord?.sample_date) && (
+                  <button
+                    className="btn btn-warning btn-sm"
+                    onClick={() => handleSave('sample')}
+                    style={{ borderRadius: '8px' }}
+                  >
+                    OK
+                  </button>
+                )}
+            </div>
           </div>
         </div>
 
-        {/* STEP 2: SAMPLE */}
-        {formData.id && !isCreatingRetest && (
-          <div
-            className={`card ${isResultSaved ? 'completed' : ''}`}
-            style={{
-              border: '2px solid var(--border-color)',
-              margin: 0,
-              padding: '1rem',
-              borderColor: !isSampleSaved ? 'var(--warning)' : 'var(--border-color)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '0.5rem',
-              }}
-            >
-              <h4 style={{ margin: 0 }}>2. Prélèvement</h4>
-              {/* Show 'Corriger' only if SAVED but not yet finalized with a result */}
-              {isSampleSaved && !isResultSaved && (
-                <button
-                  className="btn btn-sm btn-outline"
-                  onClick={() => handleUndo('sample')}
-                  style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
-                >
-                  <FaUndo size={12} /> Corriger
-                </button>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-              <div style={{ flex: 1 }}>
-                <label className="label">Date de prélèvement</label>
-                <input
-                  type="date"
-                  className="input"
-                  value={formData.sample_date}
-                  onChange={(e) => setFormData({ ...formData, sample_date: e.target.value })}
-                  // Lock input if SAVED. User must click 'Corriger' to unlock.
-                  disabled={isSampleSaved}
-                />
-              </div>
-              
-              {/* Show Confirm button if NOT SAVED (even if date is selected) */}
-              {!isSampleSaved && (
-                <button
-                  className="btn btn-warning"
-                  onClick={() => handleSave('sample')}
-                  disabled={!formData.sample_date}
-                  style={{ 
-                    color: 'black',
-                    opacity: !formData.sample_date ? 0.5 : 1 
-                  }}
-                >
-                  <FaCheckCircle /> Confirmer
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* STEP 3: RESULT */}
-        {/* Only show if Sample is SAVED in DB */}
-        {isSampleSaved && !isCreatingRetest && (
+        <div
+          style={{
+            borderTop: '2px dashed #cbd5e1',
+            paddingTop: '1rem',
+            opacity: !isSampleSaved ? 0.5 : 1,
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <label className="label" style={{ color: 'var(--primary)', fontWeight: 800 }}>
+              3. RÉSULTATS
+            </label>
+            {isResultSaved && savedRecord?.result !== 'non_potable' && (
+              <span
+                onClick={() => handleUndo('result')}
+                style={{
+                  cursor: 'pointer',
+                  color: 'var(--danger)',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                }}
+              >
+                MODIFIER
+              </span>
+            )}
+          </div>
+
           <div
-            className="card"
             style={{
-              border: '2px solid var(--border-color)',
-              margin: 0,
-              padding: '1rem',
-              background: formData.result_date ? 'white' : '#f0f9ff',
-              borderColor: !formData.result_date ? 'var(--primary)' : 'var(--border-color)',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1.5fr',
+              gap: '1rem',
+              marginBottom: '1rem',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '0.5rem',
-              }}
-            >
-              <h4 style={{ margin: 0 }}>3. Résultat Laboratoire</h4>
-              {formData.result_date && formData.result !== 'non_potable' && (
-                <button
-                  className="btn btn-sm btn-outline"
-                  onClick={() => handleUndo('result')}
-                  style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
-                >
-                  <FaUndo size={12} /> Corriger
-                </button>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1 }}>
-                <label className="label">Date Résultat</label>
-                <input
-                  type="date"
-                  className="input"
-                  value={formData.result_date}
-                  onChange={(e) => setFormData({ ...formData, result_date: e.target.value })}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label className="label">Verdict</label>
-                <select
-                  className="input"
-                  value={formData.result}
-                  onChange={(e) => setFormData({ ...formData, result: e.target.value })}
-                  style={{
-                    fontWeight: 'bold',
-                    color:
-                      formData.result === 'potable'
-                        ? 'var(--success)'
-                        : formData.result === 'non_potable'
-                          ? 'var(--danger)'
-                          : 'inherit',
-                  }}
-                >
-                  <option value="pending">En attente</option>
-                  <option value="potable">✅ EAU POTABLE</option>
-                  <option value="non_potable">⚠️ EAU NON POTABLE</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={{ marginTop: '1rem' }}>
-              <label className="label">Notes / Mesures</label>
+            <div>
+              <label className="label" style={{ fontSize: '0.7rem' }}>
+                Date
+              </label>
               <input
+                type="date"
                 className="input"
-                placeholder="Ex: Chloration effectuée..."
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                value={formData.result_date}
+                onChange={(e) => setFormData({ ...formData, result_date: e.target.value })}
+                disabled={!isSampleSaved}
+                style={{ borderRadius: '8px' }}
               />
             </div>
-
-            <div style={{ marginTop: '1rem', textAlign: 'right' }}>
-              <button className="btn btn-primary" onClick={() => handleSave('result')}>
-                <FaSave /> Enregistrer le résultat
-              </button>
+            <div>
+              <label className="label" style={{ fontSize: '0.7rem' }}>
+                Verdict
+              </label>
+              <select
+                className="input"
+                value={formData.result}
+                onChange={(e) => setFormData({ ...formData, result: e.target.value })}
+                disabled={!isSampleSaved}
+                style={{
+                  fontWeight: 800,
+                  borderRadius: '8px',
+                  color:
+                    formData.result === 'potable'
+                      ? 'var(--success)'
+                      : formData.result === 'non_potable'
+                      ? 'var(--danger)'
+                      : 'inherit',
+                }}
+              >
+                <option value="pending">⏳ En attente</option>
+                <option value="potable">✅ EAU POTABLE</option>
+                <option value="non_potable">⚠️ EAU NON POTABLE</option>
+              </select>
             </div>
           </div>
-        )}
 
-        {/* ACTION: NON POTABLE -> RETEST BUTTON */}
-        {formData.result === 'non_potable' && formData.result_date && !isCreatingRetest && (
-          <div
-            className="card"
+          <input
+            className="input"
+            placeholder="Notes..."
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            disabled={!isSampleSaved}
+            style={{ borderRadius: '8px' }}
+          />
+
+          {isSampleSaved &&
+            // [FIX] Show button if ANY field changed
+            (!isResultSaved ||
+              formData.result !== savedRecord?.result ||
+              formData.result_date !== savedRecord?.result_date ||
+              formData.notes !== savedRecord?.notes) && (
+              <button
+                className="btn btn-primary"
+                onClick={() => handleSave('result')}
+                style={{ width: '100%', marginTop: '1rem', borderRadius: '12px' }}
+              >
+                <FaSave /> ENREGISTRER RÉSULTAT
+              </button>
+            )}
+        </div>
+
+        {/* EMERGENCY */}
+        {savedRecord?.result === 'non_potable' && savedRecord?.result_date && !isCreatingRetest && (
+          <button
+            className="btn"
             style={{
-              background: 'var(--danger)',
-              color: 'white',
-              textAlign: 'center',
-              border: '3px solid black',
-              animation: 'pulse 2s infinite',
+              background: '#fee2e2',
+              color: 'var(--danger)',
+              border: '2px solid var(--danger)',
+              width: '100%',
+              fontWeight: 800,
+              borderRadius: '12px',
             }}
+            onClick={handleStartRetest}
           >
-            <h3 style={{ color: 'white', marginBottom: '0.5rem' }}>⚠️ EAU NON POTABLE</h3>
-            <p style={{ marginBottom: '1rem' }}>Une contre-visite est requise immédiatement.</p>
-            <button
-              className="btn"
-              style={{
-                background: 'white',
-                color: 'var(--danger)',
-                border: '2px solid black',
-                fontWeight: 'bold',
-                fontSize: '1.1rem',
-              }}
-              onClick={handleStartRetest}
-            >
-              <FaNotesMedical style={{ marginRight: '0.5rem' }} />
-              Planifier Contre-Visite
-            </button>
-          </div>
+            <FaNotesMedical /> LANCER CONTRE-VISITE
+          </button>
         )}
-      </div>
-    </div>
-  );
-}
-
-function StepIndicator({ active, label, color }) {
-  const finalColor = active ? color || 'var(--primary)' : 'white';
-  const borderColor = active ? 'var(--border-color)' : '#cbd5e1';
-  return (
-    <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <div
-        style={{
-          width: '32px',
-          height: '32px',
-          borderRadius: '50%',
-          background: finalColor,
-          border: `3px solid ${borderColor}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: active ? 'white' : '#cbd5e1',
-          marginBottom: '0.5rem',
-          boxShadow: active ? 'var(--shadow-hard)' : 'none',
-          transition: 'all 0.3s',
-        }}
-      >
-        {active && <FaCheckCircle size={14} />}
-      </div>
-      <div
-        style={{
-          fontWeight: 700,
-          fontSize: '0.8rem',
-          color: active ? 'var(--text-main)' : 'var(--text-muted)',
-        }}
-      >
-        {label}
       </div>
     </div>
   );

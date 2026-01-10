@@ -4,14 +4,12 @@
 
 ### 🩺 Valeur Médicale & Métier
 
-
 - [ ] **Concept : Types d'Examens Personnalisables**
   - _Idée :_ Rendre le système générique via les paramètres.
   - _But :_ Permettre d'ajouter d'autres types que la Coprologie (ex: Visite d'embauche, Vision, Sang).
 - [ ] **Concept : File d'Attente "Contre-Visites"**
   - _Idée :_ Créer une liste dédiée pour les cas positifs.
   - _But :_ Système de rappel automatique à J+7 / J+10 pour ne jamais oublier un contrôle.
-
 
 ### 📊 Administration & Reporting
 
@@ -43,6 +41,7 @@
 ### 🔒 Sécurité & Technique
 
 - [ ] **Concept : Authentification Biométrique**
+
   - _Idée :_ Utiliser les API natives Android.
   - _But :_ Connexion par empreinte digitale ou FaceID (remplace le PIN).
 

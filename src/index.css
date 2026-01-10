@@ -49,7 +49,7 @@
   --bg-card: #ffffff;
   --bg-card-hover: #f1f5f9;
   --row-border: #000000;
-  --row-shadow: rgba(0,0,0,0.1);
+  --row-shadow: rgba(0, 0, 0, 0.1);
 }
 /* --- UNIVERSAL SCROLL FIX (STABLE) --- */
 html {
@@ -224,9 +224,7 @@ body {
 
 /* Collapsible sidebar functionality for all devices */
 .sidebar {
-  transition:
-    width 0.3s ease,
-    transform 0.3s ease;
+  transition: width 0.3s ease, transform 0.3s ease;
 }
 
 .app-shell.sidebar-closed .sidebar {
@@ -353,9 +351,7 @@ h6 {
   background: rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  transition:
-    width 0.4s ease,
-    height 0.4s ease; /* Slower = smoother */
+  transition: width 0.4s ease, height 0.4s ease; /* Slower = smoother */
 }
 
 /* FIX: Increased from 200px to 500px to cover wide buttons */
@@ -1254,50 +1250,49 @@ tr {
 /* 1. The Scroll Container (Vertical Window) */
 .scroll-wrapper {
   overflow-x: auto; /* Horizontal scroll for columns */
-  
+
   /* [FIX] Safer Height Logic */
   max-height: 75vh; /* Takes up to 75% of screen height */
   min-height: 300px; /* Never collapses completely */
-  
+
   overflow-y: auto; /* Vertical Scroll is KEY for sticky header */
   overscroll-behavior: contain;
-  
+
   /* Spacing */
-  padding-bottom: 80px; 
+  padding-bottom: 80px;
   margin: 0 -1rem; /* Full width on mobile */
   padding: 0 1rem;
-  
 }
 
 /* 2. The Sticky Header (Now a Floating Card) */
 .hybrid-header {
   display: grid;
-    /* Columns: Check | Nom(Smaller) | Mat | Svc | Last(Smaller) | Next(HUGE) | Actions */
+  /* Columns: Check | Nom(Smaller) | Mat | Svc | Last(Smaller) | Next(HUGE) | Actions */
   /* [FIX] Resized columns to prevent squishing "Retard" */
   grid-template-columns: 50px 1.9fr 0.8fr 1fr 0.9fr 2.2fr 100px;
-  
+
   /* [STICKY LOGIC] */
   position: sticky;
   top: 0; /* Sticks to the top of the scroll window */
   z-index: 50;
-  
+
   /* [VISUALS - CARD STYLE] */
   background-color: var(--primary-light); /* Keep Blue BG */
   color: var(--primary);
-  
+
   padding: 1rem 1.25rem;
   font-weight: 800;
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
-  
+
   /* [TRANSFORMATION] Match the Row Cards exactly */
   border: 2px solid #000000; /* Black Border */
-  border-radius: 12px;       /* Rounded Corners */
-  box-shadow: 1px 1px 0px rgba(0,0,0,0.1); /* Card Shadow */
-  
+  border-radius: 12px; /* Rounded Corners */
+  box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.1); /* Card Shadow */
+
   /* Spacing to make it float */
-  margin-bottom: 0.75rem; 
+  margin-bottom: 0.75rem;
   margin-top: 0.25rem; /* Tiny gap at the very top */
 }
 /* 3. The Row Card */
@@ -1310,11 +1305,11 @@ tr {
   padding: 1rem 1.25rem;
   margin-bottom: 0.6rem;
   border-radius: 12px;
-  
+
   /* [IDENTITY] Black Border - uses CSS variable */
-  border: 1.5px solid var(--row-border); 
-  box-shadow: 2px 2px 0px var(--row-shadow); 
-  
+  border: 1.5px solid var(--row-border);
+  box-shadow: 2px 2px 0px var(--row-shadow);
+
   align-items: center;
   transition: all 0.15s ease;
   cursor: pointer;
@@ -1322,7 +1317,7 @@ tr {
 
 .hybrid-row:hover {
   transform: translateY(-2px);
-  box-shadow: 4px 4px 0px rgba(0,0,0,0.15);
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.15);
   border-color: var(--primary);
   z-index: 10;
 }
@@ -1368,18 +1363,18 @@ tr {
 @media (min-width: 769px) {
   .water-dashboard-layout {
     /* Height = Screen - Header/Margins (approx 100px) */
-    height: calc(100vh - 100px); 
+    height: calc(100vh - 100px);
     display: flex;
     gap: 1.5rem;
-    overflow: visible; 
+    overflow: visible;
     align-items: stretch;
   }
 
   .water-panel-scroll {
-    overflow-y: auto;      /* Scroll INSIDE this box only */
-    height: 100%;          /* Fill the height of the parent */
+    overflow-y: auto; /* Scroll INSIDE this box only */
+    height: 100%; /* Fill the height of the parent */
     padding-right: 0.5rem; /* Prevent scrollbar overlapping content */
-    padding-bottom: 2rem;  /* Space at bottom for scrolling */
+    padding-bottom: 2rem; /* Space at bottom for scrolling */
   }
 }
 
@@ -1389,9 +1384,9 @@ tr {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    height: auto; 
+    height: auto;
   }
-  
+
   .water-panel-scroll {
     overflow-y: visible; /* No internal scroll */
     height: auto;

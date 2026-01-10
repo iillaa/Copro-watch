@@ -14,7 +14,13 @@ import {
   FaBriefcase,
 } from 'react-icons/fa';
 
-export default function Settings({ onReset, compactMode, setCompactMode ,currentPin, onPinChange }) {
+export default function Settings({
+  onReset,
+  compactMode,
+  setCompactMode,
+  currentPin,
+  onPinChange,
+}) {
   const [pin, setPin] = useState(currentPin);
   const [doctorName, setDoctorName] = useState(''); // [NEW]
   const [msg, setMsg] = useState('');
@@ -54,14 +60,14 @@ export default function Settings({ onReset, compactMode, setCompactMode ,current
     const hashedPin = await hashString(pin);
 
     // Save Hash to DB
-    await db.saveSettings({ 
-      pin: hashedPin, 
-      doctor_name: doctorName 
+    await db.saveSettings({
+      pin: hashedPin,
+      doctor_name: doctorName,
     });
-    
+
     // Update App State
     onPinChange(hashedPin);
-    
+
     setMsg('Paramètres sauvegardés (PIN Sécurisé) !');
     setTimeout(() => setMsg(''), 3000);
   };
@@ -429,12 +435,20 @@ export default function Settings({ onReset, compactMode, setCompactMode ,current
     <div>
       <h2 style={{ marginBottom: '1.5rem' }}>Paramètres</h2>
 
-{/* --- [NEW] AFFICHAGE SECTION --- */}
+      {/* --- [NEW] AFFICHAGE SECTION --- */}
       <div className="card" style={{ maxWidth: '500px', marginTop: '1.5rem' }}>
-        <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)' }}>
-           Affichage
+        <h3
+          style={{
+            marginTop: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            color: 'var(--primary)',
+          }}
+        >
+          Affichage
         </h3>
-        
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <span style={{ fontWeight: '600' }}>Mode Compact (Tableaux)</span>
@@ -442,7 +456,7 @@ export default function Settings({ onReset, compactMode, setCompactMode ,current
               Activer le défilement interne (scroll) pour les tableaux.
             </p>
           </div>
-          
+
           <button
             className="btn"
             onClick={() => setCompactMode(!compactMode)}
@@ -450,20 +464,20 @@ export default function Settings({ onReset, compactMode, setCompactMode ,current
               backgroundColor: compactMode ? 'var(--primary)' : '#e2e8f0',
               color: compactMode ? 'white' : 'var(--text-main)',
               minWidth: '100px',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
             }}
           >
             {compactMode ? 'Activé' : 'Désactivé'}
           </button>
         </div>
       </div>
-      
+
       {/* Security Section */}
       <div className="card" style={{ maxWidth: '500px' }}>
         <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <FaLock /> Sécurité
         </h3>
-        
+
         {/* [NEW] Doctor Name Input */}
         <div style={{ marginBottom: '1rem' }}>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
@@ -486,7 +500,7 @@ export default function Settings({ onReset, compactMode, setCompactMode ,current
             type="password"
             maxLength="4"
             // [FIX] Don't show the hash. Show placeholder when PIN is set.
-            placeholder={pin ? "PIN Défini (saisir pour modifier)" : "Définir un code PIN"}
+            placeholder={pin ? 'PIN Défini (saisir pour modifier)' : 'Définir un code PIN'}
             value={pin.length === 4 ? pin : ''}
             onChange={(e) => setPin(e.target.value)}
             style={{

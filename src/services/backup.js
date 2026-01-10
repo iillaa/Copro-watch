@@ -1,4 +1,4 @@
-// [FIX] REMOVED: import { db } from './db'; 
+// [FIX] REMOVED: import { db } from './db';
 // We do NOT import db here to avoid circular dependency loop.
 
 const BACKUP_STORE = 'backup_settings';
@@ -14,7 +14,7 @@ let backupDir = null;
 let isInitialized = false;
 
 // [FIX] New internal variable for DB
-let dbApi = null; 
+let dbApi = null;
 
 // [FIX] Update init to accept the db instance
 export async function init(providedDb) {
@@ -152,8 +152,7 @@ async function getFileContent(filename) {
     } catch (e) {
       return null;
     }
-  }
-  else if (backupDir) {
+  } else if (backupDir) {
     try {
       const handle = await backupDir.getFileHandle(filename);
       const file = await handle.getFile();
@@ -206,7 +205,7 @@ export async function readBackupJSON() {
   } else {
     // If equal or one missing, prefer Manual, then Auto
     best = manual || auto;
-    source = manual ? 'MANUAL' : (auto ? 'AUTO' : '');
+    source = manual ? 'MANUAL' : auto ? 'AUTO' : '';
   }
 
   if (best) {

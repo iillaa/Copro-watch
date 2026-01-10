@@ -44,10 +44,10 @@ export default function ExamForm({
       if (!existingExam) {
         const s = await db.getSettings();
         if (s.doctor_name) {
-          setFormData(prev => ({ ...prev, physician_name: s.doctor_name }));
+          setFormData((prev) => ({ ...prev, physician_name: s.doctor_name }));
         } else {
           // Fallback if nothing saved yet
-          setFormData(prev => ({ ...prev, physician_name: 'Dr. Kibeche Ali Dia Eddine' }));
+          setFormData((prev) => ({ ...prev, physician_name: 'Dr. Kibeche Ali Dia Eddine' }));
         }
       }
     };
@@ -112,9 +112,39 @@ export default function ExamForm({
   return (
     <div className="modal-overlay">
       <div className="modal">
-        <h3 style={{ marginTop: 0, marginBottom: '0.5rem' }}>
-          Examen Médical - {worker.full_name}
-        </h3>
+        {/* [FIX] Header with Title + Red X Button */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1.5rem',
+          }}
+        >
+          <h3 style={{ margin: 0 }}>Examen Médical - {worker.full_name}</h3>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'var(--danger-light)', // Light Red Background
+              border: '2px solid var(--danger)', // Dark Red Border
+              color: 'var(--danger)', // Dark Red Icon
+              borderRadius: '8px', // Rounded Square
+              padding: '0.5rem',
+              cursor: 'pointer',
+              fontSize: '1.2rem',
+              fontWeight: 'bold',
+              transition: 'all 0.2s ease',
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            title="Fermer"
+          >
+            ×
+          </button>
+        </div>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
           <strong>Service:</strong> {deptName || '-'} • <strong>Lieu:</strong>{' '}
           {workplaceName || '-'} • <strong>Poste:</strong> {worker.job_role || '-'}

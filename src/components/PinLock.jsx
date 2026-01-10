@@ -11,7 +11,7 @@ export default function PinLock({ onUnlock, onCheckPin }) {
       if (pin.length === 4) {
         // Call the async validator passed from App.jsx
         const isValid = await onCheckPin(pin);
-        
+
         if (isValid) {
           onUnlock();
         } else {

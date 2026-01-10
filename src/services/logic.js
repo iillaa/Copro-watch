@@ -191,11 +191,9 @@ export const logic = {
     // 3. STEP 3: Result is in
     else if (currentMonthAnalysis.result === 'potable') {
       status = 'ok';
-    } 
-    else if (currentMonthAnalysis.result === 'non_potable') {
+    } else if (currentMonthAnalysis.result === 'non_potable') {
       status = 'alert';
-    }
-    else {
+    } else {
       status = 'pending';
     }
 
@@ -216,11 +214,11 @@ export const logic = {
 
   getServiceWaterStatusLabel(status) {
     const map = {
-      todo: 'À PLANIFIER',           // We need to decide a date
-      requested: 'DEMANDE ENVOYÉE',  // We called the lab, waiting for them to come
-      pending: 'EN COURS',     // They took the sample, analyzing it now
-      ok: 'CONFORME',                // Safe
-      alert: 'EAU NON POTABLE',         // Danger,
+      todo: 'À PLANIFIER', // We need to decide a date
+      requested: 'DEMANDE ENVOYÉE', // We called the lab, waiting for them to come
+      pending: 'EN COURS', // They took the sample, analyzing it now
+      ok: 'EAU POTABLE', // Safe
+      alert: 'EAU NON POTABLE', // Danger,
     };
     return map[status] || '-';
   },

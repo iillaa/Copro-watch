@@ -7,7 +7,7 @@ import {
   FaExclamationTriangle,
   FaMicroscope,
   FaClock,
-  FaEye
+  FaEye,
 } from 'react-icons/fa';
 
 export default function Dashboard({ onNavigateWorker, compactMode }) {
@@ -24,7 +24,7 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
   }, []);
   // [END INJECTION]
   // [GRID CONFIG] Name(1.5) | Date(1) | Action(80)
-const gridDashboard = "1.5fr 1fr 80px";
+  const gridDashboard = '1.5fr 1fr 80px';
 
   const loadStats = async () => {
     try {
@@ -43,10 +43,14 @@ const gridDashboard = "1.5fr 1fr 80px";
       // 3. TRI AUTOMATIQUE
       // ISO strings (yyyy-mm-dd) sort correctly alphabetically!
       if (computed.dueSoon)
-        computed.dueSoon.sort((a, b) => (a.next_exam_due || '').localeCompare(b.next_exam_due || ''));
+        computed.dueSoon.sort((a, b) =>
+          (a.next_exam_due || '').localeCompare(b.next_exam_due || '')
+        );
       if (computed.overdue)
-        computed.overdue.sort((a, b) => (a.next_exam_due || '').localeCompare(b.next_exam_due || ''));
-      if (computed.retests) 
+        computed.overdue.sort((a, b) =>
+          (a.next_exam_due || '').localeCompare(b.next_exam_due || '')
+        );
+      if (computed.retests)
         computed.retests.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
       setStats(computed);
@@ -129,8 +133,7 @@ const gridDashboard = "1.5fr 1fr 80px";
           style={
             isMobile
               ? {
-            
-                 // MOBILE STYLE: Horizontal Row
+                  // MOBILE STYLE: Horizontal Row
                   display: 'flex',
                   flexDirection: 'row', // <--- CHANGED TO ROW
                   alignItems: 'center',
@@ -142,7 +145,6 @@ const gridDashboard = "1.5fr 1fr 80px";
                   gap: '2px', // Small gap between items
                   boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
                   border: '2px solid #000000',
-                  
                 }
               : {
                   // DESKTOP STYLE: Your Original (Horizontal)
@@ -209,7 +211,7 @@ const gridDashboard = "1.5fr 1fr 80px";
           style={
             isMobile
               ? {
-                 // MOBILE STYLE: Horizontal Row
+                  // MOBILE STYLE: Horizontal Row
                   display: 'flex',
                   flexDirection: 'row', // <--- CHANGED TO ROW
                   alignItems: 'center',
@@ -220,9 +222,8 @@ const gridDashboard = "1.5fr 1fr 80px";
                   margin: 0,
                   border: '2px solid #000000', // [NEW]
                   boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
-                  gap: '2px' // Small gap between items
+                  gap: '2px', // Small gap between items
                   // [NEW]
-                
                 }
               : {
                   // DESKTOP STYLE
@@ -233,7 +234,6 @@ const gridDashboard = "1.5fr 1fr 80px";
                   padding: '1.5rem',
                   border: '2px solid #000000', // [NEW]
                   boxShadow: '4px 4px 0px rgba(0,0,0,0.1)', // [NEW]
-                
                 }
           }
         >
@@ -290,7 +290,7 @@ const gridDashboard = "1.5fr 1fr 80px";
           style={
             isMobile
               ? {
-                 // MOBILE STYLE: Horizontal Row
+                  // MOBILE STYLE: Horizontal Row
                   display: 'flex',
                   flexDirection: 'row', // <--- CHANGED TO ROW
                   alignItems: 'center',
@@ -300,10 +300,9 @@ const gridDashboard = "1.5fr 1fr 80px";
                   textAlign: 'center',
                   margin: 0,
                   border: '2px solid #000000', // [NEW]
-                  boxShadow: '4px 4px 0px rgba(0,0,0,0.1)', 
-                  gap: '2px' // Small gap between items
+                  boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
+                  gap: '2px', // Small gap between items
                   // [NEW]
-                
                 }
               : {
                   // DESKTOP STYLE
@@ -313,8 +312,7 @@ const gridDashboard = "1.5fr 1fr 80px";
                   background: 'var(--primary-light)',
                   padding: '1.5rem',
                   border: '2px solid #000000', // [NEW]
-                  boxShadow: '4px 4px 0px rgba(0,0,0,0.1)' // [NEW]
-                
+                  boxShadow: '4px 4px 0px rgba(0,0,0,0.1)', // [NEW]
                 }
           }
         >
@@ -370,9 +368,17 @@ const gridDashboard = "1.5fr 1fr 80px";
           gap: '1.5rem',
         }}
       >
-       {/* TABLEAU 1 : Examens à prévoir */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden', border: 'none', boxShadow: 'none', background: 'transparent' }}>
-          
+        {/* TABLEAU 1 : Examens à prévoir */}
+        <div
+          className="card"
+          style={{
+            padding: 0,
+            overflow: 'hidden',
+            border: 'none',
+            boxShadow: 'none',
+            background: 'transparent',
+          }}
+        >
           {/* Title */}
           <div style={{ paddingBottom: '0.5rem', background: 'transparent' }}>
             <h3 style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -381,13 +387,30 @@ const gridDashboard = "1.5fr 1fr 80px";
           </div>
 
           {stats.dueSoon.length === 0 && stats.overdue.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', background: 'white', borderRadius: '12px', border: '2px solid #eee' }}>
+            <div
+              style={{
+                padding: '2rem',
+                textAlign: 'center',
+                color: 'var(--text-muted)',
+                background: 'white',
+                borderRadius: '12px',
+                border: '2px solid #eee',
+              }}
+            >
               Rien à signaler. Tout est à jour !
             </div>
           ) : (
-            <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '510px' : 'none', background: 'transparent', border: 'none', padding: 0, margin: 0 }}>
+            <div
+              className="scroll-wrapper"
+              style={{
+                maxHeight: compactMode ? '510px' : 'none',
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                margin: 0,
+              }}
+            >
               <div className="hybrid-container" style={{ minWidth: '100%' }}>
-                
                 {/* HEADER */}
                 <div className="hybrid-header" style={{ gridTemplateColumns: gridDashboard }}>
                   <div>Nom</div>
@@ -397,21 +420,41 @@ const gridDashboard = "1.5fr 1fr 80px";
 
                 {/* 1. OVERDUE ROWS (Red) */}
                 {stats.overdue.map((w) => (
-                  <div key={w.id} className="hybrid-row overdue-worker-row" style={{ gridTemplateColumns: gridDashboard }}>
+                  <div
+                    key={w.id}
+                    className="hybrid-row overdue-worker-row"
+                    style={{ gridTemplateColumns: gridDashboard }}
+                  >
                     {/* Name + Badge */}
-                    <div className="hybrid-cell" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontWeight: 800, color: 'var(--danger-text)' }}>{w.full_name}</span>
-                      <span className="badge badge-red" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>RETARD</span>
+                    <div
+                      className="hybrid-cell"
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                      <span style={{ fontWeight: 800, color: 'var(--danger-text)' }}>
+                        {w.full_name}
+                      </span>
+                      <span
+                        className="badge badge-red"
+                        style={{ fontSize: '0.65rem', padding: '2px 6px' }}
+                      >
+                        RETARD
+                      </span>
                     </div>
                     {/* Date */}
-                    <div className="hybrid-cell" style={{ color: 'var(--danger)', fontWeight: 'bold' }}>
+                    <div
+                      className="hybrid-cell"
+                      style={{ color: 'var(--danger)', fontWeight: 'bold' }}
+                    >
                       {logic.formatDateDisplay(w.next_exam_due)}
                     </div>
                     {/* Action */}
                     <div className="hybrid-actions">
-                      <button className="btn btn-sm btn-outline" onClick={() => onNavigateWorker(w.id)} title="Voir Dossier">
+                      <button
+                        className="btn btn-sm btn-outline"
+                        onClick={() => onNavigateWorker(w.id)}
+                        title="Voir Dossier"
+                      >
                         <FaEye />
-              
                       </button>
                     </div>
                   </div>
@@ -419,44 +462,74 @@ const gridDashboard = "1.5fr 1fr 80px";
 
                 {/* 2. UPCOMING ROWS (Normal) */}
                 {stats.dueSoon.map((w) => (
-                  <div key={w.id} className="hybrid-row" style={{ gridTemplateColumns: gridDashboard }}>
+                  <div
+                    key={w.id}
+                    className="hybrid-row"
+                    style={{ gridTemplateColumns: gridDashboard }}
+                  >
                     <div className="hybrid-cell" style={{ fontWeight: 600 }}>
                       {w.full_name}
                     </div>
-                    <div className="hybrid-cell">
-                      {logic.formatDateDisplay(w.next_exam_due)}
-                    </div>
+                    <div className="hybrid-cell">{logic.formatDateDisplay(w.next_exam_due)}</div>
                     <div className="hybrid-actions">
-                      <button className="btn btn-sm btn-outline" onClick={() => onNavigateWorker(w.id)} title="Voir Dossier">
+                      <button
+                        className="btn btn-sm btn-outline"
+                        onClick={() => onNavigateWorker(w.id)}
+                        title="Voir Dossier"
+                      >
                         <FaEye />
                       </button>
                     </div>
                   </div>
                 ))}
-
               </div>
             </div>
           )}
         </div>
 
         {/* TABLEAU 2 : Contre-visites */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden', border: 'none', boxShadow: 'none', background: 'transparent' }}>
-          
+        <div
+          className="card"
+          style={{
+            padding: 0,
+            overflow: 'hidden',
+            border: 'none',
+            boxShadow: 'none',
+            background: 'transparent',
+          }}
+        >
           {/* Title */}
           <div style={{ paddingBottom: '0.5rem', background: 'transparent' }}>
-             <h3 style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h3 style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <FaMicroscope color="var(--primary)" /> Contre-visites
             </h3>
           </div>
 
           {stats.retests.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', background: 'white', borderRadius: '12px', border: '2px solid #eee' }}>
+            <div
+              style={{
+                padding: '2rem',
+                textAlign: 'center',
+                color: 'var(--text-muted)',
+                background: 'white',
+                borderRadius: '12px',
+                border: '2px solid #eee',
+              }}
+            >
               Aucune contre-visite prévue.
             </div>
           ) : (
-            <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '510px' : 'none', background: 'transparent', border: 'none', padding: 0, margin: 0 }}>
+            <div
+              className="scroll-wrapper"
+              style={{
+                maxHeight: compactMode ? '510px' : 'none',
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                margin: 0,
+              }}
+            >
               <div className="hybrid-container" style={{ minWidth: '100%' }}>
-                
                 {/* HEADER */}
                 <div className="hybrid-header" style={{ gridTemplateColumns: gridDashboard }}>
                   <div>Patient (Suivi)</div>
@@ -466,27 +539,42 @@ const gridDashboard = "1.5fr 1fr 80px";
 
                 {/* ROWS */}
                 {stats.retests.map((item) => (
-                  <div key={item.worker.id} className="hybrid-row" style={{ gridTemplateColumns: gridDashboard }}>
+                  <div
+                    key={item.worker.id}
+                    className="hybrid-row"
+                    style={{ gridTemplateColumns: gridDashboard }}
+                  >
                     {/* Patient Name + Icon */}
-                    <div className="hybrid-cell" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                       <div style={{ background: 'var(--primary-light)', padding: '6px', borderRadius: '50%', display: 'flex' }}>
-                         <FaMicroscope size={10} color="var(--primary)" />
-                       </div>
-                       <span style={{ fontWeight: 700 }}>{item.worker.full_name}</span>
+                    <div
+                      className="hybrid-cell"
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                      <div
+                        style={{
+                          background: 'var(--primary-light)',
+                          padding: '6px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                        }}
+                      >
+                        <FaMicroscope size={10} color="var(--primary)" />
+                      </div>
+                      <span style={{ fontWeight: 700 }}>{item.worker.full_name}</span>
                     </div>
                     {/* Date */}
-                    <div className="hybrid-cell">
-                      {logic.formatDateDisplay(item.date)}
-                    </div>
+                    <div className="hybrid-cell">{logic.formatDateDisplay(item.date)}</div>
                     {/* Action */}
                     <div className="hybrid-actions">
-                      <button className="btn btn-sm btn-outline" onClick={() => onNavigateWorker(item.worker.id)} title="Ouvrir Dossier">
+                      <button
+                        className="btn btn-sm btn-outline"
+                        onClick={() => onNavigateWorker(item.worker.id)}
+                        title="Ouvrir Dossier"
+                      >
                         <FaEye />
                       </button>
                     </div>
                   </div>
                 ))}
-
               </div>
             </div>
           )}

@@ -3,22 +3,22 @@ import { db } from '../services/db';
 import { logic } from '../services/logic';
 import WaterAnalysisForm from './WaterAnalysisForm';
 import BulkActionsToolbar from './BulkActionsToolbar';
-import { 
-  FaArrowLeft, 
+import {
+  FaArrowLeft,
   FaFlask,
   FaTrash,
   FaEye, // [NEW] Eye Icon for Details
-  FaCheckSquare
+  FaCheckSquare,
 } from 'react-icons/fa';
 
 export default function WaterServiceDetail({ department, onBack, onSave, compactMode }) {
   // ==================================================================================
   // 1. STATE MANAGEMENT
   // ==================================================================================
-  
+
   const [analyses, setAnalyses] = useState([]);
   const [allAnalyses, setAllAnalyses] = useState([]);
-  
+
   // Form States
   const [showForm, setShowForm] = useState(false);
   const [selectedAnalysis, setSelectedAnalysis] = useState(null);
@@ -33,13 +33,13 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
   // [SMART GRID CONFIG]
   // Cols: Check(50) | Demande(1) | Prelev(1) | Result(1) | Verdict(1) | Notes(1.5) | Actions(100)
   const gridTemplate = isSelectionMode
-    ? "50px 0.9fr 0.9fr 0.9fr 1fr 1.5fr 100px"
-    : "0px 0.9fr 0.9fr 0.9fr 1fr 1.5fr 100px";
+    ? '50px 0.9fr 0.9fr 0.9fr 1fr 1.5fr 100px'
+    : '0px 0.9fr 0.9fr 0.9fr 1fr 1.5fr 100px';
 
   // ==================================================================================
   // 2. DATA LOADING
   // ==================================================================================
-  
+
   const loadData = async () => {
     const all = await db.getWaterAnalyses();
     const deptHistory = logic.getDepartmentWaterHistory(department.id, all);
@@ -108,7 +108,7 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
 
   const toggleSelectAll = () => {
     if (selectedIds.size === analyses.length) setSelectedIds(new Set());
-    else setSelectedIds(new Set(analyses.map(a => a.id)));
+    else setSelectedIds(new Set(analyses.map((a) => a.id)));
   };
 
   const toggleSelectOne = (id) => {
@@ -121,7 +121,7 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
   const handleBatchDelete = async () => {
     if (window.confirm(`Supprimer définitivement ${selectedIds.size} analyses ?`)) {
       const idsToDelete = Array.from(selectedIds);
-      await Promise.all(idsToDelete.map(id => db.deleteWaterAnalysis(id)));
+      await Promise.all(idsToDelete.map((id) => db.deleteWaterAnalysis(id)));
       setSelectedIds(new Set());
       loadData();
       if (onSave) onSave();
@@ -133,7 +133,6 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
   // ==================================================================================
   return (
     <div style={{ animation: 'fadeIn 0.3s ease' }}>
-      
       {/* Back Button */}
       <div style={{ marginBottom: '1rem' }}>
         <button className="btn btn-outline" onClick={onBack}>
@@ -150,12 +149,12 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
               Historique complet des analyses
             </p>
           </div>
-          
+
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button
               className={`btn ${isSelectionMode ? 'btn-primary' : 'btn-outline'}`}
               onClick={toggleSelectionMode}
-              title={isSelectionMode ? "Masquer la sélection" : "Sélection multiple"}
+              title={isSelectionMode ? 'Masquer la sélection' : 'Sélection multiple'}
             >
               <FaCheckSquare />
             </button>
@@ -165,8 +164,14 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
             </button>
           </div>
         </div>
-        
-        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+
+        <div
+          style={{
+            marginTop: '1rem',
+            paddingTop: '1rem',
+            borderTop: '1px solid var(--border-color)',
+          }}
+        >
           <strong>Statut ce mois-ci:</strong>
           <span style={{ color: statusColor, fontWeight: 'bold', marginLeft: '0.5rem' }}>
             {statusLabel}
@@ -180,7 +185,6 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
       {/* --- HYBRID LIST CONTAINER --- */}
       <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '500px' : 'none' }}>
         <div className="hybrid-container" style={{ minWidth: '800px' }}>
-
           {/* 1. STICKY HEADER */}
           <div className="hybrid-header" style={{ gridTemplateColumns: gridTemplate }}>
             <div style={{ textAlign: 'center' }}>
@@ -222,9 +226,7 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
                 </div>
 
                 {/* Date Demande */}
-                <div className="hybrid-cell">
-                  {logic.formatDateDisplay(a.request_date)}
-                </div>
+                <div className="hybrid-cell">{logic.formatDateDisplay(a.request_date)}</div>
 
                 {/* Date Prélèvement */}
                 <div className="hybrid-cell" style={{ fontWeight: 800 }}>
@@ -232,22 +234,23 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
                 </div>
 
                 {/* Date Résultat */}
-                <div className="hybrid-cell">
-                  {logic.formatDateDisplay(a.result_date)}
-                </div>
+                <div className="hybrid-cell">{logic.formatDateDisplay(a.result_date)}</div>
 
                 {/* Verdict */}
-                <div className="hybrid-cell">
-                  {renderStatusBadge(a.result)}
-                </div>
+                <div className="hybrid-cell">{renderStatusBadge(a.result)}</div>
 
                 {/* Notes */}
-                <div className="hybrid-cell" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                <div
+                  className="hybrid-cell"
+                  style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}
+                >
                   {a.notes ? (
                     <span title={a.notes}>
                       {a.notes.length > 30 ? `${a.notes.substring(0, 30)}...` : a.notes}
                     </span>
-                  ) : '-'}
+                  ) : (
+                    '-'
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -265,7 +268,7 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
                     style={{
                       color: 'var(--danger)',
                       borderColor: 'var(--danger)',
-                      backgroundColor: '#fff1f2'
+                      backgroundColor: '#fff1f2',
                     }}
                     title="Supprimer"
                   >
@@ -277,10 +280,10 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
           })}
 
           {analyses.length === 0 && (
-             <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-               <div style={{ fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.5 }}>🧪</div>
-               <p>Aucune analyse enregistrée.</p>
-             </div>
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.5 }}>🧪</div>
+              <p>Aucune analyse enregistrée.</p>
+            </div>
           )}
         </div>
       </div>

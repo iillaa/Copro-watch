@@ -37,7 +37,7 @@ async function exportData() {
   const data = {
     // [NEW] Metadata allows us to trust the data, not the file system
     meta: {
-      version: "1.1",
+      version: '1.1',
       exported_at: new Date().getTime(),
     },
     departments: await dbInstance.departments.toArray(),

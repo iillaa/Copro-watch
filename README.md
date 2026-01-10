@@ -95,14 +95,14 @@ Pour les développeurs souhaitant modifier le code source.
 
 ### Commandes Utiles
 
-| Commande             | Description                                                                                            |
-| :------------------- | :----------------------------------------------------------------------------------------------------- |
-| `npm install`        | Installe toutes les dépendances du projet.                                                             |
-| `npm run dev`        | Lance le serveur de développement local (avec rechargement à chaud).                                   |
-| `npm run build`      | Compile l'application pour le web (dossier `dist/`).                                                   |
+| Commande                  | Description                                                                                            |
+| :------------------------ | :----------------------------------------------------------------------------------------------------- |
+| `npm install`             | Installe toutes les dépendances du projet.                                                             |
+| `npm run dev`             | Lance le serveur de développement local (avec rechargement à chaud).                                   |
+| `npm run build`           | Compile l'application pour le web (dossier `dist/`).                                                   |
 | `npm run build:standalone | **Crée la version portable** (`index-standalone.html`). Combine le build web + l'injection des assets. |
-| `npx cap sync`       | Synchronise le code web avec le projet Android natif.                                                  |
-| `npm run lint`       | Vérifie la qualité du code (ESLint).                                                                   |
+| `npx cap sync`            | Synchronise le code web avec le projet Android natif.                                                  |
+| `npm run lint`            | Vérifie la qualité du code (ESLint).                                                                   |
 
 ### Structure du Projet
 

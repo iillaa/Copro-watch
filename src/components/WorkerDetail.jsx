@@ -3,14 +3,14 @@ import { db } from '../services/db';
 import { logic } from '../services/logic';
 import ExamForm from './ExamForm';
 // AJOUT : Import des icônes d'archive et FaCheckSquare
-import { 
-  FaArrowLeft, 
-  FaFileMedical, 
-  FaTrash, 
-  FaArchive, 
-  FaBoxOpen, 
+import {
+  FaArrowLeft,
+  FaFileMedical,
+  FaTrash,
+  FaArchive,
+  FaBoxOpen,
   FaCheckSquare, // [NEW] Icon
-  FaEye
+  FaEye,
 } from 'react-icons/fa';
 import BulkActionsToolbar from './BulkActionsToolbar'; // [NEW] Import Toolbar
 
@@ -31,10 +31,9 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
 
   // [SMART GRID] Config for Medical History (Based on your columns)
   // Cols: Check(50) | Date(0.9) | Médecin(1.2) | Labo(1.1) | Statut(1) | Actions(100)
-  const gridTemplate = isSelectionMode 
-    ? "50px 0.9fr 1.2fr 1.1fr 1fr 100px" 
-    : "0px 0.9fr 1.2fr 1.1fr 1fr 100px";
-  
+  const gridTemplate = isSelectionMode
+    ? '50px 0.9fr 1.2fr 1.1fr 1fr 100px'
+    : '0px 0.9fr 1.2fr 1.1fr 1fr 100px';
 
   const loadData = async () => {
     try {
@@ -70,7 +69,7 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
   }, [workerId]);
 
   // --- NEW: Batch Handlers ---
-  
+
   // [NEW] Toggle Function
   const toggleSelectionMode = () => {
     const newState = !isSelectionMode;
@@ -84,7 +83,7 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
     if (selectedIds.size === exams.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(exams.map(e => e.id)));
+      setSelectedIds(new Set(exams.map((e) => e.id)));
     }
   };
 
@@ -98,7 +97,7 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
   const handleBatchDelete = async () => {
     if (window.confirm(`Supprimer définitivement ${selectedIds.size} examens ?`)) {
       const idsToDelete = Array.from(selectedIds);
-      await Promise.all(idsToDelete.map(id => db.deleteExam(id)));
+      await Promise.all(idsToDelete.map((id) => db.deleteExam(id)));
 
       setSelectedIds(new Set());
       // We keep selection mode ON here so you can continue deleting if needed
@@ -217,14 +216,14 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {/* [NEW] TOGGLE SELECTION MODE (Icon Only) */}
-          <button
-            className={`btn ${isSelectionMode ? 'btn-primary' : 'btn-outline'}`}
-            onClick={toggleSelectionMode}
-            title={isSelectionMode ? "Masquer la sélection" : "Sélection multiple"}
-          >
-            <FaCheckSquare />
-          </button>
+            {/* [NEW] TOGGLE SELECTION MODE (Icon Only) */}
+            <button
+              className={`btn ${isSelectionMode ? 'btn-primary' : 'btn-outline'}`}
+              onClick={toggleSelectionMode}
+              title={isSelectionMode ? 'Masquer la sélection' : 'Sélection multiple'}
+            >
+              <FaCheckSquare />
+            </button>
 
             {/* Bouton Nouvel Examen */}
             <button className="btn btn-primary" onClick={handleNewExam} disabled={worker.archived}>
@@ -298,7 +297,6 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
       {/* --- HYBRID HISTORY LIST --- */}
       <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '400px' : 'none' }}>
         <div className="hybrid-container" style={{ minWidth: '700px' }}>
-          
           {/* 1. HEADER CARD */}
           <div className="hybrid-header" style={{ gridTemplateColumns: gridTemplate }}>
             <div style={{ textAlign: 'center' }}>
@@ -321,7 +319,7 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
           {exams.map((e) => {
             const isSelected = selectedIds.has(e.id);
             return (
-              <div 
+              <div
                 key={e.id}
                 className={`hybrid-row ${isSelected ? 'selected' : ''}`}
                 style={{ gridTemplateColumns: gridTemplate }}
@@ -336,17 +334,15 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
                     />
                   )}
                 </div>
-                
+
                 {/* Col 2: Date */}
                 <div className="hybrid-cell" style={{ fontWeight: 800 }}>
                   {e.exam_date}
                 </div>
-                
+
                 {/* Col 3: Médecin */}
-                <div className="hybrid-cell">
-                  {e.physician_name || '-'}
-                </div>
-                
+                <div className="hybrid-cell">{e.physician_name || '-'}</div>
+
                 {/* Col 4: Labo */}
                 <div className="hybrid-cell">
                   {e.lab_result ? (
@@ -358,15 +354,15 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
                       {e.lab_result.result === 'positive' ? 'Positif' : 'Négatif'}
                     </span>
                   ) : (
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>En attente</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      En attente
+                    </span>
                   )}
                 </div>
-                
+
                 {/* Col 5: Statut */}
-                <div className="hybrid-cell">
-                  {renderStatusBadge(e.decision?.status)}
-                </div>
-                
+                <div className="hybrid-cell">{renderStatusBadge(e.decision?.status)}</div>
+
                 {/* Col 6: Actions */}
                 <div className="hybrid-actions">
                   <button
@@ -379,10 +375,10 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
                   <button
                     className="btn btn-outline btn-sm"
                     onClick={() => handleDeleteExam(e.id)}
-                    style={{ 
-                      color: 'var(--danger)', 
-                      borderColor: 'var(--danger)', 
-                      backgroundColor: '#fff1f2' 
+                    style={{
+                      color: 'var(--danger)',
+                      borderColor: 'var(--danger)',
+                      backgroundColor: '#fff1f2',
                     }}
                     title="Supprimer"
                   >
@@ -392,12 +388,12 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
               </div>
             );
           })}
-          
+
           {exams.length === 0 && (
-             <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-               <div style={{ fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.5 }}>📂</div>
-               <p>Aucun historique médical.</p>
-             </div>
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.5 }}>📂</div>
+              <p>Aucun historique médical.</p>
+            </div>
           )}
         </div>
       </div>

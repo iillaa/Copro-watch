@@ -24,7 +24,7 @@ export default function BulkActionsToolbar({
         gap: '1rem',
         zIndex: 1000,
         minWidth: '320px',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
       }}
     >
       <div style={{ fontWeight: 800, color: 'var(--primary)' }}>
@@ -33,7 +33,12 @@ export default function BulkActionsToolbar({
 
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         {onDelete && (
-          <button onClick={onDelete} className="btn btn-sm btn-outline" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} title="Supprimer">
+          <button
+            onClick={onDelete}
+            className="btn btn-sm btn-outline"
+            style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+            title="Supprimer"
+          >
             <FaTrash />
           </button>
         )}
@@ -47,7 +52,12 @@ export default function BulkActionsToolbar({
             <FaArrowRight />
           </button>
         )}
-        <button onClick={onCancel} className="btn btn-sm btn-outline" style={{ marginLeft: '0.5rem', borderColor: 'transparent' }} title="Annuler">
+        <button
+          onClick={onCancel}
+          className="btn btn-sm btn-outline"
+          style={{ marginLeft: '0.5rem', borderColor: 'transparent' }}
+          title="Annuler"
+        >
           <FaTimes />
         </button>
       </div>

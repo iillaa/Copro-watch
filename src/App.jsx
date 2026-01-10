@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { db } from './services/db';
 import { hashString } from './services/crypto'; // [NEW]
@@ -136,9 +135,9 @@ function App() {
   // --- PIN LOCK ---
   if (isLocked) {
     return (
-      <PinLock 
+      <PinLock
         onCheckPin={checkPin} // [NEW] Pass the validator
-        onUnlock={() => setIsLocked(false)} 
+        onUnlock={() => setIsLocked(false)}
       />
     );
   }
@@ -216,10 +215,7 @@ function App() {
           </button>
 
           {view === 'dashboard' && (
-            <Dashboard 
-              onNavigateWorker={navigateToWorker} 
-              compactMode={compactMode} 
-            />
+            <Dashboard onNavigateWorker={navigateToWorker} compactMode={compactMode} />
           )}
           {view === 'workers' && (
             <WorkerList
@@ -241,11 +237,11 @@ function App() {
             />
           )}
           {view === 'settings' && (
-            <Settings 
-              currentPin={pin} 
-              onPinChange={setPin} 
-              compactMode={compactMode} 
-              setCompactMode={setCompactMode} 
+            <Settings
+              currentPin={pin}
+              onPinChange={setPin}
+              compactMode={compactMode}
+              setCompactMode={setCompactMode}
             />
           )}
         </div>

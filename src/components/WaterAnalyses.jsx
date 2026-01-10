@@ -1,7 +1,16 @@
 import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
-import { FaSearch, FaHistory, FaList, FaTint, FaColumns, FaChartBar } from 'react-icons/fa';
+import {
+  FaSearch,
+  FaTint,
+  FaHistory,
+  FaChartBar,
+  FaTimes,
+  FaFlask,
+  FaChevronDown,
+  FaChevronUp,
+} from 'react-icons/fa';
 import WaterAnalysisPanel from './WaterAnalysisPanel';
 import WaterServiceDetail from './WaterServiceDetail';
 
@@ -9,386 +18,687 @@ export default function WaterAnalyses({ compactMode }) {
   const [departments, setDepartments] = useState([]);
   const [waterAnalyses, setWaterAnalyses] = useState([]);
 
-  // 1. REMOVED: const [filteredDepartments, setFilteredDepartments] = useState([]);
-
+  // Search
   const [searchTerm, setSearchTerm] = useState('');
-  // 2. NEW: Defer the search term to keep typing smooth
   const deferredSearch = useDeferredValue(searchTerm);
 
-  // Selection State
-  const [selectedDeptId, setSelectedDeptId] = useState(null);
-
-  // View Mode: 'dashboard' (default) or 'history'
-  const [viewMode, setViewMode] = useState('dashboard');
+  // UI State
+  const [expandedId, setExpandedId] = useState(null);
+  const [modalDept, setModalDept] = useState(null);
   const [historyDept, setHistoryDept] = useState(null);
-  const [isPanelVisible, setIsPanelVisible] = useState(() => {
-    const saved = localStorage.getItem('isPanelVisible');
-    return saved !== null ? JSON.parse(saved) : true;
-  });
 
+  // [FIX] CRITICAL: Safety check for null/undefined to prevent crash
   const loadData = async () => {
-    const [depts, analyses] = await Promise.all([db.getWaterDepartments(), db.getWaterAnalyses()]);
-    setDepartments(depts);
-    setWaterAnalyses(analyses);
+    try {
+      const [depts, analyses] = await Promise.all([
+        db.getWaterDepartments(),
+        db.getWaterAnalyses(),
+      ]);
+      setDepartments(depts || []);
+      setWaterAnalyses(analyses || []);
+    } catch (error) {
+      console.error('Error loading water data:', error);
+      setDepartments([]);
+      setWaterAnalyses([]);
+    }
   };
 
   useEffect(() => {
     loadData();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('isPanelVisible', JSON.stringify(isPanelVisible));
-  }, [isPanelVisible]);
-
-  // 3. OPTIMIZATION: Calculate filtered list on-the-fly
+  // Filter & Stats
   const filteredDepartments = useMemo(() => {
-    const withStatus = logic.getDepartmentsWaterStatus(departments, waterAnalyses);
+    const safeDepts = departments || [];
+    const safeAnalyses = waterAnalyses || [];
 
-    const withStats = withStatus.map(dept => {
-      const analysesForDept = waterAnalyses.filter(a => a.department_id === dept.id || a.structure_id === dept.id);
-      const potable = analysesForDept.filter(a => a.result === 'potable').length;
-      const nonPotable = analysesForDept.filter(a => a.result === 'non_potable').length;
-      const pending = analysesForDept.filter(a => a.result === 'pending' || !a.result).length;
+    const withStatus = logic.getDepartmentsWaterStatus(safeDepts, safeAnalyses);
+    const withStats = withStatus.map((dept) => {
+      const analysesForDept = safeAnalyses.filter(
+        (a) => a.department_id === dept.id || a.structure_id === dept.id
+      );
+
+      const potable = analysesForDept.filter((a) => a.result === 'potable').length;
+      const nonPotable = analysesForDept.filter((a) => a.result === 'non_potable').length;
+      const pending = analysesForDept.filter((a) => a.result === 'pending' || !a.result).length;
       const total = analysesForDept.length;
-      return { ...dept, stats: { potable, nonPotable, pending, total } };
+
+      const latestAnalysis = analysesForDept.sort(
+        (a, b) =>
+          new Date(b.request_date || b.sample_date) - new Date(a.request_date || a.sample_date)
+      )[0];
+      const displayDate = latestAnalysis
+        ? latestAnalysis.request_date || latestAnalysis.sample_date
+        : null;
+
+      return { ...dept, stats: { potable, nonPotable, pending, total }, displayDate };
     });
 
     if (!deferredSearch) return withStats;
-
     return withStats.filter((d) => d.name.toLowerCase().includes(deferredSearch.toLowerCase()));
   }, [departments, waterAnalyses, deferredSearch]);
 
-  // Auto-select first item if nothing selected (Handled via effect to avoid loop)
-  useEffect(() => {
-    if (!selectedDeptId && filteredDepartments.length > 0) {
-      setSelectedDeptId(filteredDepartments[0].id);
-    }
-  }, [filteredDepartments, selectedDeptId]);
+  // [FIX] LOGIC: Count SERVICES status based on their LAST analysis of the CURRENT MONTH
+  const currentMonthISO = new Date().toISOString().substring(0, 7); // e.g., "2026-02"
 
-  const selectedDept =
-    filteredDepartments.find((d) => d.id === selectedDeptId) || filteredDepartments[0];
+  const globalStats = useMemo(() => {
+    let potableCount = 0;
+    let nonPotableCount = 0;
 
-  // SWITCH TO HISTORY VIEW
-  const handleViewHistory = (dept) => {
-    setHistoryDept(dept);
-    setViewMode('history');
+    // We iterate through SERVICES (Departments), not analyses
+    const totalServices = departments ? departments.length : 0;
+
+    (departments || []).forEach((dept) => {
+      // 1. Get analyses for this specific service
+      const deptAnalyses = (waterAnalyses || []).filter(
+        (a) => a.department_id === dept.id || a.structure_id === dept.id
+      );
+
+      // 2. Filter: Keep only THIS MONTH's analyses
+      const thisMonthAnalyses = deptAnalyses.filter((a) =>
+        (a.request_date || a.sample_date || '').startsWith(currentMonthISO)
+      );
+
+      // 3. Find the LATEST analysis for this month
+      // Sort descending (Newest date first)
+      thisMonthAnalyses.sort((a, b) => {
+        const dateA = new Date(a.request_date || a.sample_date || 0);
+        const dateB = new Date(b.request_date || b.sample_date || 0);
+        return dateB - dateA;
+      });
+
+      const lastAnalysis = thisMonthAnalyses[0]; // The one that defines the status
+
+      // 4. Assign Status
+      if (lastAnalysis?.result === 'potable') {
+        potableCount++;
+      } else if (lastAnalysis?.result === 'non_potable') {
+        nonPotableCount++;
+      }
+      // If no analysis exists for this month, or it is pending, it counts towards "En Attente"
+    });
+
+    // "En Attente" = Total Services - (Potable + NonPotable)
+    // This ensures the 3 cards ALWAYS add up to the total number of services.
+    const pendingCount = totalServices - potableCount - nonPotableCount;
+
+    return {
+      potable: potableCount,
+      nonPotable: nonPotableCount,
+      pending: pendingCount,
+    };
+  }, [departments, waterAnalyses, currentMonthISO]);
+
+  const currentMonthName = new Date().toLocaleDateString('fr-FR', {
+    month: 'long',
+    year: 'numeric',
+  });
+
+  const toggleExpand = (id) => {
+    setExpandedId((prev) => (prev === id ? null : id));
   };
 
-  const handleBackFromHistory = () => {
-    setViewMode('dashboard');
-    setHistoryDept(null);
-    loadData(); // Refresh data on return
-  };
-
-  // RENDER HISTORY VIEW
-  if (viewMode === 'history' && historyDept) {
+  // --- VIEW: HISTORY ---
+  if (historyDept) {
     return (
       <WaterServiceDetail
         department={historyDept}
-        onBack={handleBackFromHistory}
+        onBack={() => {
+          setHistoryDept(null);
+          loadData();
+        }}
         onSave={loadData}
-        compactMode={compactMode} // <--- [NEW] Pass Prop
+        compactMode={compactMode}
       />
     );
   }
 
-  // --- NEW: Empty State UI (Premium Look) ---
-  const emptyStateUI = (
-    <div
-      className="card"
-      style={{
-        textAlign: 'center',
-        padding: '4rem 2rem',
-        border: '2px dashed var(--border-color)',
-        background: '#f8fafc',
-        boxShadow: 'none',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '400px',
-      }}
-    >
-      <div
-        style={{
-          fontSize: '4rem',
-          marginBottom: '1rem',
-          color: 'var(--primary-light)',
-          filter: 'drop-shadow(2px 2px 0px var(--border-color))',
-        }}
-      >
-        <FaTint />
-      </div>
-      <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem' }}>Aucun service d'eau configuré</h3>
-      <p
-        style={{
-          color: 'var(--text-muted)',
-          marginBottom: '2rem',
-          maxWidth: '450px',
-          lineHeight: '1.6',
-        }}
-      >
-        Votre tableau de bord est vide. Pour commencer le suivi de la qualité de l'eau, veuillez
-        ajouter vos points d'eau (Robinets, Réservoirs, Bâches) dans l'onglet{' '}
-        <strong>Paramètres</strong>.
-      </p>
-      <div
-        style={{
-          padding: '1rem',
-          background: '#e2e8f0',
-          borderRadius: '8px',
-          fontSize: '0.9rem',
-          color: '#475569',
-        }}
-      >
-        ℹ️ Conseil : Allez dans <strong>Paramètres {'>'} Services d'Eau</strong> pour en ajouter.
-      </div>
-    </div>
-  );
-
-  // RENDER DASHBOARD VIEW
-  if (departments.length === 0) return emptyStateUI; // <--- 1. Check for Empty DB
-
-    return (
-    <div style={{ height: compactMode ? '100%' : 'auto' }}>
-      <div
-        className="water-dashboard-layout"
-        style={{
-          display: 'flex',
-          gap: '1.5rem',
-          alignItems: 'flex-start',
-          height: compactMode ? 'calc(100vh - 85px)' : 'auto',
-          overflowY: compactMode ? 'auto' : 'visible',
-        }}
-      >
-   
-        {/* LEFT PANEL: LIST */}
+  // --- VIEW: DASHBOARD ---
+  return (
+    <div style={{ height: compactMode ? '100%' : 'auto', paddingBottom: '2rem' }}>
+      {/* --- NEW CLEAN HEADER --- */}
+      <div style={{ marginBottom: '2rem' }}>
+        {/* TITLE */}
         <div
           style={{
-            flex: isPanelVisible ? '1 1 300px' : '1 1 100%',
-            minWidth: '280px',
             display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
-            // In compact mode, the panel should not shrink and should occupy the full available height
-            height: compactMode ? 'calc(100vh - 01px)' : 'auto',
+            justifyContent: 'space-between',
+            alignItems: 'end',
+            marginBottom: '1.5rem',
           }}
         >
-          {/* Header & Search */}
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <h2
-                style={{
-                  margin: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                <FaList /> Services
-              </h2>
-              <button
-                className="btn btn-outline btn-sm"
-                onClick={() => setIsPanelVisible(!isPanelVisible)}
-                title={isPanelVisible ? "Masquer le panneau" : "Afficher le panneau"}
-              >
-                <FaColumns />
-              </button>
-            </div>
-            <div
-              className="input"
-              style={{ display: 'flex', alignItems: 'center', padding: '0.5rem' }}
+            <h2
+              style={{
+                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                fontSize: '1.8rem',
+              }}
             >
-              <FaSearch style={{ color: 'var(--text-muted)', marginRight: '0.5rem' }} />
-              <input
-                style={{ border: 'none', outline: 'none', width: '100%' }}
-                placeholder="Rechercher..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* V4 Card List */}
- {/* SCROLLABLE LIST AREA */}
-          {/* SCROLLABLE LIST AREA */}
-          <div 
-            /* FIX: Removed class "water-panel-scroll" to avoid conflicts */
-           style={{
-              flex: 1,
-              padding: '0.5rem',
-              // In Compact mode, the list should scroll within its container.
-              // Otherwise, it should grow naturally.
-              overflowY: compactMode ? 'auto' : 'visible',
-            }}
-          >
-            {filteredDepartments.map((dept) => {
-              const isSelected = dept.id === selectedDeptId;
-              const statusColor = logic.getServiceWaterStatusColor(dept.waterStatus);
-              const isStale = searchTerm !== deferredSearch;
-
-              return (
-                <div
-                  key={dept.id}
-                  onClick={() => setSelectedDeptId(dept.id)}
-                  className="card"
-                  style={{
-                    border: '2px solid black',
-                    marginBottom: '0.75rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease-in-out',
-                    boxShadow: '4px 4px 0px rgba(0,0,0,0.15)',
-                    opacity: isStale ? 0.6 : 1,
-                   ...(isSelected && {
-        borderColor: statusColor,            // Border takes the status color
-        boxShadow: `6px 6px 0px ${statusColor}`, // Shadow takes the status color
-        transform: 'translate(-3px, -3px)',
-      }),
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>{dept.name}</span>
-                    <span
-                      className="badge"
-                      style={{
-                        backgroundColor: statusColor,
-                        color: 'white',
-                        border: 'none',
-                        fontSize: '0.9rem',
-                        padding: '0.35rem 0.7rem',
-                        borderRadius: '6px',
-                      }}
-                    >
-                      {logic.getServiceWaterStatusLabel(dept.waterStatus)}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
-                    {dept.lastDate ? `Date: ${logic.formatDateDisplay(dept.lastDate)}` : 'Aucune donnée récente'}
-                  </div>
-
-                  <div style={{ marginTop: '1rem', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                      className="btn btn-sm btn-outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewHistory(dept);
-                      }}
-                    >
-                      <FaHistory style={{ marginRight: '0.5rem' }} />
-                      Voir l'historique
-                    </button>
-                  </div>
-
-                  {!isPanelVisible && (
-                    <div style={{ borderTop: '2px solid black', marginTop: '1rem', paddingTop: '1rem' }}>
-                      <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}><FaChartBar /> Aperçu Annuel</h4>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', textAlign: 'center', marginBottom: '1rem' }}>
-                        <div>
-                          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--success)' }}>{dept.stats.potable}</div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Potable</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--danger)' }}>{dept.stats.nonPotable}</div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Non Potable</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>{dept.stats.pending}</div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>En Attente</div>
-                        </div>
-                      </div>
-                      <div style={{ height: '8px', display: 'flex', borderRadius: '4px', overflow: 'hidden' }}>
-                        {dept.stats.total > 0 && (
-                          <>
-                            <div style={{ width: `${(dept.stats.potable / dept.stats.total) * 100}%`, background: 'var(--success)' }}></div>
-                            <div style={{ width: `${(dept.stats.nonPotable / dept.stats.total) * 100}%`, background: 'var(--danger)' }}></div>
-                            <div style={{ width: `${(dept.stats.pending / dept.stats.total) * 100}%`, background: 'var(--border-color)' }}></div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            {/* No Search Results State */}
-            {filteredDepartments.length === 0 && (
-              <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                <div style={{ opacity: 0.5, fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
-                <p>Aucun service trouvé pour "{searchTerm}"</p>
-                <button className="btn btn-outline btn-sm" onClick={() => setSearchTerm('')} style={{ marginTop: '0.5rem' }}>
-                  Effacer la recherche
-                </button>
-              </div>
-            )}
+              <FaTint style={{ color: 'var(--primary)' }} /> Qualité de l'Eau
+            </h2>
+            <p
+              style={{ margin: '0.25rem 0 0 0.5rem', color: 'var(--text-muted)', fontWeight: 500 }}
+            >
+              Suivi mensuel :{' '}
+              <span style={{ textTransform: 'capitalize', color: 'black', fontWeight: 700 }}>
+                {currentMonthName}
+              </span>
+            </p>
           </div>
         </div>
-{/* RIGHT PANEL: DETAILS */}
-        {isPanelVisible && (
+
+        {/* KPI CARDS (Enhanced Style) */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '1.25rem',
+            marginBottom: '1.5rem',
+          }}
+        >
+          {/* Card 1: POTABLE */}
           <div
             style={{
-              flex: '1.2 1 300px',
-              minWidth: '280px',
+              background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+              padding: '1.5rem',
+              borderRadius: '16px',
+              border: '2px solid black',
+              boxShadow: '6px 6px 0px var(--success)',
               display: 'flex',
               flexDirection: 'column',
+              gap: '0.75rem',
               position: 'relative',
+              overflow: 'hidden',
+              transition: 'transform 0.2s ease',
+              cursor: 'default',
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'translate(-2px, -2px)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'translate(0, 0)')}
           >
-
-                        {selectedDept ? (
-              <>
-                {/* 1. HEADER (Non-sticky, clean) */}
-                <div
-                  style={{
-                    flexShrink: 0,
-                    paddingBottom: '0.5rem',
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    background: 'var(--bg-app)'
-                  }}
-                >
-                  <button className="btn btn-outline" onClick={() => handleViewHistory(selectedDept)}>
-                    <FaHistory style={{ marginRight: '0.5rem' }} /> Voir l'historique complet
-                  </button>
-                </div>
-
-                {/* 2. BODY (Scrollable) */}
-               <div
-                  style={{
-                    flex: '1 1 auto',
-                    /* Let the main container handle scrolling */
-                    overflowY: 'visible'
-                    /* Removed margin/padding trick that clipped borders */
-                  }}
-                >
-                  <WaterAnalysisPanel
-                    department={selectedDept}
-                    analyses={waterAnalyses.filter(
-                      (a) => (a.department_id || a.structure_id) === selectedDept.id
-                    )}
-                    onUpdate={loadData}
-                  />
-                </div>
-              </>
-            ) : (
+            <div
+              style={{
+                position: 'absolute',
+                top: '-20px',
+                right: '-20px',
+                fontSize: '5rem',
+                opacity: 0.1,
+                color: 'var(--success)',
+              }}
+            >
+              <FaTint />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 1 }}>
               <div
-                className="card"
                 style={{
-                  textAlign: 'center',
-                  color: 'var(--text-muted)',
-                  padding: '3rem',
-                  flex: 1,
+                  background: 'var(--success)',
+                  color: 'white',
+                  borderRadius: '8px',
+                  padding: '0.5rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                Sélectionnez un service pour voir les détails.
+                <FaTint size={18} />
               </div>
-            )}
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                Eau Potable
+              </div>
+            </div>
+            <div
+              style={{
+                fontSize: '2.8rem',
+                fontWeight: 900,
+                color: 'var(--success)',
+                lineHeight: 1,
+                zIndex: 1,
+              }}
+            >
+              {globalStats.potable}
+            </div>
+            <div
+              style={{
+                fontSize: '0.7rem',
+                color: '#64748b',
+                fontWeight: 600,
+                zIndex: 1,
+              }}
+            >
+              ✓ Conforme ce mois
+            </div>
           </div>
-        )}
+
+          {/* Card 2: NON POTABLE */}
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #ffffff 0%, #fef2f2 100%)',
+              padding: '1.5rem',
+              borderRadius: '16px',
+              border: '2px solid black',
+              boxShadow: '6px 6px 0px var(--danger)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem',
+              position: 'relative',
+              overflow: 'hidden',
+              transition: 'transform 0.2s ease',
+              cursor: 'default',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'translate(-2px, -2px)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'translate(0, 0)')}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                top: '-20px',
+                right: '-20px',
+                fontSize: '5rem',
+                opacity: 0.1,
+                color: 'var(--danger)',
+              }}
+            >
+              <FaTimes />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 1 }}>
+              <div
+                style={{
+                  background: 'var(--danger)',
+                  color: 'white',
+                  borderRadius: '8px',
+                  padding: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <FaTimes size={18} />
+              </div>
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                Non Potable
+              </div>
+            </div>
+            <div
+              style={{
+                fontSize: '2.8rem',
+                fontWeight: 900,
+                color: 'var(--danger)',
+                lineHeight: 1,
+                zIndex: 1,
+              }}
+            >
+              {globalStats.nonPotable}
+            </div>
+            <div
+              style={{
+                fontSize: '0.7rem',
+                color: '#64748b',
+                fontWeight: 600,
+                zIndex: 1,
+              }}
+            >
+              ⚠ Non conforme
+            </div>
+          </div>
+
+          {/* Card 3: EN ATTENTE */}
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #ffffff 0%, #fffbeb 100%)',
+              padding: '1.5rem',
+              borderRadius: '16px',
+              border: '2px solid black',
+              boxShadow: '6px 6px 0px #f59e0b',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem',
+              position: 'relative',
+              overflow: 'hidden',
+              transition: 'transform 0.2s ease',
+              cursor: 'default',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'translate(-2px, -2px)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'translate(0, 0)')}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                top: '-20px',
+                right: '-20px',
+                fontSize: '5rem',
+                opacity: 0.1,
+                color: '#f59e0b',
+              }}
+            >
+              <FaFlask />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 1 }}>
+              <div
+                style={{
+                  background: '#f59e0b',
+                  color: 'white',
+                  borderRadius: '8px',
+                  padding: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <FaFlask size={18} />
+              </div>
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                En Attente
+              </div>
+            </div>
+            <div
+              style={{
+                fontSize: '2.8rem',
+                fontWeight: 900,
+                color: '#f59e0b',
+                lineHeight: 1,
+                zIndex: 1,
+              }}
+            >
+              {globalStats.pending}
+            </div>
+            <div
+              style={{
+                fontSize: '0.7rem',
+                color: '#64748b',
+                fontWeight: 600,
+                zIndex: 1,
+              }}
+            >
+              ⏳ Résultats en cours
+            </div>
+          </div>
+        </div>
+        {/* STYLED SEARCH BAR */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0.75rem 1rem',
+            background: 'white',
+            borderRadius: '12px',
+            border: '2px solid black', // Neo-brutalist Border
+            boxShadow: '4px 4px 0px #cbd5e1', // Soft Grey Shadow
+          }}
+        >
+          <FaSearch style={{ color: 'var(--text-muted)', marginRight: '0.75rem' }} />
+          <input
+            style={{
+              border: 'none',
+              outline: 'none',
+              width: '100%',
+              fontSize: '1rem',
+              background: 'transparent',
+              fontWeight: 500,
+            }}
+            placeholder="Rechercher un service..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
+
+      {/* LIST */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {filteredDepartments.map((dept) => {
+          const isExpanded = expandedId === dept.id;
+          const statusColor = logic.getServiceWaterStatusColor(dept.waterStatus);
+
+          return (
+            <div
+              key={dept.id}
+              className="card"
+              style={{
+                border: '1px solid black',
+                borderLeft: `8px solid ${statusColor}`,
+                // [FIX] Grey shadow (#94a3b8) when closed, Colored when open
+                boxShadow: isExpanded ? `6px 6px 0px ${statusColor}` : '4px 4px 0px #94a3b8',
+
+                borderRadius: '16px',
+                padding: 0,
+                marginBottom: 0,
+                transform: isExpanded ? 'translate(-2px, -2px)' : 'none',
+                transition: 'all 0.2s ease',
+                overflow: 'hidden',
+              }}
+            >
+              {/* HEADER */}
+              <div
+                onClick={() => toggleExpand(dept.id)}
+                style={{
+                  padding: '1.25rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  background: 'white',
+                }}
+              >
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>{dept.name}</h3>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    {dept.displayDate
+                      ? `Dernier: ${logic.formatDateDisplay(dept.displayDate)}`
+                      : 'Aucune donnée'}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <span
+                    className="badge"
+                    style={{
+                      backgroundColor: statusColor,
+                      color: 'white',
+                      minWidth: '100px',
+                      textAlign: 'center',
+                      borderRadius: '8px',
+                    }}
+                  >
+                    {logic.getServiceWaterStatusLabel(dept.waterStatus)}
+                  </span>
+                  {isExpanded ? <FaChevronUp color="#94a3b8" /> : <FaChevronDown color="#94a3b8" />}
+                </div>
+              </div>
+
+              {/* EXPANDED CONTENT */}
+              {isExpanded && (
+                <div
+                  style={{
+                    padding: '1.5rem',
+                    borderTop: '2px dashed #e2e8f0',
+                    background: '#f8fafc',
+                    animation: 'fadeIn 0.2s ease',
+                  }}
+                >
+                  {/* STATS */}
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginBottom: '0.5rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <FaChartBar /> BILAN ANNUEL
+                      </span>
+                      <span>{dept.stats.total} analyses</span>
+                    </div>
+                    <div
+                      style={{
+                        height: '10px',
+                        background: '#e2e8f0',
+                        borderRadius: '5px',
+                        overflow: 'hidden',
+                        display: 'flex',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${(dept.stats.potable / Math.max(dept.stats.total, 1)) * 100}%`,
+                          background: 'var(--success)',
+                        }}
+                      />
+                      <div
+                        style={{
+                          width: `${
+                            (dept.stats.nonPotable / Math.max(dept.stats.total, 1)) * 100
+                          }%`,
+                          background: 'var(--danger)',
+                        }}
+                      />
+                      <div
+                        style={{
+                          width: `${(dept.stats.pending / Math.max(dept.stats.total, 1)) * 100}%`,
+                          background: '#94a3b8',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* ACTIONS */}
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button
+                      className="btn btn-outline"
+                      onClick={() => setHistoryDept(dept)}
+                      style={{ flex: 1, borderRadius: '12px' }}
+                    >
+                      <FaHistory /> Historique
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => setModalDept(dept)}
+                      style={{ flex: 1, borderRadius: '12px' }}
+                    >
+                      <FaFlask /> Saisir Analyse
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* --- MODAL --- */}
+      {modalDept && (
+        <div className="modal-overlay" onClick={() => setModalDept(null)}>
+          <div
+            className="modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '95%',
+              maxWidth: '600px',
+              padding: 0,
+              border: '3px solid black',
+              boxShadow: '8px 8px 0px rgba(0,0,0,0.3)',
+              borderRadius: '20px',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: '1rem',
+                background: '#f8fafc',
+                borderBottom: '2px solid black',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <FaFlask color="var(--primary)" /> {modalDept.name}
+              </h3>
+
+              {/* [FIX] Red X Close Button (Square) */}
+              <button
+                onClick={() => setModalDept(null)}
+                style={{
+                  background: 'var(--danger-light)', // Light Red Background
+                  border: '2px solid var(--danger)', // Dark Red Border
+                  color: 'var(--danger)', // Dark Red Icon
+                  borderRadius: '8px', // Rounded Square
+                  padding: '0.5rem',
+                  cursor: 'pointer',
+                  fontSize: '1.2rem',
+                  fontWeight: 'bold',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '36px',
+                  height: '36px',
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ maxHeight: '70vh', overflowY: 'auto', padding: '1rem' }}>
+              <WaterAnalysisPanel
+                department={modalDept}
+                // [FIX] Safety check for filter
+                analyses={(waterAnalyses || []).filter(
+                  (a) => a.department_id === modalDept.id || a.structure_id === modalDept.id
+                )}
+                onUpdate={() => loadData()}
+                isEmbedded={true}
+              />
+            </div>
+
+            <div
+              style={{
+                padding: '1rem',
+                background: '#f8fafc',
+                borderTop: '1px solid #e2e8f0',
+                textAlign: 'right',
+              }}
+            >
+              <button
+                className="btn btn-outline"
+                onClick={() => setModalDept(null)}
+                style={{ borderRadius: '12px' }}
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

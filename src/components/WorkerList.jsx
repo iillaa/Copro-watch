@@ -4,7 +4,7 @@ import { logic } from '../services/logic';
 import backupService from '../services/backup';
 import AddWorkerForm from './AddWorkerForm';
 import BulkActionsToolbar from './BulkActionsToolbar'; // [NEW] Batch Toolbar
-import MoveWorkersModal from './MoveWorkersModal';     // [NEW] Move Modal
+import MoveWorkersModal from './MoveWorkersModal'; // [NEW] Move Modal
 import { Virtuoso } from 'react-virtuoso';
 import {
   FaPlus,
@@ -25,14 +25,14 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   // ==================================================================================
   // 1. STATE MANAGEMENT
   // ==================================================================================
-  
+
   // Data State
   const [workers, setWorkers] = useState([]);
   const [departments, setDepartments] = useState([]);
 
   // UI State
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // KEY FIX: Defer the search term. React allows the UI to update immediately
   // while the heavy filtering happens in the background.
   const deferredSearch = useDeferredValue(searchTerm);
@@ -40,12 +40,12 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   const [filterDept, setFilterDept] = useState(
     () => localStorage.getItem('worker_filter_dept') || ''
   );
-  
-  const [sortConfig, setSortConfig] = useState({ 
-    key: 'full_name', 
-    direction: 'asc' 
+
+  const [sortConfig, setSortConfig] = useState({
+    key: 'full_name',
+    direction: 'asc',
   });
-  
+
   const [showArchived, setShowArchived] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingWorker, setEditingWorker] = useState(null);
@@ -59,22 +59,17 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showMoveModal, setShowMoveModal] = useState(false);
 
-  
-
   // ==================================================================================
   // 2. DATA LOADING & EFFECTS
   // ==================================================================================
-  
+
   const loadData = async () => {
     try {
-      const [w, d] = await Promise.all([
-        db.getWorkers(),
-        db.getDepartments()
-      ]);
+      const [w, d] = await Promise.all([db.getWorkers(), db.getDepartments()]);
       setWorkers(w);
       setDepartments(d);
     } catch (error) {
-      console.error("Failed to load data:", error);
+      console.error('Failed to load data:', error);
     }
   };
 
@@ -89,7 +84,7 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   // ==================================================================================
   // 3. FILTERING & SORTING ENGINE (useMemo)
   // ==================================================================================
-  
+
   const filteredWorkers = useMemo(() => {
     let result = workers;
 
@@ -112,7 +107,7 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
         const nameMatch = w.full_name && w.full_name.toLowerCase().includes(lower);
         // On convertit le matricule en String pour éviter les erreurs si c'est un nombre
         const idMatch = w.national_id && String(w.national_id).toLowerCase().includes(lower);
-        
+
         return nameMatch || idMatch;
       });
     }
@@ -146,13 +141,13 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   // ==================================================================================
   // 4. BATCH OPERATIONS HANDLERS
   // ==================================================================================
-  
+
   // Toggle the Checkbox Column ON/OFF
   const toggleSelectionMode = () => {
     const newState = !isSelectionMode;
     setIsSelectionMode(newState);
     localStorage.setItem('copro_selection_mode_workers', newState);
-    
+
     // Safety: If turning OFF, clear selections to avoid accidental deletes later
     if (!newState) {
       setSelectedIds(new Set());
@@ -163,7 +158,7 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     if (selectedIds.size === filteredWorkers.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredWorkers.map(w => w.id)));
+      setSelectedIds(new Set(filteredWorkers.map((w) => w.id)));
     }
   };
 
@@ -176,29 +171,29 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
 
   const handleBatchDelete = async () => {
     if (window.confirm(`Supprimer définitivement ${selectedIds.size} travailleurs ?`)) {
-      await Promise.all(Array.from(selectedIds).map(id => db.deleteWorker(id)));
-      
+      await Promise.all(Array.from(selectedIds).map((id) => db.deleteWorker(id)));
+
       setSelectedIds(new Set());
       // [FIX] Mode stays ON after delete
       loadData();
     }
   };
 
-const handleBatchArchive = async () => {
+  const handleBatchArchive = async () => {
     // 1. Identify the selected workers
-    const targets = workers.filter(w => selectedIds.has(w.id));
-    
+    const targets = workers.filter((w) => selectedIds.has(w.id));
+
     // 2. Detect State: Are they ALL currently archived?
     // If every selected worker is already archived, we assume you want to RESTORE them.
-    const areAllArchived = targets.length > 0 && targets.every(w => w.archived);
-    
+    const areAllArchived = targets.length > 0 && targets.every((w) => w.archived);
+
     // 3. Determine Action & New Status
     const actionLabel = areAllArchived ? 'Restaurer' : 'Archiver';
     const newStatus = !areAllArchived; // If all archived (true), set to false (active).
-    
+
     // 4. Confirm & Execute
     if (window.confirm(`${actionLabel} ${selectedIds.size} travailleurs ?`)) {
-      await Promise.all(targets.map(w => db.saveWorker({ ...w, archived: newStatus })));
+      await Promise.all(targets.map((w) => db.saveWorker({ ...w, archived: newStatus })));
 
       setSelectedIds(new Set());
       // Keep Selection Mode ON (User Preference)
@@ -206,9 +201,9 @@ const handleBatchArchive = async () => {
     }
   };
   const handleBatchMoveConfirm = async (deptId) => {
-    const targets = workers.filter(w => selectedIds.has(w.id));
-    await Promise.all(targets.map(w => db.saveWorker({ ...w, department_id: parseInt(deptId) })));
-    
+    const targets = workers.filter((w) => selectedIds.has(w.id));
+    await Promise.all(targets.map((w) => db.saveWorker({ ...w, department_id: parseInt(deptId) })));
+
     setShowMoveModal(false);
     setSelectedIds(new Set());
     // [FIX] Mode stays ON after move
@@ -230,9 +225,11 @@ const handleBatchArchive = async () => {
     if (sortConfig.key !== key) {
       return <FaSort style={{ opacity: 0.3, marginLeft: '5px' }} />;
     }
-    return sortConfig.direction === 'asc' ? 
-      <FaSortUp style={{ marginLeft: '5px' }} /> : 
-      <FaSortDown style={{ marginLeft: '5px' }} />;
+    return sortConfig.direction === 'asc' ? (
+      <FaSortUp style={{ marginLeft: '5px' }} />
+    ) : (
+      <FaSortDown style={{ marginLeft: '5px' }} />
+    );
   };
 
   const handleEdit = (e, worker) => {
@@ -249,8 +246,8 @@ const handleBatchArchive = async () => {
         await db.deleteWorker(worker.id);
         await loadData(); // Wait for reload
       } catch (error) {
-        console.error("Delete failed", error);
-        alert("Erreur lors de la suppression");
+        console.error('Delete failed', error);
+        alert('Erreur lors de la suppression');
       } finally {
         setDeletingId(null); // [NEW] Stop loading
       }
@@ -307,10 +304,7 @@ const handleBatchArchive = async () => {
     if (!conf) return null;
 
     return (
-      <span 
-        className={`badge ${conf.class}`} 
-        style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}
-      >
+      <span className={`badge ${conf.class}`} style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>
         {conf.label}
       </span>
     );
@@ -329,9 +323,7 @@ const handleBatchArchive = async () => {
       }}
     >
       <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🌱</div>
-      <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem' }}>
-        Aucun travailleur enregistré
-      </h3>
+      <h3 style={{ marginBottom: '0.5rem', fontSize: '1.5rem' }}>Aucun travailleur enregistré</h3>
       <p
         style={{
           color: 'var(--text-muted)',
@@ -343,9 +335,12 @@ const handleBatchArchive = async () => {
         Votre base de données est vide. Commencez par ajouter votre premier travailleur.
       </p>
       <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-        <button 
-          className="btn btn-primary" 
-          onClick={() => { setEditingWorker(null); setShowForm(true); }}
+        <button
+          className="btn btn-primary"
+          onClick={() => {
+            setEditingWorker(null);
+            setShowForm(true);
+          }}
         >
           <FaUserPlus /> Ajouter le premier travailleur
         </button>
@@ -355,12 +350,12 @@ const handleBatchArchive = async () => {
   // ==================================================================================
   // RENDER: HYBRID ROW-CARD LAYOUT (Fixed)
   // ==================================================================================
-  
+
   // Columns: Check | Nom | Mat | Svc | Last | Next | Actions
   // [FIX] Updated Template: 2.2fr for Prochain Dû (Column 6) to stop squishing
-  const gridTemplate = isSelectionMode 
-    ? "50px 1.9fr 0.8fr 1fr 0.9fr 2.2fr 100px" 
-    : "0px 1.5fr 0.8fr 1fr 0.9fr 2.2fr 100px";
+  const gridTemplate = isSelectionMode
+    ? '50px 1.9fr 0.8fr 1fr 0.9fr 2.2fr 100px'
+    : '0px 1.5fr 0.8fr 1fr 0.9fr 2.2fr 100px';
 
   // [START NEW CODE: Row Component]
   const Row = (index, w) => {
@@ -369,29 +364,57 @@ const handleBatchArchive = async () => {
     const isSelected = selectedIds.has(w.id);
 
     return (
-      <div 
-        onClick={() => isSelectionMode ? toggleSelectOne(w.id) : onNavigateWorker(w.id)}
-        className={`hybrid-row ${isSelected ? 'selected' : ''} ${!w.archived && isOverdue ? 'overdue-worker-row' : ''}`}
-        style={{ gridTemplateColumns: gridTemplate, opacity: w.archived ? 0.6 : 1, marginBottom: '0.6rem' }}
+      <div
+        onClick={() => (isSelectionMode ? toggleSelectOne(w.id) : onNavigateWorker(w.id))}
+        className={`hybrid-row ${isSelected ? 'selected' : ''} ${
+          !w.archived && isOverdue ? 'overdue-worker-row' : ''
+        }`}
+        style={{
+          gridTemplateColumns: gridTemplate,
+          opacity: w.archived ? 0.6 : 1,
+          marginBottom: '0.6rem',
+        }}
       >
         <div style={{ textAlign: 'center' }}>
           {isSelectionMode && (
-            <input 
-              type="checkbox" 
-              checked={isSelected} 
-              onChange={() => toggleSelectOne(w.id)} 
-              onClick={(e) => e.stopPropagation()} 
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => toggleSelectOne(w.id)}
+              onClick={(e) => e.stopPropagation()}
             />
           )}
         </div>
-        
+
         <div className="hybrid-cell cell-name">
           {w.full_name}
-          {w.archived && <span className="badge" style={{fontSize: '0.6rem', marginLeft: '5px', background:'#eee', color:'#666', border:'none'}}>Archivé</span>}
+          {w.archived && (
+            <span
+              className="badge"
+              style={{
+                fontSize: '0.6rem',
+                marginLeft: '5px',
+                background: '#eee',
+                color: '#666',
+                border: 'none',
+              }}
+            >
+              Archivé
+            </span>
+          )}
         </div>
 
         <div className="hybrid-cell">
-          <span style={{ fontFamily: 'monospace', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '0.8rem', color: '#64748b' }}>
+          <span
+            style={{
+              fontFamily: 'monospace',
+              background: '#f1f5f9',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontSize: '0.8rem',
+              color: '#64748b',
+            }}
+          >
             {w.national_id}
           </span>
         </div>
@@ -408,23 +431,36 @@ const handleBatchArchive = async () => {
           </span>
           {renderStatusBadge(status)}
           {!w.archived && isOverdue && (
-            <span className="badge badge-red" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>RETARD</span>
+            <span className="badge badge-red" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>
+              RETARD
+            </span>
           )}
         </div>
 
         <div className="hybrid-actions">
-          <button className="btn btn-outline btn-sm" onClick={(e) => handleEdit(e, w)} title="Modifier">
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={(e) => handleEdit(e, w)}
+            title="Modifier"
+          >
             <FaEdit />
           </button>
-          <button 
-            className="btn btn-outline btn-sm" 
-            onClick={(e) => handleDelete(e, w)} 
-            disabled={deletingId === w.id} 
-            style={{ color: 'var(--danger)', borderColor: 'var(--danger)', backgroundColor: '#fff1f2' }} 
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={(e) => handleDelete(e, w)}
+            disabled={deletingId === w.id}
+            style={{
+              color: 'var(--danger)',
+              borderColor: 'var(--danger)',
+              backgroundColor: '#fff1f2',
+            }}
             title="Supprimer"
           >
             {deletingId === w.id ? (
-              <div className="loading-spinner" style={{ width: '12px', height: '12px', borderWidth: '2px' }}></div>
+              <div
+                className="loading-spinner"
+                style={{ width: '12px', height: '12px', borderWidth: '2px' }}
+              ></div>
             ) : (
               <FaTrash />
             )}
@@ -438,7 +474,14 @@ const handleBatchArchive = async () => {
   return (
     <div>
       {/* HEADER BAR */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1.5rem',
+        }}
+      >
         <div>
           <h2 style={{ marginBottom: 0 }}>Liste des Travailleurs</h2>
           <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)' }}>
@@ -446,11 +489,10 @@ const handleBatchArchive = async () => {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          
           <button
             className={`btn ${isSelectionMode ? 'btn-primary' : 'btn-outline'}`}
             onClick={toggleSelectionMode}
-            title={isSelectionMode ? "Masquer la sélection" : "Activer la sélection multiple"}
+            title={isSelectionMode ? 'Masquer la sélection' : 'Activer la sélection multiple'}
             style={{ padding: '0.6rem 0.8rem' }}
           >
             <FaCheckSquare />
@@ -459,22 +501,46 @@ const handleBatchArchive = async () => {
           <button className="btn btn-outline" onClick={handleExport} title="Exporter">
             <FaFileDownload /> <span className="hide-mobile">Export</span>
           </button>
-          
+
           <label className="btn btn-outline" style={{ cursor: 'pointer' }}>
             <FaFileUpload /> <span className="hide-mobile">Import</span>
             <input type="file" onChange={handleImport} style={{ display: 'none' }} accept=".json" />
           </label>
-          
-          <button className="btn btn-primary" onClick={() => { setEditingWorker(null); setShowForm(true); }}>
+
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setEditingWorker(null);
+              setShowForm(true);
+            }}
+          >
             <FaPlus /> Nouveau
           </button>
         </div>
       </div>
 
       {/* FILTERS BAR */}
-      <div className="card" style={{ padding: '0.75rem', display: 'flex', gap: '1rem', alignItems: 'center', overflowX: 'auto', marginBottom: '1rem' }}>
+      <div
+        className="card"
+        style={{
+          padding: '0.75rem',
+          display: 'flex',
+          gap: '1rem',
+          alignItems: 'center',
+          overflowX: 'auto',
+          marginBottom: '1rem',
+        }}
+      >
         <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-          <FaSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <FaSearch
+            style={{
+              position: 'absolute',
+              left: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--text-muted)',
+            }}
+          />
           <input
             className="input"
             style={{ paddingLeft: '2.5rem', borderRadius: '50px' }}
@@ -491,39 +557,79 @@ const handleBatchArchive = async () => {
         >
           <option value="">Tous les services</option>
           {departments.map((d) => (
-            <option key={d.id} value={d.id}>{d.name}</option>
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
           ))}
         </select>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap', cursor: 'pointer' }}>
-          <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            whiteSpace: 'nowrap',
+            cursor: 'pointer',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => setShowArchived(e.target.checked)}
+          />
           Archives
         </label>
         {(searchTerm || filterDept) && (
-          <button className="btn btn-outline btn-sm" onClick={() => { setSearchTerm(''); setFilterDept(''); }}>
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() => {
+              setSearchTerm('');
+              setFilterDept('');
+            }}
+          >
             Effacer
           </button>
         )}
       </div>
 
       {/* [START REPLACEMENT: Virtualized List] */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: compactMode ? '75vh' : '600px', paddingBottom: '1rem' }}>
-        
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          height: compactMode ? '75vh' : '600px',
+          paddingBottom: '1rem',
+        }}
+      >
         {/* Sticky Header Row (Outside the scroll area) */}
-        <div className="hybrid-header" style={{ gridTemplateColumns: gridTemplate, margin: '0 0 0.5rem 0', flexShrink: 0 }}>
+        <div
+          className="hybrid-header"
+          style={{ gridTemplateColumns: gridTemplate, margin: '0 0 0.5rem 0', flexShrink: 0 }}
+        >
           <div style={{ textAlign: 'center' }}>
             {isSelectionMode && (
-              <input 
-                type="checkbox" 
-                onChange={toggleSelectAll} 
-                checked={filteredWorkers.length > 0 && selectedIds.size === filteredWorkers.length} 
+              <input
+                type="checkbox"
+                onChange={toggleSelectAll}
+                checked={filteredWorkers.length > 0 && selectedIds.size === filteredWorkers.length}
               />
             )}
           </div>
-          <div onClick={() => handleSort('full_name')} style={{ cursor: 'pointer' }}>Nom et prénom {getSortIcon('full_name')}</div>
-          <div onClick={() => handleSort('national_id')} style={{ cursor: 'pointer' }}>Matricule {getSortIcon('national_id')}</div>
-          <div onClick={() => handleSort('department_id')} style={{ cursor: 'pointer' }}>Service {getSortIcon('department_id')}</div>
-          <div onClick={() => handleSort('last_exam_date')} style={{ cursor: 'pointer' }}>Dernier Exam {getSortIcon('last_exam_date')}</div>
-          <div onClick={() => handleSort('next_exam_due')} style={{ cursor: 'pointer' }}>Prochain Dû {getSortIcon('next_exam_due')}</div>
+          <div onClick={() => handleSort('full_name')} style={{ cursor: 'pointer' }}>
+            Nom et prénom {getSortIcon('full_name')}
+          </div>
+          <div onClick={() => handleSort('national_id')} style={{ cursor: 'pointer' }}>
+            Matricule {getSortIcon('national_id')}
+          </div>
+          <div onClick={() => handleSort('department_id')} style={{ cursor: 'pointer' }}>
+            Service {getSortIcon('department_id')}
+          </div>
+          <div onClick={() => handleSort('last_exam_date')} style={{ cursor: 'pointer' }}>
+            Dernier Exam {getSortIcon('last_exam_date')}
+          </div>
+          <div onClick={() => handleSort('next_exam_due')} style={{ cursor: 'pointer' }}>
+            Prochain Dû {getSortIcon('next_exam_due')}
+          </div>
           <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>Actions</div>
         </div>
 
@@ -539,7 +645,13 @@ const handleBatchArchive = async () => {
           <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
             <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>🔍</div>
             <p>Aucun résultat trouvé.</p>
-            <button className="btn btn-outline btn-sm" onClick={() => { setSearchTerm(''); setFilterDept(''); }}>
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => {
+                setSearchTerm('');
+                setFilterDept('');
+              }}
+            >
               Effacer les filtres
             </button>
           </div>
@@ -570,8 +682,12 @@ const handleBatchArchive = async () => {
         <AddWorkerForm
           workerToEdit={editingWorker}
           onClose={() => setShowForm(false)}
-          onSave={() => { setShowForm(false); loadData(); }}
+          onSave={() => {
+            setShowForm(false);
+            loadData();
+          }}
         />
       )}
     </div>
-  );}
+  );
+}

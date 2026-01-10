@@ -44,18 +44,21 @@ Here is the detailed `CODEMAP.md` file. Save this in your project root. It cover
 This is the brain of the application.
 
 - **`db.js`** (The Database)
+
   - **Wrapper:** `Dexie` (replacing LocalForage).
   - **Tables:** `workers`, `departments`, `workplaces`, `exams`, `water_analyses`, `water_departments`.
   - **Features:** Handles migration from old `localforage` data automatically.
   - **Triggers:** Calls `backupService.registerChange()` on every save/delete.
 
 - **`backup.js`** (The Safety Net)
+
   - **Auto-Backup:** Tracks a "dirty counter". Triggers export after **10 changes**.
   - **Smart Import:** When loading, compares `backup-auto.json` vs `backup-manuel.json` dates and picks the newest.
   - **Android:** Uses `Capacitor Filesystem` to write directly to `Documents/copro-watch`.
   - **Web:** Uses File System Access API or falls back to Blob download.
 
 - **`crypto.js`** (The Vault)
+
   - **Algorithm:** AES-GCM (256-bit).
   - **Key Derivation:** PBKDF2 (250k iterations) from user password.
   - **Usage:** Encrypts exports (`.json`) so they can be safely transported.

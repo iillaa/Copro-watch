@@ -131,8 +131,8 @@ export default function WaterAnalysesHistory({ compactMode }) {
     });
     return Array.from(months).sort().reverse();
   };
-// [GRID CONFIG] Structure(1.3) | Date E(0.9) | Date R(0.9) | Result(1) | Notes(1.5) | Actions(100)
-  const gridTemplate = "1.3fr 0.9fr 0.9fr 1fr 1.5fr 100px";
+  // [GRID CONFIG] Structure(1.3) | Date E(0.9) | Date R(0.9) | Result(1) | Notes(1.5) | Actions(100)
+  const gridTemplate = '1.3fr 0.9fr 0.9fr 1fr 1.5fr 100px';
 
   if (loading) {
     return (
@@ -247,7 +247,7 @@ export default function WaterAnalysesHistory({ compactMode }) {
         </h3>
       </div>
 
-     {/* --- HYBRID WATER ANALYSIS LIST (V4) --- */}
+      {/* --- HYBRID WATER ANALYSIS LIST (V4) --- */}
       {filteredAnalyses.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
           <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>🧪</div>
@@ -255,8 +255,7 @@ export default function WaterAnalysesHistory({ compactMode }) {
         </div>
       ) : (
         <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '600px' : 'none' }}>
-          <div className="hybrid-container" style={{ minWidth: '800px' }}>    
-            
+          <div className="hybrid-container" style={{ minWidth: '800px' }}>
             {/* 1. HEADER CARD */}
             <div className="hybrid-header" style={{ gridTemplateColumns: gridTemplate }}>
               <div>Structure</div>
@@ -269,7 +268,7 @@ export default function WaterAnalysesHistory({ compactMode }) {
 
             {/* 2. ROW CARDS */}
             {filteredAnalyses.map((analysis) => (
-              <div 
+              <div
                 key={analysis.id}
                 className="hybrid-row"
                 style={{ gridTemplateColumns: gridTemplate }}
@@ -280,9 +279,7 @@ export default function WaterAnalysesHistory({ compactMode }) {
                 </div>
 
                 {/* Date Echantillon */}
-                <div className="hybrid-cell">
-                  {logic.formatDateDisplay(analysis.sample_date)}
-                </div>
+                <div className="hybrid-cell">{logic.formatDateDisplay(analysis.sample_date)}</div>
 
                 {/* Date Résultat */}
                 <div className="hybrid-cell">
@@ -290,17 +287,22 @@ export default function WaterAnalysesHistory({ compactMode }) {
                 </div>
 
                 {/* Résultat Badge */}
-                <div className="hybrid-cell">
-                  {getResultBadge(analysis.result)}
-                </div>
+                <div className="hybrid-cell">{getResultBadge(analysis.result)}</div>
 
                 {/* Notes */}
-                <div className="hybrid-cell" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                <div
+                  className="hybrid-cell"
+                  style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}
+                >
                   {analysis.notes ? (
                     <span title={analysis.notes}>
-                      {analysis.notes.length > 30 ? `${analysis.notes.substring(0, 30)}...` : analysis.notes}
+                      {analysis.notes.length > 30
+                        ? `${analysis.notes.substring(0, 30)}...`
+                        : analysis.notes}
                     </span>
-                  ) : '-'}
+                  ) : (
+                    '-'
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -315,10 +317,10 @@ export default function WaterAnalysesHistory({ compactMode }) {
                   <button
                     className="btn btn-outline btn-sm"
                     onClick={() => handleDelete(analysis.id)}
-                    style={{ 
-                      color: 'var(--danger)', 
-                      borderColor: 'var(--danger)', 
-                      backgroundColor: '#fff1f2' 
+                    style={{
+                      color: 'var(--danger)',
+                      borderColor: 'var(--danger)',
+                      backgroundColor: '#fff1f2',
                     }}
                     title="Supprimer"
                   >
