@@ -1,24 +1,30 @@
 import { useState, useEffect } from 'react';
 import { FaLock, FaTimes } from 'react-icons/fa';
 
-export default function PinLock({ onUnlock, correctPin = '0000' }) {
+export default function PinLock({ onUnlock, onCheckPin }) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
 
   // LOGIC: Identical to your clean version
   useEffect(() => {
-    if (pin.length === 4) {
-      if (pin === correctPin) {
-        onUnlock();
-      } else {
-        setError(true);
-        setTimeout(() => {
-          setPin('');
-          setError(false);
-        }, 500);
+    const validate = async () => {
+      if (pin.length === 4) {
+        // Call the async validator passed from App.jsx
+        const isValid = await onCheckPin(pin);
+        
+        if (isValid) {
+          onUnlock();
+        } else {
+          setError(true);
+          setTimeout(() => {
+            setPin('');
+            setError(false);
+          }, 500);
+        }
       }
-    }
-  }, [pin, correctPin, onUnlock]);
+    };
+    validate();
+  }, [pin, onCheckPin, onUnlock]);
 
   const handleDigit = (digit) => {
     if (pin.length < 4) {

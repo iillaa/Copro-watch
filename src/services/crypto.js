@@ -65,3 +65,11 @@ export async function decryptString(password, payload) {
   const plainBytes = new Uint8Array(await subtle.decrypt({ name: 'AES-GCM', iv }, key, data));
   return fromUint8Array(plainBytes);
 }
+
+export async function hashString(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  // Convert bytes to hex string
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}

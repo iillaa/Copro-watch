@@ -16,7 +16,7 @@ export default function ExamForm({
 
   const [formData, setFormData] = useState({
     exam_date: format(new Date(), 'yyyy-MM-dd'),
-    physician_name: 'Dr. Kibeche Ali Dia Eddine', // Votre nom par défaut
+    physician_name: '', // Empty by default, we load it below
     notes: '',
     status: 'open',
     // Lab
@@ -35,6 +35,23 @@ export default function ExamForm({
         setValidationDate(existingExam.decision.date);
       }
     }
+  }, [existingExam]);
+
+  // [NEW] Effect to load the default name from Settings
+  useEffect(() => {
+    const loadDefaultPhysician = async () => {
+      // Only load if we are NOT editing an existing exam (which already has a name)
+      if (!existingExam) {
+        const s = await db.getSettings();
+        if (s.doctor_name) {
+          setFormData(prev => ({ ...prev, physician_name: s.doctor_name }));
+        } else {
+          // Fallback if nothing saved yet
+          setFormData(prev => ({ ...prev, physician_name: 'Dr. Kibeche Ali Dia Eddine' }));
+        }
+      }
+    };
+    loadDefaultPhysician();
   }, [existingExam]);
 
   const updateField = (field, value) => {

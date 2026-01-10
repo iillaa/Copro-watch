@@ -44,6 +44,12 @@
   --shadow-hard: 4px 4px 0px var(--border-color);
   --shadow-hover: 6px 6px 0px var(--border-color);
   --shadow-active: 0px 0px 0px var(--border-color);
+
+  /* [NEW] Shared Colors for Consistency */
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --row-border: #000000;
+  --row-shadow: rgba(0,0,0,0.1);
 }
 /* --- UNIVERSAL SCROLL FIX (STABLE) --- */
 html {
@@ -1300,14 +1306,14 @@ tr {
   /* Columns set via JSX */
   grid-template-columns: 50px 1.9fr 0.8fr 1fr 0.9fr 2.2fr 100px;
 
-  background: white;
+  background: var(--bg-card);
   padding: 1rem 1.25rem;
   margin-bottom: 0.6rem;
   border-radius: 12px;
   
-  /* [IDENTITY] Black Border */
-  border: 1.5px solid #000000; 
-  box-shadow: 2px 2px 0px rgba(0,0,0,0.1); 
+  /* [IDENTITY] Black Border - uses CSS variable */
+  border: 1.5px solid var(--row-border); 
+  box-shadow: 2px 2px 0px var(--row-shadow); 
   
   align-items: center;
   transition: all 0.15s ease;

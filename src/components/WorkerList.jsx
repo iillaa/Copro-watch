@@ -49,6 +49,7 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   const [showArchived, setShowArchived] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingWorker, setEditingWorker] = useState(null);
+  const [deletingId, setDeletingId] = useState(null); // [NEW] Track which worker is being deleted
 
   // [NEW] BATCH SELECTION STATE
   // We use localStorage to remember if the user likes the checkboxes visible or hidden
@@ -244,8 +245,16 @@ const handleBatchArchive = async () => {
   const handleDelete = async (e, worker) => {
     e.stopPropagation();
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${worker.full_name} ?`)) {
-      await db.deleteWorker(worker.id);
-      loadData();
+      try {
+        setDeletingId(worker.id); // [NEW] Start loading
+        await db.deleteWorker(worker.id);
+        await loadData(); // Wait for reload
+      } catch (error) {
+        console.error("Delete failed", error);
+        alert("Erreur lors de la suppression");
+      } finally {
+        setDeletingId(null); // [NEW] Stop loading
+      }
     }
   };
 
@@ -521,8 +530,19 @@ const handleBatchArchive = async () => {
                   <button className="btn btn-outline btn-sm" onClick={(e) => handleEdit(e, w)} title="Modifier">
                     <FaEdit />
                   </button>
-                  <button className="btn btn-outline btn-sm" onClick={(e) => handleDelete(e, w)} style={{ color: 'var(--danger)', borderColor: 'var(--danger)', backgroundColor: '#fff1f2' }} title="Supprimer">
-                    <FaTrash />
+                  <button 
+                    className="btn btn-outline btn-sm" 
+                    onClick={(e) => handleDelete(e, w)} 
+                    disabled={deletingId === w.id} // Disable if deleting this one
+                    style={{ color: 'var(--danger)', borderColor: 'var(--danger)', backgroundColor: '#fff1f2' }} 
+                    title="Supprimer"
+                  >
+                    {/* Show Spinner or Icon */}
+                    {deletingId === w.id ? (
+                      <div className="loading-spinner" style={{ width: '12px', height: '12px', borderWidth: '2px' }}></div>
+                    ) : (
+                      <FaTrash />
+                    )}
                   </button>
                 </div>
               </div>

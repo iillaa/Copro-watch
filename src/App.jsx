@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { db } from './services/db';
+import { hashString } from './services/crypto'; // [NEW]
 import backupService from './services/backup';
 
 import Dashboard from './components/Dashboard';
@@ -27,11 +28,11 @@ function App() {
     try {
       setLoading(true);
 
-      // 1. Start the Database (Triggers Migration to Dexie)
+      // 1. Start the Database
       await db.init();
 
-      // 2. Start Backup Service
-      await backupService.init();
+      // 2. Start Backup Service (Explicitly pass DB here to fix Race Condition)
+      await backupService.init(db); // [FIXED]
       try {
         await backupService.checkAndAutoImport(db);
       } catch (e) {
@@ -42,6 +43,9 @@ function App() {
       const settings = await db.getSettings();
       if (settings.pin) {
         setPin(settings.pin);
+      } else {
+        // Migration: If no PIN in DB, use default "0011" hashed
+        setPin('0011');
       }
     } catch (error) {
       console.error('App Initialization Failed:', error);
@@ -54,10 +58,59 @@ function App() {
     initApp();
   }, []);
 
+  // [NEW] Auto-Lock Timer (Security)
+  useEffect(() => {
+    let timer;
+    const TIMEOUT_MS = 5 * 60 * 1000; // 5 Minutes
+
+    const resetTimer = () => {
+      if (timer) clearTimeout(timer);
+      // Only set timer if the app is currently UNLOCKED
+      if (!isLocked) {
+        timer = setTimeout(() => {
+          console.log('Session timed out. Locking...');
+          setIsLocked(true);
+        }, TIMEOUT_MS);
+      }
+    };
+
+    // Listen for activity
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+    window.addEventListener('click', resetTimer);
+    window.addEventListener('touchstart', resetTimer);
+
+    // Start initial timer
+    resetTimer();
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener('mousemove', resetTimer);
+      window.removeEventListener('keydown', resetTimer);
+      window.removeEventListener('click', resetTimer);
+      window.removeEventListener('touchstart', resetTimer);
+    };
+  }, [isLocked]); // Re-run when lock state changes
+
   // --- NAVIGATION ---
   const navigateToWorker = (id) => {
     setSelectedWorkerId(id);
     setView('worker-detail');
+  };
+
+  // Helper to validate PIN (Supports both Old Plain "0011" and New Hashed PINs)
+  const checkPin = async (inputPin) => {
+    // 1. If stored PIN is 4 digits, it's an OLD plain PIN
+    if (pin.length === 4) {
+      return inputPin === pin;
+    }
+    // 2. If stored PIN is long (64 chars), it's a NEW hashed PIN
+    if (pin.length === 64) {
+      const inputHash = await hashString(inputPin);
+      return inputHash === pin;
+    }
+    // Fallback
+    return false;
   };
 
   // --- LOADING SCREEN ---
@@ -82,7 +135,12 @@ function App() {
 
   // --- PIN LOCK ---
   if (isLocked) {
-    return <PinLock correctPin={pin} onUnlock={() => setIsLocked(false)} />;
+    return (
+      <PinLock 
+        onCheckPin={checkPin} // [NEW] Pass the validator
+        onUnlock={() => setIsLocked(false)} 
+      />
+    );
   }
 
   // --- MAIN UI (Original Layout Restored) ---
@@ -141,7 +199,7 @@ function App() {
         <div className="credit" style={{ marginTop: 'auto' }}>
           <div className="credit-title">Développé par</div>
           <div className="credit-author">Dr Kibeche Ali Dia Eddine</div>
-          <div className="credit-version">1.1</div>
+          <div className="credit-version">1.2</div>
         </div>
       </aside>
 

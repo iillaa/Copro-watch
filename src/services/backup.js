@@ -166,33 +166,51 @@ async function getFileContent(filename) {
   return null;
 }
 
+// [NEW] Helper to safely extract the REAL date from inside the JSON
+function getRealDate(fileObj) {
+  if (!fileObj || !fileObj.text) return 0;
+  try {
+    const data = JSON.parse(fileObj.text);
+    // If we have our new metadata, TRUST IT above all else
+    if (data.meta && data.meta.exported_at) {
+      return data.meta.exported_at;
+    }
+  } catch (e) {
+    return 0; // File is corrupt
+  }
+  // Fallback: Use file system date (for old backups)
+  return fileObj.lastModified;
+}
+
 export async function readBackupJSON() {
   const manual = await getFileContent(MANUAL_BACKUP_FILE_NAME);
   const auto = await getFileContent(AUTO_BACKUP_FILE_NAME);
 
+  // 1. Calculate the TRUE dates
+  const manualDate = getRealDate(manual);
+  const autoDate = getRealDate(auto);
+
+  console.log(`[Backup] Manual Date: ${new Date(manualDate).toLocaleString()}`);
+  console.log(`[Backup] Auto Date:   ${new Date(autoDate).toLocaleString()}`);
+
   let best = null;
   let source = '';
 
-  if (manual && auto) {
-    if (manual.lastModified > auto.lastModified) {
-      best = manual;
-      source = 'MANUAL';
-    } else {
-      best = auto;
-      source = 'AUTO';
-    }
-  } else if (manual) {
+  // 2. Compare True Dates
+  if (manualDate > autoDate) {
     best = manual;
     source = 'MANUAL';
-  } else if (auto) {
+  } else if (autoDate > manualDate) {
     best = auto;
     source = 'AUTO';
+  } else {
+    // If equal or one missing, prefer Manual, then Auto
+    best = manual || auto;
+    source = manual ? 'MANUAL' : (auto ? 'AUTO' : '');
   }
 
   if (best) {
-    console.log(
-      `[Backup] Selected ${source} (Date: ${new Date(best.lastModified).toLocaleString()})`
-    );
+    console.log(`[Backup] Selected ${source} based on timestamp.`);
     return best;
   }
 

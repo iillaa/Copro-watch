@@ -41,11 +41,13 @@ const gridDashboard = "1.5fr 1fr 80px";
       const computed = logic.getDashboardStats(activeWorkers, exams || []);
 
       // 3. TRI AUTOMATIQUE
+      // ISO strings (yyyy-mm-dd) sort correctly alphabetically!
       if (computed.dueSoon)
-        computed.dueSoon.sort((a, b) => new Date(a.next_exam_due) - new Date(b.next_exam_due));
+        computed.dueSoon.sort((a, b) => (a.next_exam_due || '').localeCompare(b.next_exam_due || ''));
       if (computed.overdue)
-        computed.overdue.sort((a, b) => new Date(a.next_exam_due) - new Date(b.next_exam_due));
-      if (computed.retests) computed.retests.sort((a, b) => new Date(a.date) - new Date(b.date));
+        computed.overdue.sort((a, b) => (a.next_exam_due || '').localeCompare(b.next_exam_due || ''));
+      if (computed.retests) 
+        computed.retests.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
       setStats(computed);
     } catch (e) {
@@ -110,14 +112,14 @@ const gridDashboard = "1.5fr 1fr 80px";
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: '0.5rem',
-                marginBottom: '1.5rem',
+                marginBottom: '0.5rem',
               }
             : {
                 // DESKTOP GRID: Your Original Layout (Auto-fit, Wide Gap)
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
                 gap: '1rem',
-                marginBottom: '1.5rem',
+                marginBottom: '0.5rem',
               }
         }
       >
@@ -383,7 +385,7 @@ const gridDashboard = "1.5fr 1fr 80px";
               Rien à signaler. Tout est à jour !
             </div>
           ) : (
-            <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '350px' : 'none', background: 'transparent', border: 'none', padding: 0, margin: 0 }}>
+            <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '510px' : 'none', background: 'transparent', border: 'none', padding: 0, margin: 0 }}>
               <div className="hybrid-container" style={{ minWidth: '100%' }}>
                 
                 {/* HEADER */}
@@ -403,7 +405,7 @@ const gridDashboard = "1.5fr 1fr 80px";
                     </div>
                     {/* Date */}
                     <div className="hybrid-cell" style={{ color: 'var(--danger)', fontWeight: 'bold' }}>
-                      {logic.formatDateDisplay(new Date(w.next_exam_due))}
+                      {logic.formatDateDisplay(w.next_exam_due)}
                     </div>
                     {/* Action */}
                     <div className="hybrid-actions">
@@ -422,7 +424,7 @@ const gridDashboard = "1.5fr 1fr 80px";
                       {w.full_name}
                     </div>
                     <div className="hybrid-cell">
-                      {logic.formatDateDisplay(new Date(w.next_exam_due))}
+                      {logic.formatDateDisplay(w.next_exam_due)}
                     </div>
                     <div className="hybrid-actions">
                       <button className="btn btn-sm btn-outline" onClick={() => onNavigateWorker(w.id)} title="Voir Dossier">
@@ -452,7 +454,7 @@ const gridDashboard = "1.5fr 1fr 80px";
               Aucune contre-visite prévue.
             </div>
           ) : (
-            <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '350px' : 'none', background: 'transparent', border: 'none', padding: 0, margin: 0 }}>
+            <div className="scroll-wrapper" style={{ maxHeight: compactMode ? '510px' : 'none', background: 'transparent', border: 'none', padding: 0, margin: 0 }}>
               <div className="hybrid-container" style={{ minWidth: '100%' }}>
                 
                 {/* HEADER */}
@@ -474,7 +476,7 @@ const gridDashboard = "1.5fr 1fr 80px";
                     </div>
                     {/* Date */}
                     <div className="hybrid-cell">
-                      {logic.formatDateDisplay(new Date(item.date))}
+                      {logic.formatDateDisplay(item.date)}
                     </div>
                     {/* Action */}
                     <div className="hybrid-actions">

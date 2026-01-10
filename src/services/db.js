@@ -35,6 +35,11 @@ async function triggerBackupCheck() {
 // 4. Export Global Function (Used by UI and Backup)
 async function exportData() {
   const data = {
+    // [NEW] Metadata allows us to trust the data, not the file system
+    meta: {
+      version: "1.1",
+      exported_at: new Date().getTime(),
+    },
     departments: await dbInstance.departments.toArray(),
     workplaces: await dbInstance.workplaces.toArray(),
     workers: await dbInstance.workers.toArray(),
@@ -197,5 +202,3 @@ export const db = {
     }
   },
 };
-// [FIX] ADD THIS LINE TO START BACKUP SERVICE
-backupService.init(db);

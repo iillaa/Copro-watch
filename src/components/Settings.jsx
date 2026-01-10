@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { db } from '../services/db';
+import { hashString } from '../services/crypto'; // [NEW]
 import backupService from '../services/backup';
 import {
   FaSave,
@@ -15,6 +16,7 @@ import {
 
 export default function Settings({ onReset, compactMode, setCompactMode ,currentPin, onPinChange }) {
   const [pin, setPin] = useState(currentPin);
+  const [doctorName, setDoctorName] = useState(''); // [NEW]
   const [msg, setMsg] = useState('');
   const fileRef = useRef();
 
@@ -47,9 +49,20 @@ export default function Settings({ onReset, compactMode, setCompactMode ,current
       setMsg('Le PIN doit être composé de 4 chiffres.');
       return;
     }
-    await db.saveSettings({ pin });
-    onPinChange(pin);
-    setMsg('Paramètres sauvegardés !');
+
+    // [NEW] Hash the PIN before saving
+    const hashedPin = await hashString(pin);
+
+    // Save Hash to DB
+    await db.saveSettings({ 
+      pin: hashedPin, 
+      doctor_name: doctorName 
+    });
+    
+    // Update App State
+    onPinChange(hashedPin);
+    
+    setMsg('Paramètres sauvegardés (PIN Sécurisé) !');
     setTimeout(() => setMsg(''), 3000);
   };
 
@@ -130,6 +143,13 @@ export default function Settings({ onReset, compactMode, setCompactMode ,current
         console.warn('backup init failed', e);
       }
     })();
+
+    // [NEW] Load Doctor Name
+    const loadDoctorName = async () => {
+      const s = await db.getSettings();
+      if (s.doctor_name) setDoctorName(s.doctor_name);
+    };
+    loadDoctorName();
 
     // Load departments
     loadDepartments();
@@ -443,14 +463,30 @@ export default function Settings({ onReset, compactMode, setCompactMode ,current
         <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <FaLock /> Sécurité
         </h3>
+        
+        {/* [NEW] Doctor Name Input */}
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+            Nom du Médecin (par défaut)
+          </label>
+          <input
+            type="text"
+            className="input"
+            placeholder="Ex: Dr. Kibeche..."
+            value={doctorName}
+            onChange={(e) => setDoctorName(e.target.value)}
+          />
+        </div>
+
         <div style={{ marginBottom: '1rem' }}>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
             Code PIN (4 chiffres)
           </label>
           <input
-            type="text"
+            type="password" // [CHANGED] Hide characters
             maxLength="4"
-            value={pin}
+            placeholder="****" // Show stars
+            value={pin.length === 4 ? pin : ''} // If hash (len 64), show empty. If plain (len 4), show it.
             onChange={(e) => setPin(e.target.value)}
             style={{
               padding: '0.5rem',
@@ -982,7 +1018,7 @@ export default function Settings({ onReset, compactMode, setCompactMode ,current
       >
         <div className="credit-title">Développé par</div>
         <div className="credit-author">Dr Kibeche Ali Dia Eddine</div>
-        <div className="credit-version">1.1</div>
+        <div className="credit-version">1.2</div>
       </div>
     </div>
   );
