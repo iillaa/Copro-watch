@@ -5,6 +5,7 @@ import backupService from '../services/backup';
 import AddWorkerForm from './AddWorkerForm';
 import BulkActionsToolbar from './BulkActionsToolbar'; // [NEW] Batch Toolbar
 import MoveWorkersModal from './MoveWorkersModal'; // [NEW] Move Modal
+import { exportWorkersToExcel } from '../services/excelExport' ;
 import {
   FaPlus,
   FaSearch,
@@ -266,6 +267,21 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
       alert("Erreur lors de l'export: " + e.message);
     }
   };
+  // [NEW] Excel Reporting Function
+  const handleExcelExport = async () => {
+    if (filteredWorkers.length === 0) {
+      alert("Aucune donnée affichée à exporter.");
+      return;
+    }
+    
+    // Uses the current filtered list (respects your search/department filters)
+    try {
+      await exportWorkersToExcel(filteredWorkers, departments);
+    } catch (error) {
+      console.error("Export Excel failed:", error);
+      alert("Erreur lors de la création du fichier Excel.");
+    }
+  };
 
   const handleImport = async (e) => {
     const file = e.target.files[0];
@@ -372,7 +388,9 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
             {filteredWorkers.length} dossier{filteredWorkers.length > 1 ? 's' : ''} trouvé(s)
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+       <div style={{ display: 'flex', gap: '0.75rem' }}>
+          
+          {/* SELECTION MODE BUTTON */}
           <button
             className={`btn ${isSelectionMode ? 'btn-primary' : 'btn-outline'}`}
             onClick={toggleSelectionMode}
@@ -382,15 +400,32 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
             <FaCheckSquare />
           </button>
 
-          <button className="btn btn-outline" onClick={handleExport} title="Exporter">
-            <FaFileDownload /> <span className="hide-mobile">Export</span>
+          {/* [NEW] EXCEL BUTTON (For Administration) */}
+          <button 
+            className="btn btn-outline" 
+            onClick={handleExcelExport} 
+            title="Générer un rapport Excel officiel"
+            style={{ borderColor: '#4F46E5', color: '#4F46E5' }} 
+          >
+            <FaFileDownload /> <span className="hide-mobile">Excel</span>
           </button>
 
+          {/* [UPDATED] BACKUP BUTTON (For Safety - JSON) */}
+          <button 
+            className="btn btn-outline" 
+            onClick={handleExport} 
+            title="Sauvegarder toute la base (JSON)"
+          >
+            <FaFileDownload /> <span className="hide-mobile">Backup</span>
+          </button>
+
+          {/* IMPORT BUTTON */}
           <label className="btn btn-outline" style={{ cursor: 'pointer' }}>
             <FaFileUpload /> <span className="hide-mobile">Import</span>
             <input type="file" onChange={handleImport} style={{ display: 'none' }} accept=".json" />
           </label>
 
+          {/* NEW WORKER BUTTON */}
           <button
             className="btn btn-primary"
             onClick={() => {
