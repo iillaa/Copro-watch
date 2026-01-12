@@ -5,13 +5,35 @@ import { logic } from './logic';
 
 export const exportWorkersToExcel = async (workers, departments) => {
   try {
-    // 1. Initialize Workbook
+    console.log("Starting Export...");
+
+    // 1. FETCH ALL DATA CORRECTLY (Using the public API from db.js)
+    let allExams = [];
+    let waterLogs = [];
+    
+    try {
+      // [CORRECTION] Use getExams(), not db.visits
+      allExams = await db.getExams(); 
+      console.log(`Loaded ${allExams.length} exams.`);
+    } catch (e) {
+      console.warn("Could not load exams:", e);
+    }
+
+    try {
+      // [CORRECTION] Use getWaterAnalyses(), not db.water_analysis
+      waterLogs = await db.getWaterAnalyses();
+      console.log(`Loaded ${waterLogs.length} water logs.`);
+    } catch (e) {
+      console.warn("Could not load water logs:", e);
+    }
+
+    // 2. Initialize Workbook
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Copro-Watch';
     workbook.created = new Date();
 
     // ===========================================================================
-    // SHEET 1: TRAVAILLEURS (Always exists)
+    // SHEET 1: TRAVAILLEURS (With Calculated Aptitude)
     // ===========================================================================
     const sheetWorkers = workbook.addWorksheet('Travailleurs');
     
@@ -28,19 +50,32 @@ export const exportWorkersToExcel = async (workers, departments) => {
     const workerRows = workers.map(w => {
       const dept = departments.find(d => d.id === w.department_id);
       
+      // [CALCULATION] Find Aptitude from the exams we just fetched
+      const myExams = allExams.filter(e => e.worker_id === w.id);
+      // Sort: Newest date first
+      myExams.sort((a, b) => new Date(b.exam_date) - new Date(a.exam_date));
+      
       let statusLabel = '-';
-      if (w.latest_status === 'apte') statusLabel = 'Apte';
-      else if (w.latest_status === 'inapte') statusLabel = 'Inapte';
-      else if (w.latest_status === 'apte_partielle') statusLabel = 'Apte Partiel';
+      if (myExams.length > 0) {
+        // Look for the last exam that has a decision
+        const lastExam = myExams.find(e => e.decision && e.decision.status);
+        if (lastExam) {
+          const stat = lastExam.decision.status;
+          if (stat === 'apte') statusLabel = 'Apte';
+          else if (stat === 'inapte') statusLabel = 'Inapte';
+          else if (stat === 'apte_partielle') statusLabel = 'Apte Partiel';
+          else statusLabel = stat;
+        }
+      }
 
       return {
         full_name: w.full_name,
         national_id: w.national_id,
         department_name: dept ? dept.name : '-',
-        birth_date: w.birth_date ? logic.formatDateDisplay(w.birth_date) : '-',
-        last_exam_date: w.last_exam_date ? logic.formatDateDisplay(w.last_exam_date) : '-',
-        next_exam_due: w.next_exam_due ? logic.formatDateDisplay(w.next_exam_due) : '-',
-        status: statusLabel
+        birth_date: logic.formatDateDisplay(w.birth_date),
+        last_exam_date: logic.formatDateDisplay(w.last_exam_date),
+        next_exam_due: logic.formatDateDisplay(w.next_exam_due),
+        status: statusLabel // <--- Populated now
       };
     });
     
@@ -48,88 +83,119 @@ export const exportWorkersToExcel = async (workers, departments) => {
     styleSheet(sheetWorkers);
 
     // ===========================================================================
-    // SHEET 2: HISTORIQUE MÉDICAL (Safe Check)
+    // SHEET 2: HISTORIQUE MÉDICAL (From 'exams' table)
     // ===========================================================================
-    // FIX: Check if db.visits exists before asking for data
-    if (db.visits) {
+    if (allExams.length > 0) {
       const sheetVisits = workbook.addWorksheet('Historique Médical');
-      const visits = await db.visits.toArray();
       
       sheetVisits.columns = [
         { header: 'Date', key: 'date', width: 15 },
         { header: 'Travailleur', key: 'worker_name', width: 30 },
         { header: 'Type Visite', key: 'type', width: 20 },
-        { header: 'Conclusion', key: 'conclusion', width: 25 },
+        { header: 'Conclusion', key: 'conclusion', width: 20 },
         { header: 'Notes', key: 'notes', width: 40 },
       ];
 
-      const visitRows = visits.map(v => {
-        const worker = workers.find(w => w.id === v.worker_id);
+      const visitRows = allExams.map(e => {
+        const worker = workers.find(w => w.id === e.worker_id);
         
-        let conc = v.conclusion || '-';
-        if (conc === 'apte') conc = 'Apte';
-        if (conc === 'inapte') conc = 'Inapte';
+        let conc = '-';
+        if (e.decision && e.decision.status) {
+          const s = e.decision.status;
+          if (s === 'apte') conc = 'Apte';
+          else if (s === 'inapte') conc = 'Inapte';
+          else conc = s;
+        }
 
         return {
-          date: v.date ? logic.formatDateDisplay(v.date) : '-',
-          worker_name: worker ? worker.full_name : 'Inconnu',
-          type: v.type,
+          date: logic.formatDateDisplay(e.exam_date),
+          worker_name: worker ? worker.full_name : 'Inconnu (Supprimé)',
+          type: e.type === 'periodic' ? 'Périodique' : (e.type === 'embauche' ? 'Embauche' : 'Spontanée'),
           conclusion: conc,
-          notes: v.notes || '-'
+          notes: e.comments || '-'
         };
       });
 
-      // Sort Newest First
-      visitRows.sort((a, b) => new Date(b.date) - new Date(a.date)); // Fallback sort if dates are strings
+      // Sort by date descending
+      visitRows.sort((a, b) => {
+        // Parse DD/MM/YYYY back to objects for sorting
+        const dateA = a.date.split('/').reverse().join('-');
+        const dateB = b.date.split('/').reverse().join('-');
+        return new Date(dateB) - new Date(dateA);
+      });
       
       sheetVisits.addRows(visitRows);
       styleSheet(sheetVisits);
     }
 
     // ===========================================================================
-    // SHEET 3: ANALYSES D'EAU (Safe Check)
+    // SHEET 3: ANALYSES D'EAU (From 'water_analyses' table)
     // ===========================================================================
-    // FIX: Check if db.water_analysis exists
-    if (db.water_analysis) {
+    if (waterLogs.length > 0) {
       const sheetWater = workbook.addWorksheet("Analyses d'Eau");
-      const waterLogs = await db.water_analysis.toArray();
 
       sheetWater.columns = [
         { header: 'Date', key: 'date', width: 15 },
-        { header: 'Lieu', key: 'location', width: 30 },
+        { header: 'Service/Lieu', key: 'location', width: 30 },
         { header: 'Résultat', key: 'result', width: 20 },
-        { header: 'Chlore', key: 'cl', width: 15 },
-        { header: 'pH', key: 'ph', width: 15 },
+        { header: 'Décision', key: 'decision', width: 20 },
       ];
 
-      const waterRows = waterLogs.map(l => ({
-        date: l.date ? logic.formatDateDisplay(l.date) : '-',
-        location: l.location || '-',
-        result: l.is_compliant ? 'CONFORME' : 'NON CONFORME',
-        cl: l.cl_level || '-',
-        ph: l.ph_level || '-'
-      }));
+      const waterRows = waterLogs.map(l => {
+        // [CORRECTION] Determine status based on 'result' field from logic.js
+        let resLabel = '-';
+        let decisionLabel = '-';
+        
+        if (l.result === 'potable') {
+            resLabel = 'CONFORME';
+            decisionLabel = 'Potable';
+        } else if (l.result === 'non_potable') {
+            resLabel = 'NON CONFORME';
+            decisionLabel = 'Non Potable';
+        } else {
+            resLabel = 'EN COURS';
+        }
+
+        // Try to find department name if location is missing
+        let loc = l.location;
+        if (!loc && l.department_id) {
+            const dept = departments.find(d => d.id === l.department_id);
+            if (dept) loc = dept.name;
+        }
+
+        return {
+          date: logic.formatDateDisplay(l.sample_date || l.request_date),
+          location: loc || '-',
+          result: resLabel,
+          decision: decisionLabel,
+        };
+      });
+      
+      waterRows.sort((a, b) => {
+         const dateA = a.date.split('/').reverse().join('-');
+         const dateB = b.date.split('/').reverse().join('-');
+         return new Date(dateB) - new Date(dateA);
+      });
 
       sheetWater.addRows(waterRows);
       styleSheet(sheetWater);
     }
 
     // ===========================================================================
-    // SAVE FILE
+    // SAVE
     // ===========================================================================
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const dateStr = new Date().toISOString().split('T')[0];
-    saveAs(blob, `CoproWatch_Full_Report_${dateStr}.xlsx`);
+    saveAs(blob, `CoproWatch_Complet_${dateStr}.xlsx`);
 
   } catch (error) {
-    // [CRITICAL] Throw error so the UI knows exactly what happened
     console.error("Excel Generation Error:", error);
-    throw new Error(error.message);
+    throw new Error("Erreur Export: " + error.message);
   }
 };
 
-// Styling Helper
+// HELPER: Blue Header Styling
 function styleSheet(sheet) {
   const headerRow = sheet.getRow(1);
   headerRow.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
