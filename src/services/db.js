@@ -20,18 +20,32 @@ class CoproDatabase extends Dexie {
 
 const dbInstance = new CoproDatabase();
 
-// 3. Helper to trigger auto-backup check
-async function triggerBackupCheck() {
-  try {
-    const thresholdReached = await backupService.registerChange();
-    if (thresholdReached) {
-      await backupService.performAutoExport(async () => await exportData());
+// 3. Helper to trigger auto-backup check (Lazy / Non-Blocking)
+// This counts EVERY change but waits for the CPU to be free to avoid lag.
+function triggerBackupCheck() {
+  const runBackup = async () => {
+    try {
+      // This runs the EXACT logic you had before, maintaining your settings.
+      const thresholdReached = await backupService.registerChange();
+      if (thresholdReached) {
+        await backupService.performAutoExport(async () => await exportData());
+      }
+    } catch (e) {
+      console.warn('[DB] Auto backup trigger failed', e);
     }
-  } catch (e) {
-    console.warn('[DB] Auto backup trigger failed', e);
+  };
+
+  // [PERFORMANCE FIX]
+  // Instead of freezing the screen immediately, we ask the browser:
+  // "Run this when you are idle (not busy)."
+  if ('requestIdleCallback' in window) {
+    // Wait for idle time, or force run after 5 seconds
+    window.requestIdleCallback(runBackup, { timeout: 5000 });
+  } else {
+    // Fallback for older browsers (2 second delay)
+    setTimeout(runBackup, 2000);
   }
 }
-
 // 4. Export Global Function (Used by UI and Backup)
 async function exportData() {
   const data = {
