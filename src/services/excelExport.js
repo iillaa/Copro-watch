@@ -3,40 +3,48 @@ import { saveAs } from 'file-saver';
 import { db } from './db';
 import { logic } from './logic';
 
+// Helper: Convert ArrayBuffer to Base64 (Required for Android Filesystem)
+const arrayBufferToBase64 = (buffer) => {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return window.btoa(binary);
+};
+
 export const exportWorkersToExcel = async (workers, departments) => {
   try {
-    console.log("Starting Export...");
+    console.log("[Excel] Starting Export generation...");
 
-    // 1. FETCH ALL DATA CORRECTLY (Using the public API from db.js)
+    // ---------------------------------------------------------
+    // 1. DATA FETCHING (Robust)
+    // ---------------------------------------------------------
     let allExams = [];
     let waterLogs = [];
     
     try {
-      // [CORRECTION] Use getExams(), not db.visits
       allExams = await db.getExams(); 
-      console.log(`Loaded ${allExams.length} exams.`);
     } catch (e) {
-      console.warn("Could not load exams:", e);
+      console.warn("[Excel] Could not load exams:", e);
     }
 
     try {
-      // [CORRECTION] Use getWaterAnalyses(), not db.water_analysis
       waterLogs = await db.getWaterAnalyses();
-      console.log(`Loaded ${waterLogs.length} water logs.`);
     } catch (e) {
-      console.warn("Could not load water logs:", e);
+      console.warn("[Excel] Could not load water logs:", e);
     }
 
-    // 2. Initialize Workbook
+    // ---------------------------------------------------------
+    // 2. EXCEL CONSTRUCTION (Visuals)
+    // ---------------------------------------------------------
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Copro-Watch';
     workbook.created = new Date();
 
-    // ===========================================================================
-    // SHEET 1: TRAVAILLEURS (With Calculated Aptitude)
-    // ===========================================================================
+    // --- SHEET 1: TRAVAILLEURS ---
     const sheetWorkers = workbook.addWorksheet('Travailleurs');
-    
     sheetWorkers.columns = [
       { header: 'Nom et Prénom', key: 'full_name', width: 30 },
       { header: 'Matricule', key: 'national_id', width: 15 },
@@ -50,14 +58,11 @@ export const exportWorkersToExcel = async (workers, departments) => {
     const workerRows = workers.map(w => {
       const dept = departments.find(d => d.id === w.department_id);
       
-      // [CALCULATION] Find Aptitude from the exams we just fetched
       const myExams = allExams.filter(e => e.worker_id === w.id);
-      // Sort: Newest date first
       myExams.sort((a, b) => new Date(b.exam_date) - new Date(a.exam_date));
       
       let statusLabel = '-';
       if (myExams.length > 0) {
-        // Look for the last exam that has a decision
         const lastExam = myExams.find(e => e.decision && e.decision.status);
         if (lastExam) {
           const stat = lastExam.decision.status;
@@ -75,19 +80,15 @@ export const exportWorkersToExcel = async (workers, departments) => {
         birth_date: logic.formatDateDisplay(w.birth_date),
         last_exam_date: logic.formatDateDisplay(w.last_exam_date),
         next_exam_due: logic.formatDateDisplay(w.next_exam_due),
-        status: statusLabel // <--- Populated now
+        status: statusLabel
       };
     });
-    
     sheetWorkers.addRows(workerRows);
     styleSheet(sheetWorkers);
 
-    // ===========================================================================
-    // SHEET 2: HISTORIQUE MÉDICAL (From 'exams' table)
-    // ===========================================================================
+    // --- SHEET 2: HISTORIQUE ---
     if (allExams.length > 0) {
       const sheetVisits = workbook.addWorksheet('Historique Médical');
-      
       sheetVisits.columns = [
         { header: 'Date', key: 'date', width: 15 },
         { header: 'Travailleur', key: 'worker_name', width: 30 },
@@ -98,7 +99,6 @@ export const exportWorkersToExcel = async (workers, departments) => {
 
       const visitRows = allExams.map(e => {
         const worker = workers.find(w => w.id === e.worker_id);
-        
         let conc = '-';
         if (e.decision && e.decision.status) {
           const s = e.decision.status;
@@ -115,25 +115,18 @@ export const exportWorkersToExcel = async (workers, departments) => {
           notes: e.comments || '-'
         };
       });
-
-      // Sort by date descending
       visitRows.sort((a, b) => {
-        // Parse DD/MM/YYYY back to objects for sorting
         const dateA = a.date.split('/').reverse().join('-');
         const dateB = b.date.split('/').reverse().join('-');
         return new Date(dateB) - new Date(dateA);
       });
-      
       sheetVisits.addRows(visitRows);
       styleSheet(sheetVisits);
     }
 
-    // ===========================================================================
-    // SHEET 3: ANALYSES D'EAU (From 'water_analyses' table)
-    // ===========================================================================
+    // --- SHEET 3: ANALYSES D'EAU ---
     if (waterLogs.length > 0) {
       const sheetWater = workbook.addWorksheet("Analyses d'Eau");
-
       sheetWater.columns = [
         { header: 'Date', key: 'date', width: 15 },
         { header: 'Service/Lieu', key: 'location', width: 30 },
@@ -142,21 +135,12 @@ export const exportWorkersToExcel = async (workers, departments) => {
       ];
 
       const waterRows = waterLogs.map(l => {
-        // [CORRECTION] Determine status based on 'result' field from logic.js
         let resLabel = '-';
         let decisionLabel = '-';
-        
-        if (l.result === 'potable') {
-            resLabel = 'CONFORME';
-            decisionLabel = 'Potable';
-        } else if (l.result === 'non_potable') {
-            resLabel = 'NON CONFORME';
-            decisionLabel = 'Non Potable';
-        } else {
-            resLabel = 'EN COURS';
-        }
+        if (l.result === 'potable') { resLabel = 'CONFORME'; decisionLabel = 'Potable'; }
+        else if (l.result === 'non_potable') { resLabel = 'NON CONFORME'; decisionLabel = 'Non Potable'; }
+        else { resLabel = 'EN COURS'; }
 
-        // Try to find department name if location is missing
         let loc = l.location;
         if (!loc && l.department_id) {
             const dept = departments.find(d => d.id === l.department_id);
@@ -170,27 +154,69 @@ export const exportWorkersToExcel = async (workers, departments) => {
           decision: decisionLabel,
         };
       });
-      
       waterRows.sort((a, b) => {
          const dateA = a.date.split('/').reverse().join('-');
          const dateB = b.date.split('/').reverse().join('-');
          return new Date(dateB) - new Date(dateA);
       });
-
       sheetWater.addRows(waterRows);
       styleSheet(sheetWater);
     }
 
-    // ===========================================================================
-    // SAVE
-    // ===========================================================================
+    // ---------------------------------------------------------
+    // 3. SAVING LOGIC (The Fix)
+    // ---------------------------------------------------------
     const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const dateStr = new Date().toISOString().split('T')[0];
-    saveAs(blob, `CoproWatch_Complet_${dateStr}.xlsx`);
+    const filename = `CoproWatch_Complet_${dateStr}.xlsx`;
+
+    // Dynamic Import for Capacitor Check (Matches backup.js strategy)
+    const { Capacitor } = await import('@capacitor/core');
+
+    // A. ANDROID / NATIVE
+    if (Capacitor.isNativePlatform()) {
+      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+      
+      try {
+        console.log("[Excel] Requesting Permissions...");
+        // 1. CRITICAL: Request permission first (Like backup.js)
+        await Filesystem.requestPermissions();
+
+        // 2. Ensure Folder Exists
+        try {
+          await Filesystem.stat({ path: 'copro-watch', directory: Directory.Documents });
+        } catch {
+          await Filesystem.mkdir({
+            path: 'copro-watch',
+            directory: Directory.Documents,
+            recursive: true,
+          });
+        }
+
+        // 3. Convert to Base64 (Required for Binary write in Capacitor)
+        const base64Data = arrayBufferToBase64(buffer);
+
+        // 4. Write File (NO ENCODING for Binary/Base64)
+        await Filesystem.writeFile({
+          path: `copro-watch/${filename}`,
+          data: base64Data,
+          directory: Directory.Documents,
+        });
+
+        alert(`SUCCÈS !\n\nFichier enregistré dans :\nMes Documents / copro-watch / ${filename}`);
+      } catch (e) {
+        console.error("[Excel] Native Write Failed:", e);
+        throw new Error("Impossible d'écrire dans Documents. Vérifiez les permissions.");
+      }
+    } 
+    // B. WEB BROWSER
+    else {
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, filename);
+    }
 
   } catch (error) {
-    console.error("Excel Generation Error:", error);
+    console.error("[Excel] Generation Error:", error);
     throw new Error("Erreur Export: " + error.message);
   }
 };
