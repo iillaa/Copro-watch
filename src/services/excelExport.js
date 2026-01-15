@@ -16,24 +16,24 @@ const arrayBufferToBase64 = (buffer) => {
 
 export const exportWorkersToExcel = async (workers, departments) => {
   try {
-    console.log("[Excel] Starting Export generation...");
+    console.log('[Excel] Starting Export generation...');
 
     // ---------------------------------------------------------
     // 1. DATA FETCHING (Robust)
     // ---------------------------------------------------------
     let allExams = [];
     let waterLogs = [];
-    
+
     try {
-      allExams = await db.getExams(); 
+      allExams = await db.getExams();
     } catch (e) {
-      console.warn("[Excel] Could not load exams:", e);
+      console.warn('[Excel] Could not load exams:', e);
     }
 
     try {
       waterLogs = await db.getWaterAnalyses();
     } catch (e) {
-      console.warn("[Excel] Could not load water logs:", e);
+      console.warn('[Excel] Could not load water logs:', e);
     }
 
     // ---------------------------------------------------------
@@ -55,15 +55,15 @@ export const exportWorkersToExcel = async (workers, departments) => {
       { header: 'Aptitude', key: 'status', width: 20 },
     ];
 
-    const workerRows = workers.map(w => {
-      const dept = departments.find(d => d.id === w.department_id);
-      
-      const myExams = allExams.filter(e => e.worker_id === w.id);
+    const workerRows = workers.map((w) => {
+      const dept = departments.find((d) => d.id === w.department_id);
+
+      const myExams = allExams.filter((e) => e.worker_id === w.id);
       myExams.sort((a, b) => new Date(b.exam_date) - new Date(a.exam_date));
-      
+
       let statusLabel = '-';
       if (myExams.length > 0) {
-        const lastExam = myExams.find(e => e.decision && e.decision.status);
+        const lastExam = myExams.find((e) => e.decision && e.decision.status);
         if (lastExam) {
           const stat = lastExam.decision.status;
           if (stat === 'apte') statusLabel = 'Apte';
@@ -80,7 +80,7 @@ export const exportWorkersToExcel = async (workers, departments) => {
         birth_date: logic.formatDateDisplay(w.birth_date),
         last_exam_date: logic.formatDateDisplay(w.last_exam_date),
         next_exam_due: logic.formatDateDisplay(w.next_exam_due),
-        status: statusLabel
+        status: statusLabel,
       };
     });
     sheetWorkers.addRows(workerRows);
@@ -97,8 +97,8 @@ export const exportWorkersToExcel = async (workers, departments) => {
         { header: 'Notes', key: 'notes', width: 40 },
       ];
 
-      const visitRows = allExams.map(e => {
-        const worker = workers.find(w => w.id === e.worker_id);
+      const visitRows = allExams.map((e) => {
+        const worker = workers.find((w) => w.id === e.worker_id);
         let conc = '-';
         if (e.decision && e.decision.status) {
           const s = e.decision.status;
@@ -110,9 +110,10 @@ export const exportWorkersToExcel = async (workers, departments) => {
         return {
           date: logic.formatDateDisplay(e.exam_date),
           worker_name: worker ? worker.full_name : 'Inconnu (Supprimé)',
-          type: e.type === 'periodic' ? 'Périodique' : (e.type === 'embauche' ? 'Embauche' : 'Spontanée'),
+          type:
+            e.type === 'periodic' ? 'Périodique' : e.type === 'embauche' ? 'Embauche' : 'Spontanée',
           conclusion: conc,
-          notes: e.comments || '-'
+          notes: e.comments || '-',
         };
       });
       visitRows.sort((a, b) => {
@@ -134,17 +135,23 @@ export const exportWorkersToExcel = async (workers, departments) => {
         { header: 'Décision', key: 'decision', width: 20 },
       ];
 
-      const waterRows = waterLogs.map(l => {
+      const waterRows = waterLogs.map((l) => {
         let resLabel = '-';
         let decisionLabel = '-';
-        if (l.result === 'potable') { resLabel = 'CONFORME'; decisionLabel = 'Potable'; }
-        else if (l.result === 'non_potable') { resLabel = 'NON CONFORME'; decisionLabel = 'Non Potable'; }
-        else { resLabel = 'EN COURS'; }
+        if (l.result === 'potable') {
+          resLabel = 'CONFORME';
+          decisionLabel = 'Potable';
+        } else if (l.result === 'non_potable') {
+          resLabel = 'NON CONFORME';
+          decisionLabel = 'Non Potable';
+        } else {
+          resLabel = 'EN COURS';
+        }
 
         let loc = l.location;
         if (!loc && l.department_id) {
-            const dept = departments.find(d => d.id === l.department_id);
-            if (dept) loc = dept.name;
+          const dept = departments.find((d) => d.id === l.department_id);
+          if (dept) loc = dept.name;
         }
 
         return {
@@ -155,9 +162,9 @@ export const exportWorkersToExcel = async (workers, departments) => {
         };
       });
       waterRows.sort((a, b) => {
-         const dateA = a.date.split('/').reverse().join('-');
-         const dateB = b.date.split('/').reverse().join('-');
-         return new Date(dateB) - new Date(dateA);
+        const dateA = a.date.split('/').reverse().join('-');
+        const dateB = b.date.split('/').reverse().join('-');
+        return new Date(dateB) - new Date(dateA);
       });
       sheetWater.addRows(waterRows);
       styleSheet(sheetWater);
@@ -176,9 +183,9 @@ export const exportWorkersToExcel = async (workers, departments) => {
     // A. ANDROID / NATIVE
     if (Capacitor.isNativePlatform()) {
       const { Filesystem, Directory } = await import('@capacitor/filesystem');
-      
+
       try {
-        console.log("[Excel] Requesting Permissions...");
+        console.log('[Excel] Requesting Permissions...');
         // 1. CRITICAL: Request permission first (Like backup.js)
         await Filesystem.requestPermissions();
 
@@ -205,19 +212,20 @@ export const exportWorkersToExcel = async (workers, departments) => {
 
         alert(`SUCCÈS !\n\nFichier enregistré dans :\nMes Documents / copro-watch / ${filename}`);
       } catch (e) {
-        console.error("[Excel] Native Write Failed:", e);
+        console.error('[Excel] Native Write Failed:', e);
         throw new Error("Impossible d'écrire dans Documents. Vérifiez les permissions.");
       }
-    } 
+    }
     // B. WEB BROWSER
     else {
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
       saveAs(blob, filename);
     }
-
   } catch (error) {
-    console.error("[Excel] Generation Error:", error);
-    throw new Error("Erreur Export: " + error.message);
+    console.error('[Excel] Generation Error:', error);
+    throw new Error('Erreur Export: ' + error.message);
   }
 };
 
@@ -228,14 +236,19 @@ function styleSheet(sheet) {
   headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
   headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
   headerRow.height = 25;
-  
+
   sheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1) return;
     row.eachCell((cell) => {
-      cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' },
+      };
       cell.alignment = { vertical: 'middle', horizontal: 'left' };
     });
   });
-  
+
   sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: sheet.columns.length } };
 }

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
-import { FaTimes, FaEdit, FaPrint } from 'react-icons/fa';
+import { FaPrint } from 'react-icons/fa';
 import { pdfService } from '../services/pdfGenerator'; // [NEW]
-import BatchPrintModal from './BatchPrintModal';       // [NEW]
+import BatchPrintModal from './BatchPrintModal'; // [NEW]
 import ExamForm from './ExamForm';
 // AJOUT : Import des icônes d'archive et FaCheckSquare
 import {
@@ -120,26 +120,47 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
   };
 
   const handleDeleteExam = async (examId) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet examen ?')) {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet examen ?')) return;
+
+    try {
+      // 1. Delete the exam
       await db.deleteExam(examId);
+
+      // 2. Fetch remaining exams to recalculate
+      const remainingExams = await db.getExamsByWorker(worker.id);
+
+      // 3. Recalculate status using the Logic Brain
+      const newStatus = logic.recalculateWorkerStatus(remainingExams);
+
+      // 4. Update the worker in DB
+      const updatedWorker = {
+        ...worker,
+        ...newStatus,
+      };
+      await db.saveWorker(updatedWorker);
+
+      // 5. Reload UI
       loadData();
+    } catch (e) {
+      console.error('Erreur sync:', e);
+      alert('Erreur lors de la mise à jour des dates.');
     }
   };
 
   // [NEW] Handler pour le bouton PDF
- 
+
   const handlePrintConfirm = (docType, dateSelected, extraOptions = {}) => {
     const enrichedWorker = {
       ...worker,
       deptName: deptName || 'Service Inconnu',
-      workplaceName: workplaceName || ''
+      workplaceName: workplaceName || '',
     };
 
-    pdfService.generateBatchDoc([enrichedWorker], docType, { 
+    pdfService.generateBatchDoc([enrichedWorker], docType, {
       date: dateSelected,
-      ...extraOptions 
+      ...extraOptions,
     });
-    
+
     setShowPrintModal(false);
   };
 
@@ -194,6 +215,8 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
   };
 
   if (!worker) return <div>Chargement...</div>;
+  // [ACTIVATED] Logic to check if the worker is late
+  const isOverdue = logic.isOverdue(worker.next_exam_due);
 
   return (
     <div>
@@ -232,8 +255,22 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
               Matricule: {worker.national_id}
             </p>
-            <div style={{ marginTop: '0.5rem' }}>
-              <span className="badge badge-yellow">Prochain Examen: {worker.next_exam_due}</span>
+            <div
+              style={{ marginTop: '0.5rem', display: 'flex', gap: '10px', alignItems: 'center' }}
+            >
+              {/* [FIX] Badge changes color if overdue */}
+              <span
+                className={`badge ${isOverdue && !worker.archived ? 'badge-red' : 'badge-yellow'}`}
+              >
+                Prochain Examen: {logic.formatDateDisplay(worker.next_exam_due)}
+              </span>
+
+              {/* [FIX] Explicit Text Warning */}
+              {isOverdue && !worker.archived && (
+                <span style={{ color: 'var(--danger)', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                  ⚠️ En Retard
+                </span>
+              )}
             </div>
           </div>
 
@@ -276,7 +313,7 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
                 </>
               )}
             </button>
-{/* [NEW] BOUTON SMART PDF */}
+            {/* [NEW] BOUTON SMART PDF */}
             <button
               className="btn btn-outline"
               onClick={() => setShowPrintModal(true)}
@@ -436,7 +473,7 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
         />
       )}
 
-{/* [NEW] Modale d'Impression */}
+      {/* [NEW] Modale d'Impression */}
       {showPrintModal && (
         <BatchPrintModal
           count={1}
@@ -444,7 +481,7 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
           onCancel={() => setShowPrintModal(false)}
         />
       )}
-      
+
       {showExamForm && (
         <ExamForm
           worker={worker}

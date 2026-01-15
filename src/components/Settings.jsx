@@ -347,18 +347,32 @@ export default function Settings({
   };
 
   const deleteDepartment = async (id) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce service ?')) {
-      return;
+    // 1. Count associated workers first
+    const workers = await db.getWorkers();
+    const linkedWorkers = workers.filter((w) => w.department_id === id);
+    const count = linkedWorkers.length;
+
+    // 2. Scary Confirmation
+    if (count > 0) {
+      const confirmMsg = `ATTENTION: Ce service contient ${count} travailleur(s).\n\nSi vous supprimez ce service, CES TRAVAILLEURS SERONT AUSSI SUPPRIMÉS.\n\nConfirmer la suppression totale ?`;
+      if (!window.confirm(confirmMsg)) return;
+
+      // 3. Cascade Delete (Delete workers first)
+      await Promise.all(linkedWorkers.map((w) => db.deleteWorker(w.id)));
+    } else {
+      // Standard confirmation for empty service
+      if (!window.confirm('Supprimer ce service vide ?')) return;
     }
 
     try {
+      // 4. Delete the service
       await db.deleteDepartment(id);
       await loadDepartments();
-      setMsg('Service supprimé avec succès !');
+      setMsg(count > 0 ? `Service et ${count} travailleurs supprimés.` : 'Service supprimé.');
       setTimeout(() => setMsg(''), 3000);
     } catch (error) {
       console.error('Error deleting department:', error);
-      setMsg('Erreur lors de la suppression du service.');
+      setMsg('Erreur lors de la suppression.');
       setTimeout(() => setMsg(''), 3000);
     }
   };
@@ -425,19 +439,32 @@ export default function Settings({
   };
 
   const deleteWaterDepartment = async (id) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce service d'eau ?")) {
-      return;
+    // 1. Check for linked analyses
+    const analyses = await db.getWaterAnalyses();
+    // Logic check: matches logic.js (department_id or structure_id)
+    const linkedAnalyses = analyses.filter((a) => a.department_id === id || a.structure_id === id);
+    const count = linkedAnalyses.length;
+
+    // 2. Scary Confirmation
+    if (count > 0) {
+      const confirmMsg = `ATTENTION: Ce point d'eau contient ${count} analyse(s) d'historique.\n\nElles seront définitivement supprimées.\n\nConfirmer ?`;
+      if (!window.confirm(confirmMsg)) return;
+
+      // 3. Cascade Delete
+      await Promise.all(linkedAnalyses.map((a) => db.deleteWaterAnalysis(a.id)));
+    } else {
+      if (!window.confirm("Supprimer ce service d'eau ?")) return;
     }
 
     try {
+      // 4. Delete the service
       await db.deleteWaterDepartment(id);
       await loadWaterDepartments();
-      setMsg("Service d'eau supprimé avec succès !");
+      setMsg("Service d'eau et historique supprimés.");
       setTimeout(() => setMsg(''), 3000);
     } catch (error) {
-      console.error('Error deleting water department:', error);
-      setMsg("Erreur lors de la suppression du service d'eau.");
-      setTimeout(() => setMsg(''), 3000);
+      console.error('Error deleting water dept:', error);
+      setMsg('Erreur lors de la suppression.');
     }
   };
 

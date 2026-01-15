@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
 import {
-  FaChevronRight,
   FaClipboardList,
   FaExclamationTriangle,
   FaMicroscope,

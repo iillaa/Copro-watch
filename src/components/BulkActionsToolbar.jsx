@@ -6,7 +6,7 @@ export default function BulkActionsToolbar({
   onArchive,
   onMove,
   onSchedule, // [NEW]
-  onPrint,    // [NEW]
+  onPrint, // [NEW]
   onCancel,
 }) {
   return (
@@ -30,17 +30,21 @@ export default function BulkActionsToolbar({
       }}
     >
       <div style={{ fontWeight: 800, color: 'var(--primary)', minWidth: '80px' }}>
-        {selectedCount} <span style={{fontSize: '0.8em', fontWeight: 400}}>sélectionné(s)</span>
+        {selectedCount} <span style={{ fontSize: '0.8em', fontWeight: 400 }}>sélectionné(s)</span>
       </div>
 
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         {/* --- NOUVEAUX BOUTONS --- */}
         {onSchedule && (
-          <button onClick={onSchedule} className="btn btn-sm btn-primary" title="Planifier Consultation">
+          <button
+            onClick={onSchedule}
+            className="btn btn-sm btn-primary"
+            title="Planifier Consultation"
+          >
             <FaCalendarAlt />
           </button>
         )}
-        
+
         {onPrint && (
           <button onClick={onPrint} className="btn btn-sm btn-outline" title="Imprimer Documents">
             <FaPrint />

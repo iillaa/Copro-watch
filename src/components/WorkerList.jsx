@@ -8,7 +8,7 @@ import MoveWorkersModal from './MoveWorkersModal'; // [NEW] Move Modal
 import { pdfService } from '../services/pdfGenerator'; // [NEW]
 import BatchScheduleModal from './BatchScheduleModal'; // [NEW]
 import BatchPrintModal from './BatchPrintModal'; // [NEW]
-import { exportWorkersToExcel } from '../services/excelExport' ;
+import { exportWorkersToExcel } from '../services/excelExport';
 import {
   FaPlus,
   FaSearch,
@@ -16,7 +16,6 @@ import {
   FaFileUpload,
   FaEdit,
   FaTrash,
-  FaFilter,
   FaSort,
   FaSortUp,
   FaSortDown,
@@ -29,13 +28,14 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   // 1. STATE MANAGEMENT
   // ==================================================================================
 
-const [showScheduleModal, setShowScheduleModal] = useState(false); // [NEW]
-const [showPrintModal, setShowPrintModal] = useState(false); // [NEW]
+  const [showScheduleModal, setShowScheduleModal] = useState(false); // [NEW]
+  const [showPrintModal, setShowPrintModal] = useState(false); // [NEW]
 
   // Data State
   const [workers, setWorkers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true); // [NEW] Loading state
   const [departments, setDepartments] = useState([]);
-const [workplaces, setWorkplaces] = useState([]);
+  const [workplaces, setWorkplaces] = useState([]);
 
   // UI State
   const [searchTerm, setSearchTerm] = useState('');
@@ -69,20 +69,24 @@ const [workplaces, setWorkplaces] = useState([]);
   // ==================================================================================
   // 2. DATA LOADING & EFFECTS
   // ==================================================================================
- const loadData = async () => {
+  const loadData = async () => {
     try {
-      // [UPDATED] On charge Travailleurs + Départements + Lieux (Workplaces)
+      setIsLoading(true); // [START] Show spinner
+
+      // Load Workers, Departments, and Workplaces
       const [w, d, wp] = await Promise.all([
-        db.getWorkers(), 
-        db.getDepartments(), 
-        db.getWorkplaces() 
+        db.getWorkers(),
+        db.getDepartments(),
+        db.getWorkplaces(),
       ]);
-      
+
       setWorkers(w);
       setDepartments(d);
-      setWorkplaces(wp); // [NEW] Sauvegarde des lieux en mémoire
+      setWorkplaces(wp);
     } catch (error) {
       console.error('Failed to load data:', error);
+    } finally {
+      setIsLoading(false); // [STOP] Hide spinner (Show content or Empty State)
     }
   };
 
@@ -180,27 +184,29 @@ const [workplaces, setWorkplaces] = useState([]);
     setSelectedIds(newSet);
   };
 
-// [NEW] BATCH SCHEDULE HANDLER
+  // [NEW] BATCH SCHEDULE HANDLER
   const handleBatchScheduleConfirm = async (dateStr, type) => {
     // Calcul date prochaine (ex: +6 mois pour périodique)
     const examDate = new Date(dateStr);
     let nextDueDate = new Date(examDate);
-    nextDueDate.setMonth(nextDueDate.getMonth() + 6); 
+    nextDueDate.setMonth(nextDueDate.getMonth() + logic.EXAM_INTERVAL_MONTHS);
 
     const targets = workers.filter((w) => selectedIds.has(w.id));
-    
-    await Promise.all(targets.map(async (w) => {
-      // 1. Ajouter l'examen
-      await db.saveExam({
-        worker_id: w.id,
-        exam_date: dateStr,
-        exam_type: type,
-        notes: 'Planification groupée (Batch)',
-        completed: false
-      });
-      // 2. Mettre à jour le statut du travailleur
-      await db.saveWorker({ ...w, next_exam_due: nextDueDate.toISOString() });
-    }));
+
+    await Promise.all(
+      targets.map(async (w) => {
+        // 1. Ajouter l'examen
+        await db.saveExam({
+          worker_id: w.id,
+          exam_date: dateStr,
+          exam_type: type,
+          notes: 'Planification groupée (Batch)',
+          completed: false,
+        });
+        // 2. Mettre à jour le statut du travailleur
+        await db.saveWorker({ ...w, next_exam_due: nextDueDate.toISOString() });
+      })
+    );
 
     setShowScheduleModal(false);
     setSelectedIds(new Set());
@@ -209,27 +215,27 @@ const [workplaces, setWorkplaces] = useState([]);
   };
 
   // [NEW] BATCH PRINT HANDLER
-const handleBatchPrint = () => {
+  const handleBatchPrint = () => {
     setShowPrintModal(true);
   };
   // [UPDATED] Logique d'impression pour la liste (Batch)
   const confirmBatchPrint = (docType, dateSelected, extraOptions = {}) => {
     // 1. On récupère les travailleurs sélectionnés
     const targets = workers.filter((w) => selectedIds.has(w.id));
-    
+
     // 2. On enrichit avec les noms de service et lieu
-    const targetsWithInfo = targets.map(w => ({
+    const targetsWithInfo = targets.map((w) => ({
       ...w,
-      deptName: departments.find(d => d.id === w.department_id)?.name || 'Autre',
-      workplaceName: workplaces.find(wp => wp.id === w.workplace_id)?.name || '' 
+      deptName: departments.find((d) => d.id === w.department_id)?.name || 'Autre',
+      workplaceName: workplaces.find((wp) => wp.id === w.workplace_id)?.name || '',
     }));
 
     // 3. On génère le PDF en passant les nouvelles options (heure/date consultation)
-    pdfService.generateBatchDoc(targetsWithInfo, docType, { 
-      date: dateSelected, 
-      ...extraOptions // <--- C'est ici que passent l'heure et la date de RDV
+    pdfService.generateBatchDoc(targetsWithInfo, docType, {
+      date: dateSelected,
+      ...extraOptions, // <--- C'est ici que passent l'heure et la date de RDV
     });
-    
+
     setShowPrintModal(false);
   };
 
@@ -273,7 +279,7 @@ const handleBatchPrint = () => {
     // [FIX] Mode stays ON after move
     loadData();
   };
-  
+
   // ==================================================================================
   // 5. STANDARD ACTION HANDLERS
   // ==================================================================================
@@ -336,16 +342,16 @@ const handleBatchPrint = () => {
   // [NEW] Excel Reporting Function
   const handleExcelExport = async () => {
     if (filteredWorkers.length === 0) {
-      alert("Aucune donnée affichée à exporter.");
+      alert('Aucune donnée affichée à exporter.');
       return;
     }
-    
+
     // Uses the current filtered list (respects your search/department filters)
     try {
       await exportWorkersToExcel(filteredWorkers, departments);
     } catch (error) {
-      console.error("Export Excel failed:", error);
-      alert("Erreur lors de la création du fichier Excel.");
+      console.error('Export Excel failed:', error);
+      alert('Erreur lors de la création du fichier Excel.');
     }
   };
 
@@ -454,8 +460,7 @@ const handleBatchPrint = () => {
             {filteredWorkers.length} dossier{filteredWorkers.length > 1 ? 's' : ''} trouvé(s)
           </p>
         </div>
-       <div style={{ display: 'flex', gap: '0.75rem' }}>
-          
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
           {/* SELECTION MODE BUTTON */}
           <button
             className={`btn ${isSelectionMode ? 'btn-primary' : 'btn-outline'}`}
@@ -467,19 +472,19 @@ const handleBatchPrint = () => {
           </button>
 
           {/* [NEW] EXCEL BUTTON (For Administration) */}
-          <button 
-            className="btn btn-outline" 
-            onClick={handleExcelExport} 
+          <button
+            className="btn btn-outline"
+            onClick={handleExcelExport}
             title="Générer un rapport Excel officiel"
-            style={{ borderColor: '#4F46E5', color: '#4F46E5' }} 
+            style={{ borderColor: '#4F46E5', color: '#4F46E5' }}
           >
             <FaFileDownload /> <span className="hide-mobile">Excel</span>
           </button>
 
           {/* [UPDATED] BACKUP BUTTON (For Safety - JSON) */}
-          <button 
-            className="btn btn-outline" 
-            onClick={handleExport} 
+          <button
+            className="btn btn-outline"
+            onClick={handleExport}
             title="Sauvegarder toute la base (JSON)"
           >
             <FaFileDownload /> <span className="hide-mobile">Backup</span>
@@ -503,248 +508,75 @@ const handleBatchPrint = () => {
           </button>
         </div>
       </div>
-
-      {/* FILTERS BAR */}
-      <div
-        className="card"
-        style={{
-          padding: '0.75rem',
-          display: 'flex',
-          gap: '1rem',
-          alignItems: 'center',
-          overflowX: 'auto',
-          marginBottom: '1rem',
-        }}
-      >
-        <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-          <FaSearch
-            style={{
-              position: 'absolute',
-              left: '12px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: 'var(--text-muted)',
-            }}
-          />
-          <input
-            className="input"
-            style={{ paddingLeft: '2.5rem', borderRadius: '50px' }}
-            placeholder="Rechercher (Nom et prénom, Matricule)..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {/* [LOGIC] Show Loading, Empty State, or Data */}
+      {isLoading ? (
+        <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <div className="loading-spinner"></div> Chargement...
         </div>
-        <select
-          className="input"
-          style={{ width: 'auto', borderRadius: '50px' }}
-          value={filterDept}
-          onChange={(e) => setFilterDept(e.target.value)}
-        >
-          <option value="">Tous les services</option>
-          {departments.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
-        <label
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            whiteSpace: 'nowrap',
-            cursor: 'pointer',
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={showArchived}
-            onChange={(e) => setShowArchived(e.target.checked)}
-          />
-          Archives
-        </label>
-        {(searchTerm || filterDept) && (
-          <button
-            className="btn btn-outline btn-sm"
-            onClick={() => {
-              setSearchTerm('');
-              setFilterDept('');
+      ) : workers.length === 0 ? (
+        emptyStateUI
+      ) : (
+        <>
+          {/* FILTERS BAR */}
+          <div
+            className="card"
+            style={{
+              padding: '0.75rem',
+              display: 'flex',
+              gap: '1rem',
+              alignItems: 'center',
+              overflowX: 'auto',
+              marginBottom: '1rem',
             }}
           >
-            Effacer
-          </button>
-        )}
-      </div>
-
-      {/* SCROLLABLE TABLE WINDOW */}
-      <div
-        className="scroll-wrapper"
-        style={{ maxHeight: compactMode ? '75vh' : 'none', paddingBottom: '120px' }}
-      >
-        <div className="hybrid-container">
-          {/* 1. STICKY HEADER ROW */}
-          <div className="hybrid-header" style={{ gridTemplateColumns: gridTemplate }}>
-            <div style={{ textAlign: 'center' }}>
-              {isSelectionMode && (
-                <input
-                  type="checkbox"
-                  onChange={toggleSelectAll}
-                  checked={
-                    filteredWorkers.length > 0 && selectedIds.size === filteredWorkers.length
-                  }
-                />
-              )}
-            </div>
-            <div onClick={() => handleSort('full_name')} style={{ cursor: 'pointer' }}>
-              Nom et prénom {getSortIcon('full_name')}
-            </div>
-            <div onClick={() => handleSort('national_id')} style={{ cursor: 'pointer' }}>
-              Matricule {getSortIcon('national_id')}
-            </div>
-            <div onClick={() => handleSort('department_id')} style={{ cursor: 'pointer' }}>
-              Service {getSortIcon('department_id')}
-            </div>
-            <div onClick={() => handleSort('last_exam_date')} style={{ cursor: 'pointer' }}>
-              Dernier Exam {getSortIcon('last_exam_date')}
-            </div>
-            <div onClick={() => handleSort('next_exam_due')} style={{ cursor: 'pointer' }}>
-              Prochain Dû {getSortIcon('next_exam_due')}
-            </div>
-            <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>Actions</div>
-          </div>
-
-          {/* 2. SCROLLABLE DATA ROWS */}
-          {filteredWorkers.map((w) => {
-            const isOverdue = logic.isOverdue(w.next_exam_due);
-            const status = w.latest_status; // [FIX] Use cached status from worker object
-            const isSelected = selectedIds.has(w.id);
-
-            return (
-              <div
-                key={w.id}
-                onClick={() => (isSelectionMode ? toggleSelectOne(w.id) : onNavigateWorker(w.id))}
-                className={`hybrid-row ${isSelected ? 'selected' : ''} ${
-                  !w.archived && isOverdue ? 'overdue-worker-row' : ''
-                }`}
+            <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+              <FaSearch
                 style={{
-                  gridTemplateColumns: gridTemplate,
-                  opacity: w.archived ? 0.6 : 1,
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)',
                 }}
-              >
-                {/* Checkbox */}
-                <div style={{ textAlign: 'center', overflow: 'hidden' }}>
-                  {isSelectionMode && (
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelectOne(w.id)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  )}
-                </div>
-
-                {/* Nom et prénom */}
-                <div className="hybrid-cell cell-name">
-                  {w.full_name}
-                  {w.archived && (
-                    <span
-                      className="badge"
-                      style={{
-                        fontSize: '0.6rem',
-                        marginLeft: '5px',
-                        background: '#eee',
-                        color: '#666',
-                        border: 'none',
-                      }}
-                    >
-                      Archivé
-                    </span>
-                  )}
-                </div>
-
-                {/* Matricule */}
-                <div className="hybrid-cell">
-                  <span
-                    style={{
-                      fontFamily: 'monospace',
-                      background: '#f1f5f9',
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      fontSize: '0.8rem',
-                      color: '#64748b',
-                    }}
-                  >
-                    {w.national_id}
-                  </span>
-                </div>
-
-                {/* Service */}
-                <div className="hybrid-cell">{getDeptName(w.department_id)}</div>
-
-                {/* Dernier Exam */}
-                <div className="hybrid-cell">
-                  {w.last_exam_date ? logic.formatDateDisplay(new Date(w.last_exam_date)) : '-'}
-                </div>
-
-                {/* Col 6: Prochain Dû */}
-                <div
-                  className="hybrid-cell"
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                >
-                  {/* [FIX] Fixed width '85px' prevents wiggling when scrolling */}
-                  <span style={{ fontWeight: 600, minWidth: '85px', display: 'inline-block' }}>
-                    {logic.formatDateDisplay(w.next_exam_due)}
-                  </span>
-                  {renderStatusBadge(status)}
-                  {!w.archived && isOverdue && (
-                    <span
-                      className="badge badge-red"
-                      style={{ fontSize: '0.65rem', padding: '2px 6px' }}
-                    >
-                      RETARD
-                    </span>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="hybrid-actions">
-                  <button
-                    className="btn btn-outline btn-sm"
-                    onClick={(e) => handleEdit(e, w)}
-                    title="Modifier"
-                  >
-                    <FaEdit />
-                  </button>
-                  <button
-                    className="btn btn-outline btn-sm"
-                    onClick={(e) => handleDelete(e, w)}
-                    disabled={deletingId === w.id} // Disable if deleting this one
-                    style={{
-                      color: 'var(--danger)',
-                      borderColor: 'var(--danger)',
-                      backgroundColor: '#fff1f2',
-                    }}
-                    title="Supprimer"
-                  >
-                    {/* Show Spinner or Icon */}
-                    {deletingId === w.id ? (
-                      <div
-                        className="loading-spinner"
-                        style={{ width: '12px', height: '12px', borderWidth: '2px' }}
-                      ></div>
-                    ) : (
-                      <FaTrash />
-                    )}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-
-          {filteredWorkers.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>🔍</div>
-              <p>Aucun résultat trouvé.</p>
+              />
+              <input
+                className="input"
+                style={{ paddingLeft: '2.5rem', borderRadius: '50px' }}
+                placeholder="Rechercher (Nom et prénom, Matricule)..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <select
+              className="input"
+              style={{ width: 'auto', borderRadius: '50px' }}
+              value={filterDept}
+              onChange={(e) => setFilterDept(e.target.value)}
+            >
+              <option value="">Tous les services</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+              />
+              Archives
+            </label>
+            {(searchTerm || filterDept) && (
               <button
                 className="btn btn-outline btn-sm"
                 onClick={() => {
@@ -752,23 +584,207 @@ const handleBatchPrint = () => {
                   setFilterDept('');
                 }}
               >
-                Effacer les filtres
+                Effacer
               </button>
-            </div>
-          )}
-        </div>
-      </div>
+            )}
+          </div>
 
+          {/* SCROLLABLE TABLE WINDOW */}
+          <div
+            className="scroll-wrapper"
+            style={{ maxHeight: compactMode ? '75vh' : 'none', paddingBottom: '120px' }}
+          >
+            <div className="hybrid-container">
+              {/* 1. STICKY HEADER ROW */}
+              <div className="hybrid-header" style={{ gridTemplateColumns: gridTemplate }}>
+                <div style={{ textAlign: 'center' }}>
+                  {isSelectionMode && (
+                    <input
+                      type="checkbox"
+                      onChange={toggleSelectAll}
+                      checked={
+                        filteredWorkers.length > 0 && selectedIds.size === filteredWorkers.length
+                      }
+                    />
+                  )}
+                </div>
+                <div onClick={() => handleSort('full_name')} style={{ cursor: 'pointer' }}>
+                  Nom et prénom {getSortIcon('full_name')}
+                </div>
+                <div onClick={() => handleSort('national_id')} style={{ cursor: 'pointer' }}>
+                  Matricule {getSortIcon('national_id')}
+                </div>
+                <div onClick={() => handleSort('department_id')} style={{ cursor: 'pointer' }}>
+                  Service {getSortIcon('department_id')}
+                </div>
+                <div onClick={() => handleSort('last_exam_date')} style={{ cursor: 'pointer' }}>
+                  Dernier Exam {getSortIcon('last_exam_date')}
+                </div>
+                <div onClick={() => handleSort('next_exam_due')} style={{ cursor: 'pointer' }}>
+                  Prochain Dû {getSortIcon('next_exam_due')}
+                </div>
+                <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>Actions</div>
+              </div>
+
+              {/* 2. SCROLLABLE DATA ROWS */}
+              {filteredWorkers.map((w) => {
+                const isOverdue = logic.isOverdue(w.next_exam_due);
+                const status = w.latest_status; // [FIX] Use cached status from worker object
+                const isSelected = selectedIds.has(w.id);
+
+                return (
+                  <div
+                    key={w.id}
+                    onClick={() =>
+                      isSelectionMode ? toggleSelectOne(w.id) : onNavigateWorker(w.id)
+                    }
+                    className={`hybrid-row ${isSelected ? 'selected' : ''} ${
+                      !w.archived && isOverdue ? 'overdue-worker-row' : ''
+                    }`}
+                    style={{
+                      gridTemplateColumns: gridTemplate,
+                      opacity: w.archived ? 0.6 : 1,
+                    }}
+                  >
+                    {/* Checkbox */}
+                    <div style={{ textAlign: 'center', overflow: 'hidden' }}>
+                      {isSelectionMode && (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectOne(w.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      )}
+                    </div>
+
+                    {/* Nom et prénom */}
+                    <div className="hybrid-cell cell-name">
+                      {w.full_name}
+                      {w.archived && (
+                        <span
+                          className="badge"
+                          style={{
+                            fontSize: '0.6rem',
+                            marginLeft: '5px',
+                            background: '#eee',
+                            color: '#666',
+                            border: 'none',
+                          }}
+                        >
+                          Archivé
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Matricule */}
+                    <div className="hybrid-cell">
+                      <span
+                        style={{
+                          fontFamily: 'monospace',
+                          background: '#f1f5f9',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontSize: '0.8rem',
+                          color: '#64748b',
+                        }}
+                      >
+                        {w.national_id}
+                      </span>
+                    </div>
+
+                    {/* Service */}
+                    <div className="hybrid-cell">{getDeptName(w.department_id)}</div>
+
+                    {/* Dernier Exam */}
+                    <div className="hybrid-cell">
+                      {w.last_exam_date ? logic.formatDateDisplay(new Date(w.last_exam_date)) : '-'}
+                    </div>
+
+                    {/* Col 6: Prochain Dû */}
+                    <div
+                      className="hybrid-cell"
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                    >
+                      {/* [FIX] Fixed width '85px' prevents wiggling when scrolling */}
+                      <span style={{ fontWeight: 600, minWidth: '85px', display: 'inline-block' }}>
+                        {logic.formatDateDisplay(w.next_exam_due)}
+                      </span>
+                      {renderStatusBadge(status)}
+                      {!w.archived && isOverdue && (
+                        <span
+                          className="badge badge-red"
+                          style={{ fontSize: '0.65rem', padding: '2px 6px' }}
+                        >
+                          RETARD
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="hybrid-actions">
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={(e) => handleEdit(e, w)}
+                        title="Modifier"
+                      >
+                        <FaEdit />
+                      </button>
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={(e) => handleDelete(e, w)}
+                        disabled={deletingId === w.id} // Disable if deleting this one
+                        style={{
+                          color: 'var(--danger)',
+                          borderColor: 'var(--danger)',
+                          backgroundColor: '#fff1f2',
+                        }}
+                        title="Supprimer"
+                      >
+                        {/* Show Spinner or Icon */}
+                        {deletingId === w.id ? (
+                          <div
+                            className="loading-spinner"
+                            style={{ width: '12px', height: '12px', borderWidth: '2px' }}
+                          ></div>
+                        ) : (
+                          <FaTrash />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {filteredWorkers.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>🔍</div>
+                  <p>Aucun résultat trouvé.</p>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setFilterDept('');
+                    }}
+                  >
+                    Effacer les filtres
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
       {/* FLOATERS */}
-    
-        {selectedIds.size > 0 && (
+
+      {selectedIds.size > 0 && (
         <BulkActionsToolbar
           selectedCount={selectedIds.size}
           onDelete={handleBatchDelete}
           onArchive={handleBatchArchive}
           onMove={() => setShowMoveModal(true)}
           onSchedule={() => setShowScheduleModal(true)} // [NEW]
-          onPrint={() => setShowPrintModal(true)}               // [NEW]
+          onPrint={() => setShowPrintModal(true)} // [NEW]
           onCancel={() => setSelectedIds(new Set())}
         />
       )}
