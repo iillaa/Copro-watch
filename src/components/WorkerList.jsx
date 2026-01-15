@@ -5,6 +5,9 @@ import backupService from '../services/backup';
 import AddWorkerForm from './AddWorkerForm';
 import BulkActionsToolbar from './BulkActionsToolbar'; // [NEW] Batch Toolbar
 import MoveWorkersModal from './MoveWorkersModal'; // [NEW] Move Modal
+import { pdfService } from '../services/pdfGenerator'; // [NEW]
+import BatchScheduleModal from './BatchScheduleModal'; // [NEW]
+import BatchPrintModal from './BatchPrintModal'; // [NEW]
 import { exportWorkersToExcel } from '../services/excelExport' ;
 import {
   FaPlus,
@@ -26,9 +29,13 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   // 1. STATE MANAGEMENT
   // ==================================================================================
 
+const [showScheduleModal, setShowScheduleModal] = useState(false); // [NEW]
+const [showPrintModal, setShowPrintModal] = useState(false); // [NEW]
+
   // Data State
   const [workers, setWorkers] = useState([]);
   const [departments, setDepartments] = useState([]);
+const [workplaces, setWorkplaces] = useState([]);
 
   // UI State
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,12 +69,18 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   // ==================================================================================
   // 2. DATA LOADING & EFFECTS
   // ==================================================================================
-
-  const loadData = async () => {
+ const loadData = async () => {
     try {
-      const [w, d] = await Promise.all([db.getWorkers(), db.getDepartments()]);
+      // [UPDATED] On charge Travailleurs + Départements + Lieux (Workplaces)
+      const [w, d, wp] = await Promise.all([
+        db.getWorkers(), 
+        db.getDepartments(), 
+        db.getWorkplaces() 
+      ]);
+      
       setWorkers(w);
       setDepartments(d);
+      setWorkplaces(wp); // [NEW] Sauvegarde des lieux en mémoire
     } catch (error) {
       console.error('Failed to load data:', error);
     }
@@ -80,7 +93,6 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   useEffect(() => {
     localStorage.setItem('worker_filter_dept', filterDept);
   }, [filterDept]);
-
   // ==================================================================================
   // 3. FILTERING & SORTING ENGINE (useMemo)
   // ==================================================================================
@@ -168,6 +180,59 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     setSelectedIds(newSet);
   };
 
+// [NEW] BATCH SCHEDULE HANDLER
+  const handleBatchScheduleConfirm = async (dateStr, type) => {
+    // Calcul date prochaine (ex: +6 mois pour périodique)
+    const examDate = new Date(dateStr);
+    let nextDueDate = new Date(examDate);
+    nextDueDate.setMonth(nextDueDate.getMonth() + 6); 
+
+    const targets = workers.filter((w) => selectedIds.has(w.id));
+    
+    await Promise.all(targets.map(async (w) => {
+      // 1. Ajouter l'examen
+      await db.saveExam({
+        worker_id: w.id,
+        exam_date: dateStr,
+        exam_type: type,
+        notes: 'Planification groupée (Batch)',
+        completed: false
+      });
+      // 2. Mettre à jour le statut du travailleur
+      await db.saveWorker({ ...w, next_exam_due: nextDueDate.toISOString() });
+    }));
+
+    setShowScheduleModal(false);
+    setSelectedIds(new Set());
+    loadData();
+    alert(`${targets.length} consultations planifiées !`);
+  };
+
+  // [NEW] BATCH PRINT HANDLER
+const handleBatchPrint = () => {
+    setShowPrintModal(true);
+  };
+  // [UPDATED] Logique d'impression pour la liste (Batch)
+  const confirmBatchPrint = (docType, dateSelected, extraOptions = {}) => {
+    // 1. On récupère les travailleurs sélectionnés
+    const targets = workers.filter((w) => selectedIds.has(w.id));
+    
+    // 2. On enrichit avec les noms de service et lieu
+    const targetsWithInfo = targets.map(w => ({
+      ...w,
+      deptName: departments.find(d => d.id === w.department_id)?.name || 'Autre',
+      workplaceName: workplaces.find(wp => wp.id === w.workplace_id)?.name || '' 
+    }));
+
+    // 3. On génère le PDF en passant les nouvelles options (heure/date consultation)
+    pdfService.generateBatchDoc(targetsWithInfo, docType, { 
+      date: dateSelected, 
+      ...extraOptions // <--- C'est ici que passent l'heure et la date de RDV
+    });
+    
+    setShowPrintModal(false);
+  };
+
   const handleBatchDelete = async () => {
     if (window.confirm(`Supprimer définitivement ${selectedIds.size} travailleurs ?`)) {
       await Promise.all(Array.from(selectedIds).map((id) => db.deleteWorker(id)));
@@ -208,6 +273,7 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     // [FIX] Mode stays ON after move
     loadData();
   };
+  
   // ==================================================================================
   // 5. STANDARD ACTION HANDLERS
   // ==================================================================================
@@ -694,13 +760,24 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
       </div>
 
       {/* FLOATERS */}
-      {selectedIds.size > 0 && (
+    
+        {selectedIds.size > 0 && (
         <BulkActionsToolbar
           selectedCount={selectedIds.size}
           onDelete={handleBatchDelete}
           onArchive={handleBatchArchive}
           onMove={() => setShowMoveModal(true)}
+          onSchedule={() => setShowScheduleModal(true)} // [NEW]
+          onPrint={() => setShowPrintModal(true)}               // [NEW]
           onCancel={() => setSelectedIds(new Set())}
+        />
+      )}
+
+      {showScheduleModal && (
+        <BatchScheduleModal
+          count={selectedIds.size}
+          onConfirm={handleBatchScheduleConfirm}
+          onCancel={() => setShowScheduleModal(false)}
         />
       )}
 
@@ -720,6 +797,14 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
             setShowForm(false);
             loadData();
           }}
+        />
+      )}
+
+      {showPrintModal && (
+        <BatchPrintModal
+          count={selectedIds.size}
+          onConfirm={confirmBatchPrint}
+          onCancel={() => setShowPrintModal(false)}
         />
       )}
     </div>

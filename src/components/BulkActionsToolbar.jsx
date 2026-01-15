@@ -1,10 +1,12 @@
-import { FaTrash, FaArchive, FaArrowRight, FaTimes } from 'react-icons/fa';
+import { FaTrash, FaArchive, FaArrowRight, FaTimes, FaCalendarAlt, FaPrint } from 'react-icons/fa';
 
 export default function BulkActionsToolbar({
   selectedCount,
   onDelete,
   onArchive,
   onMove,
+  onSchedule, // [NEW]
+  onPrint,    // [NEW]
   onCancel,
 }) {
   return (
@@ -18,20 +20,46 @@ export default function BulkActionsToolbar({
         border: 'var(--border-width) solid var(--border-color)',
         borderRadius: 'var(--radius)',
         boxShadow: 'var(--shadow-hard)',
-        padding: '1rem 1.5rem',
+        padding: '0.8rem 1.5rem',
         display: 'flex',
         alignItems: 'center',
-        gap: '1rem',
+        gap: '1.5rem',
         zIndex: 1000,
-        minWidth: '320px',
+        minWidth: '380px',
         justifyContent: 'space-between',
       }}
     >
-      <div style={{ fontWeight: 800, color: 'var(--primary)' }}>
-        {selectedCount} sélectionné{selectedCount > 1 ? 's' : ''}
+      <div style={{ fontWeight: 800, color: 'var(--primary)', minWidth: '80px' }}>
+        {selectedCount} <span style={{fontSize: '0.8em', fontWeight: 400}}>sélectionné(s)</span>
       </div>
 
       <div style={{ display: 'flex', gap: '0.5rem' }}>
+        {/* --- NOUVEAUX BOUTONS --- */}
+        {onSchedule && (
+          <button onClick={onSchedule} className="btn btn-sm btn-primary" title="Planifier Consultation">
+            <FaCalendarAlt />
+          </button>
+        )}
+        
+        {onPrint && (
+          <button onClick={onPrint} className="btn btn-sm btn-outline" title="Imprimer Documents">
+            <FaPrint />
+          </button>
+        )}
+
+        <div style={{ width: '1px', background: '#ddd', margin: '0 5px' }}></div>
+        {/* ------------------------- */}
+
+        {onMove && (
+          <button onClick={onMove} className="btn btn-sm btn-outline" title="Déplacer">
+            <FaArrowRight />
+          </button>
+        )}
+        {onArchive && (
+          <button onClick={onArchive} className="btn btn-sm btn-outline" title="Archiver">
+            <FaArchive />
+          </button>
+        )}
         {onDelete && (
           <button
             onClick={onDelete}
@@ -42,20 +70,10 @@ export default function BulkActionsToolbar({
             <FaTrash />
           </button>
         )}
-        {onArchive && (
-          <button onClick={onArchive} className="btn btn-sm btn-outline" title="Archiver">
-            <FaArchive />
-          </button>
-        )}
-        {onMove && (
-          <button onClick={onMove} className="btn btn-sm btn-outline" title="Déplacer">
-            <FaArrowRight />
-          </button>
-        )}
         <button
           onClick={onCancel}
           className="btn btn-sm btn-outline"
-          style={{ marginLeft: '0.5rem', borderColor: 'transparent' }}
+          style={{ marginLeft: '0.5rem', borderColor: 'transparent', color: '#666' }}
           title="Annuler"
         >
           <FaTimes />

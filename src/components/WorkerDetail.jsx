@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
+import { FaTimes, FaEdit, FaPrint } from 'react-icons/fa';
+import { pdfService } from '../services/pdfGenerator'; // [NEW]
+import BatchPrintModal from './BatchPrintModal';       // [NEW]
 import ExamForm from './ExamForm';
 // AJOUT : Import des icônes d'archive et FaCheckSquare
 import {
@@ -21,6 +24,7 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
   const [showExamForm, setShowExamForm] = useState(false);
   const [selectedExam, setSelectedExam] = useState(null);
 
+  const [showPrintModal, setShowPrintModal] = useState(false); // [NEW] Pour le PDF Smart
   const [deptName, setDeptName] = useState('');
   const [workplaceName, setWorkplaceName] = useState('');
 
@@ -121,6 +125,24 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
       loadData();
     }
   };
+
+  // [NEW] Handler pour le bouton PDF
+ 
+  const handlePrintConfirm = (docType, dateSelected, extraOptions = {}) => {
+    const enrichedWorker = {
+      ...worker,
+      deptName: deptName || 'Service Inconnu',
+      workplaceName: workplaceName || ''
+    };
+
+    pdfService.generateBatchDoc([enrichedWorker], docType, { 
+      date: dateSelected,
+      ...extraOptions 
+    });
+    
+    setShowPrintModal(false);
+  };
+
   // NOUVELLE FONCTION : Gère l'archivage
   const handleToggleArchive = async () => {
     const newStatus = !worker.archived;
@@ -254,7 +276,14 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
                 </>
               )}
             </button>
-
+{/* [NEW] BOUTON SMART PDF */}
+            <button
+              className="btn btn-outline"
+              onClick={() => setShowPrintModal(true)}
+              title="Imprimer documents (Convocation, Aptitude...)"
+            >
+              <FaPrint /> Docs
+            </button>
             {/* Bouton Supprimer (Rouge) */}
             <button
               className="btn btn-outline"
@@ -407,6 +436,15 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
         />
       )}
 
+{/* [NEW] Modale d'Impression */}
+      {showPrintModal && (
+        <BatchPrintModal
+          count={1}
+          onConfirm={handlePrintConfirm}
+          onCancel={() => setShowPrintModal(false)}
+        />
+      )}
+      
       {showExamForm && (
         <ExamForm
           worker={worker}
