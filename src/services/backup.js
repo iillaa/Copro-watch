@@ -1,22 +1,31 @@
+// src/services/backup.js
 // [FIX] REMOVED: import { db } from './db';
-// We do NOT import db here to avoid circular dependency loop.
 
 const BACKUP_STORE = 'backup_settings';
-const MANUAL_BACKUP_FILE_NAME = 'backup-manuel.json';
-const AUTO_BACKUP_FILE_NAME = 'backup-auto.json';
-const DEFAULT_THRESHOLD = 10;
 
+// --- FILES ---
+const MANUAL_BACKUP_FILE_NAME = 'backup-manuel.json';
+const AUTO_BACKUP_COUNTER_FILE = 'backup-auto-compteur.json'; // [NEW]
+const AUTO_BACKUP_TIME_FILE = 'backup-auto-temps.json';       // [NEW]
+
+// --- CONSTANTS ---
+const DEFAULT_THRESHOLD = 10;
+const DEFAULT_TIME_THRESHOLD = 4 * 60 * 60 * 1000; // 4 Hours
+
+// --- STATE ---
 let counter = 0;
 let threshold = DEFAULT_THRESHOLD;
+let timeThreshold = DEFAULT_TIME_THRESHOLD;
+let lastAutoBackup = 0;
+
 let autoImportEnabled = false;
 let lastImported = 0;
 let backupDir = null;
 let isInitialized = false;
 
-// [FIX] New internal variable for DB
 let dbApi = null;
 
-// [FIX] Update init to accept the db instance
+// --- INITIALIZATION ---
 export async function init(providedDb) {
   if (providedDb) dbApi = providedDb;
 
@@ -26,17 +35,23 @@ export async function init(providedDb) {
   }
 
   try {
-    // [FIX] Use dbApi instead of db
     const settings = await dbApi.getSettings();
+    
     threshold = settings.backup_threshold || DEFAULT_THRESHOLD;
+    counter = settings.backup_counter || 0;
+    timeThreshold = settings.backup_timeThreshold || DEFAULT_TIME_THRESHOLD;
+    
+    // Default to NOW if missing (fresh install fix)
+    lastAutoBackup = settings.backup_lastAutoBackup || Date.now();
+
     autoImportEnabled = !!settings.backup_autoImport;
     lastImported = settings.backup_lastImported || 0;
-    counter = settings.backup_counter || 0;
+
     isInitialized = true;
-    console.log('[Backup] initialized. Counter:', counter);
   } catch (e) {
     console.warn('[Backup] Settings load error', e);
     isInitialized = true;
+    lastAutoBackup = Date.now();
   }
 }
 
@@ -46,10 +61,13 @@ async function saveMeta() {
       backup_threshold: threshold,
       backup_autoImport: autoImportEnabled,
       backup_lastImported: lastImported,
+      backup_timeThreshold: timeThreshold,
+      backup_lastAutoBackup: lastAutoBackup,
     });
   }
 }
 
+// --- DIRECTORY SELECTION ---
 export async function chooseDirectory() {
   const { Capacitor } = await import('@capacitor/core');
   if (Capacitor.isNativePlatform()) {
@@ -71,11 +89,12 @@ export async function chooseDirectory() {
   throw new Error('Non supporté');
 }
 
-export async function saveBackupJSON(jsonString, filename = MANUAL_BACKUP_FILE_NAME) {
+// --- CORE: SAVE JSON ---
+export async function saveBackupJSON(jsonString, filename) {
   const { Capacitor } = await import('@capacitor/core');
 
   try {
-    console.log(`[Backup] Saving ${filename}...`);
+    console.log(`[Backup] Saving to ${filename}...`);
 
     // 1. ANDROID
     if (Capacitor.isNativePlatform()) {
@@ -133,6 +152,7 @@ export async function saveBackupJSON(jsonString, filename = MANUAL_BACKUP_FILE_N
   }
 }
 
+// --- CORE: READ FILE ---
 async function getFileContent(filename) {
   const { Capacitor } = await import('@capacitor/core');
 
@@ -148,7 +168,7 @@ async function getFileContent(filename) {
         directory: Directory.Documents,
         encoding: Encoding.UTF8,
       });
-      return { text: contents.data, lastModified: stat.mtime };
+      return { text: contents.data, lastModified: stat.mtime, name: filename };
     } catch (e) {
       return null;
     }
@@ -157,7 +177,7 @@ async function getFileContent(filename) {
       const handle = await backupDir.getFileHandle(filename);
       const file = await handle.getFile();
       const text = await file.text();
-      return { text, lastModified: file.lastModified };
+      return { text, lastModified: file.lastModified, name: filename };
     } catch (e) {
       return null;
     }
@@ -165,116 +185,102 @@ async function getFileContent(filename) {
   return null;
 }
 
-// [NEW] Helper to safely extract the REAL date from inside the JSON
 function getRealDate(fileObj) {
   if (!fileObj || !fileObj.text) return 0;
   try {
     const data = JSON.parse(fileObj.text);
-    // If we have our new metadata, TRUST IT above all else
     if (data.meta && data.meta.exported_at) {
       return data.meta.exported_at;
     }
   } catch (e) {
-    return 0; // File is corrupt
+    return 0;
   }
-  // Fallback: Use file system date (for old backups)
   return fileObj.lastModified;
 }
 
+// --- SMART READ (COMPARE 3 FILES) ---
 export async function readBackupJSON() {
+  // 1. Load candidates
   const manual = await getFileContent(MANUAL_BACKUP_FILE_NAME);
-  const auto = await getFileContent(AUTO_BACKUP_FILE_NAME);
+  const autoCounter = await getFileContent(AUTO_BACKUP_COUNTER_FILE);
+  const autoTime = await getFileContent(AUTO_BACKUP_TIME_FILE);
 
-  // 1. Calculate the TRUE dates
-  const manualDate = getRealDate(manual);
-  const autoDate = getRealDate(auto);
+  // 2. Get Dates
+  const dManual = getRealDate(manual);
+  const dCounter = getRealDate(autoCounter);
+  const dTime = getRealDate(autoTime);
 
-  console.log(`[Backup] Manual Date: ${new Date(manualDate).toLocaleString()}`);
-  console.log(`[Backup] Auto Date:   ${new Date(autoDate).toLocaleString()}`);
+  console.log('[Backup] Dates Found:', {
+    manual: new Date(dManual).toLocaleString(),
+    counter: new Date(dCounter).toLocaleString(),
+    time: new Date(dTime).toLocaleString(),
+  });
 
+  // 3. Find Winner
   let best = null;
-  let source = '';
+  let maxDate = 0;
 
-  // 2. Compare True Dates
-  if (manualDate > autoDate) {
-    best = manual;
-    source = 'MANUAL';
-  } else if (autoDate > manualDate) {
-    best = auto;
-    source = 'AUTO';
-  } else {
-    // If equal or one missing, prefer Manual, then Auto
-    best = manual || auto;
-    source = manual ? 'MANUAL' : auto ? 'AUTO' : '';
-  }
+  if (manual && dManual > maxDate) { best = manual; maxDate = dManual; }
+  if (autoCounter && dCounter > maxDate) { best = autoCounter; maxDate = dCounter; }
+  if (autoTime && dTime > maxDate) { best = autoTime; maxDate = dTime; }
 
   if (best) {
-    console.log(`[Backup] Selected ${source} based on timestamp.`);
+    console.log(`[Backup] Winner: ${best.name} (${new Date(maxDate).toLocaleString()})`);
     return best;
   }
 
   throw new Error('Aucun fichier de sauvegarde trouvé.');
 }
 
-export async function setAutoImport(enabled) {
-  autoImportEnabled = !!enabled;
-  await saveMeta();
-}
-export async function getAutoImport() {
-  return autoImportEnabled;
-}
-
-export async function checkAndAutoImport(dbInstance) {
-  if (!autoImportEnabled) return { imported: false, reason: 'disabled' };
-
-  try {
-    const backup = await readBackupJSON();
-    if (!backup) return { imported: false, reason: 'no_data' };
-
-    // Use the REAL embedded date, not file system date
-    const realDate = getRealDate(backup);
-    if (realDate > lastImported + 1000) {
-      console.log('[Backup] Newer backup found. Importing...');
-      const ok = await dbInstance.importData(backup.text);
-      if (ok) {
-        lastImported = realDate;
-        await saveMeta();
-        return { imported: true };
-      }
-    }
-    return { imported: false, reason: 'not_newer' };
-  } catch (e) {
-    return { imported: false, error: e.message };
-  }
-}
-
-export async function clearDirectory() {
-  backupDir = null;
-}
-
+// --- LOGIC TRIGGERS ---
 export async function registerChange() {
-  if (!isInitialized || !dbApi) await init(dbApi); // Try to init if missing
-  if (!dbApi) return false; // Fail safe
+  if (!isInitialized || !dbApi) await init(dbApi); 
+  if (!dbApi) return false;
 
   counter++;
+  
+  // 1. Calc Time
+  const now = Date.now();
+  const timeElapsed = now - lastAutoBackup;
+  const isTimeDue = timeElapsed >= timeThreshold;
+  const isCounterDue = counter >= threshold;
+
+  // 2. Save Progress
   await dbApi.saveSettings({ backup_counter: counter });
-  if (counter >= threshold) return true;
+
+  // 3. Trigger Logic (Prioritize Time, then Counter)
+  if (isTimeDue) {
+    console.log('[Backup] Time Triggered!');
+    // Pass 'TIME' to use the specific file
+    return 'TIME'; 
+  }
+  
+  if (isCounterDue) {
+    console.log('[Backup] Counter Triggered!');
+    // Pass 'COUNTER' to use the specific file
+    return 'COUNTER';
+  }
+  
   return false;
 }
 
-export async function registerExamChange() {
-  return registerChange();
-}
-export async function registerWaterAnalysisChange() {
-  return registerChange();
-}
+// Wrappers
+export async function registerExamChange() { return registerChange(); }
+export async function registerWaterAnalysisChange() { return registerChange(); }
 
-export async function performAutoExport(getJsonCallback) {
+// [UPDATED] Export now takes a specific filename based on type
+export async function performAutoExport(getJsonCallback, type = 'COUNTER') {
   try {
     const json = await getJsonCallback();
-    const success = await saveBackupJSON(json, AUTO_BACKUP_FILE_NAME);
+    
+    // Choose file based on trigger type
+    let targetFile = AUTO_BACKUP_COUNTER_FILE;
+    if (type === 'TIME') targetFile = AUTO_BACKUP_TIME_FILE;
+
+    const success = await saveBackupJSON(json, targetFile);
+    
     if (success) {
-      await resetCounter();
+      await resetCounter(); // Resets everything on success
       return true;
     }
     return false;
@@ -284,28 +290,75 @@ export async function performAutoExport(getJsonCallback) {
   }
 }
 
+// Reset both Clocks
 export async function resetCounter() {
   counter = 0;
-  if (dbApi) await dbApi.saveSettings({ backup_counter: 0 });
+  lastAutoBackup = Date.now();
+  if (dbApi) {
+    await dbApi.saveSettings({ 
+      backup_counter: 0, 
+      backup_lastAutoBackup: lastAutoBackup 
+    });
+  }
 }
 
-export function getThreshold() {
-  return counter >= threshold;
+// --- IMPORT LOGIC ---
+export async function setAutoImport(enabled) {
+  autoImportEnabled = !!enabled;
+  await saveMeta();
 }
-export async function getCurrentThreshold() {
-  return threshold;
+export async function getAutoImport() { return autoImportEnabled; }
+
+export async function checkAndAutoImport(dbInstance) {
+  if (!autoImportEnabled) return { imported: false, reason: 'disabled' };
+
+  try {
+    // readBackupJSON now automatically finds the newest of the 3 files
+    const backup = await readBackupJSON();
+    if (!backup) return { imported: false, reason: 'no_data' };
+
+    const realDate = getRealDate(backup);
+    if (realDate > lastImported + 1000) {
+      console.log(`[Backup] Newer backup found (${backup.name}). Importing...`);
+      const ok = await dbInstance.importData(backup.text);
+      if (ok) {
+        lastImported = realDate;
+        await saveMeta();
+        return { imported: true, source: backup.name };
+      }
+    }
+    return { imported: false, reason: 'not_newer' };
+  } catch (e) {
+    return { imported: false, error: e.message };
+  }
 }
+
+// --- STATUS & UTILS ---
 export async function getBackupStatus() {
   if (!isInitialized) await init(dbApi);
+  
+  const now = Date.now();
+  
+  // Safety fix
+  if (!lastAutoBackup || lastAutoBackup === 0) lastAutoBackup = now;
+
+  const timeElapsed = Math.max(0, now - lastAutoBackup);
+  const isTimeDue = timeElapsed >= timeThreshold;
+  const isCounterDue = counter >= threshold;
+
   return {
     counter,
     threshold,
+    timeThreshold,
+    lastAutoBackup,
     autoImportEnabled,
-    progress: `${counter}/${threshold}`,
-    shouldBackup: counter >= threshold,
-    backupNeeded: counter >= threshold,
+    progress: `Modifs: ${counter}/${threshold} | Temps: ${(timeElapsed/60000).toFixed(0)}/${(timeThreshold/60000).toFixed(0)} min`,
+    shouldBackup: isCounterDue || isTimeDue,
+    backupNeeded: isCounterDue || isTimeDue,
   };
 }
+
+// Standard exports
 export async function setThreshold(value) {
   if (typeof value === 'number' && value > 0) {
     threshold = value;
@@ -314,16 +367,12 @@ export async function setThreshold(value) {
   }
   return false;
 }
-export function getDirHandle() {
-  return backupDir;
-}
+export function getDirHandle() { return backupDir; }
 export function getBackupDirName() {
   if (backupDir) return backupDir.name;
   return 'Dossier Documents (Android) ou Non sélectionné';
 }
-export function isDirectoryAvailable() {
-  return typeof window !== 'undefined';
-}
+export function isDirectoryAvailable() { return typeof window !== 'undefined'; }
 export function getCurrentStorageInfo() {
   if (backupDir)
     return { type: 'Web API', path: backupDir.name, available: true, permission: 'granted' };
@@ -333,6 +382,21 @@ export function getCurrentStorageInfo() {
     available: true,
     permission: 'unknown',
   };
+}
+export async function clearDirectory() { backupDir = null; }
+
+export function getThreshold() {
+  // Returns true if counter limit is reached
+  return counter >= threshold;
+}
+
+export async function getCurrentThreshold() {
+  return threshold;
+}
+
+// [NEW] Helper for the Time Limit (Optional but useful for UI)
+export function getTimeThreshold() {
+  return timeThreshold;
 }
 
 export default {

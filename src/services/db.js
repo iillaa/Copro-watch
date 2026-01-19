@@ -25,24 +25,28 @@ const dbInstance = new CoproDatabase();
 function triggerBackupCheck() {
   const runBackup = async () => {
     try {
-      // This runs the EXACT logic you had before, maintaining your settings.
-      const thresholdReached = await backupService.registerChange();
-      if (thresholdReached) {
-        await backupService.performAutoExport(async () => await exportData());
+      // [UPDATED] Capture the trigger type ('TIME' or 'COUNTER')
+      const triggerType = await backupService.registerChange();
+
+      // If triggerType is not false (it's a string), we proceed
+      if (triggerType) {
+        console.log('[DB] Auto-backup triggered by:', triggerType);
+        
+        // [IMPORTANT] Pass 'triggerType' as the 2nd argument
+        await backupService.performAutoExport(
+          async () => await exportData(), 
+          triggerType // <--- This ensures it goes to the right file
+        );
       }
     } catch (e) {
       console.warn('[DB] Auto backup trigger failed', e);
     }
   };
 
-  // [PERFORMANCE FIX]
-  // Instead of freezing the screen immediately, we ask the browser:
-  // "Run this when you are idle (not busy)."
+  // ... (Keep the requestIdleCallback logic below unchanged) ...
   if ('requestIdleCallback' in window) {
-    // Wait for idle time, or force run after 5 seconds
     window.requestIdleCallback(runBackup, { timeout: 5000 });
   } else {
-    // Fallback for older browsers (2 second delay)
     setTimeout(runBackup, 2000);
   }
 }
