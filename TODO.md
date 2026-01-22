@@ -13,12 +13,12 @@
 
 ### 📊 Administration & Reporting
 
-- [ ] **Concept : Export Excel Avancé**
-  - _Idée :_ Génération de fichiers `.xlsx` natifs (pas juste CSV).
-  - _But :_ Colonnes séparées et filtrables (Nom, Matricule, Aptitude) pour les rapports RH directs.
-- [ ] **Concept : Rapports PDF Natifs**
-  - _Idée :_ Génération de documents PDF non modifiables directement dans l'app.
-  - _But :_ Imprimer des fiches d'aptitude et rapports mensuels propres.
+- [x] **Concept : Export Excel Avancé**
+  - _État :_ ✅ Terminé (v1.2)
+  - _Détail :_ Génération de fichiers `.xlsx` avec onglets séparés (Travailleurs, Historique, Eau).
+- [x] **Concept : Rapports PDF Natifs**
+  - _État :_ ✅ Terminé (v1.2)
+  - _Détail :_ Fiches d'aptitude, Convocations, Demandes d'analyse et Listes d'émargement groupées.
 - [ ] **Concept : Tableau de Bord "Statistiques Globales"**
   - _Idée :_ Une page dédiée avec des graphiques sectoriels (Camemberts/Barres).
   - _But :_ Analyser le % de couverture vaccinale ou le taux de positivité par département.
@@ -32,8 +32,8 @@
   - _Idée :_ Option pour basculer l'interface en noir/gris foncé.
   - _But :_ Confort visuel pour le travail de nuit et économie de batterie.
 - [x] **Concept : Actions en Masse (Bulk Actions)**
-  - _Idée :_ Cases à cocher dans la liste des travailleurs.
-  - _But :_ Supprimer ou déplacer 10 travailleurs d'un coup vers un autre département.
+  - _État :_ ✅ Terminé (v1.2)
+  - _Détail :_ Suppression, Planification, Résultats, Archivage et Impression en masse.
 - [ ] **Concept : Recherche Avancée**
   - _Idée :_ Filtres combinés dans la barre de recherche.
   - _But :_ Trouver "Cuisiniers" + "En Retard" + "Dep: SWAG" en une seule requête.
@@ -41,19 +41,15 @@
 ### 🔒 Sécurité & Technique
 
 - [ ] **Concept : Authentification Biométrique**
-
   - _Idée :_ Utiliser les API natives Android.
   - _But :_ Connexion par empreinte digitale ou FaceID (remplace le PIN).
-
 - [ ] **Concept : Logs d'Audit**
   - _Idée :_ Historique technique invisible.
   - _But :_ Savoir qui a modifié une fiche et quand (traçabilité en cas d'erreur).
 
 ---
 
-## ✅ Historique des Versions (v1.0 Stable)
+## ✅ Historique des Versions
 
-- [x] **Core** : Gestion Travailleurs, Examens, Analyses d'eau.
-- [x] **Securité** : Sauvegarde "Smart Backup" (Auto + Manuel) avec anti-collision.
-- [x] **Stabilité** : Correction des crashs Android (Permissions) et bug SWASS.
-- [x] **Déploiement** : Version Standalone (Fichier unique) et APK Android fonctionnels.
+- [x] **v1.0** : Core (Gestion Travailleurs, Examens, Eau), Sauvegarde Smart Backup.
+- [x] **v1.2** : Batch Workflows (Résultats, Planning), PDF Engine, Excel Engine, Global Sync.
