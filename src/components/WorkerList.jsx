@@ -49,8 +49,9 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   const [filterDept, setFilterDept] = useState(
     () => localStorage.getItem('worker_filter_dept') || ''
   );
-
-  const [sortConfig, setSortConfig] = useState({
+const [filterStatus, setFilterStatus] = useState(''); // '' = Tous, 'late', 'apte', 'inapte', 'due_soon'
+  
+const [sortConfig, setSortConfig] = useState({
     key: 'full_name',
     direction: 'asc',
   });
@@ -115,7 +116,27 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     if (filterDept) {
       result = result.filter((w) => w.department_id === Number(filterDept));
     }
-
+// B2. Filter Status (The New Feature)
+    if (filterStatus) {
+      const today = new Date();
+      
+      if (filterStatus === 'late') {
+        // En Retard Only
+        result = result.filter(w => !w.archived && logic.isOverdue(w.next_exam_due));
+      } else if (filterStatus === 'due_soon') {
+        // À Prévoir (15 jours)
+        result = result.filter(w => !w.archived && logic.isDueSoon(w.next_exam_due) && !logic.isOverdue(w.next_exam_due));
+      } else if (filterStatus === 'inapte') {
+        // Inapte Temporaire (Malades)
+        result = result.filter(w => w.latest_status === 'inapte');
+      } else if (filterStatus === 'apte_partielle') {
+        // Apte Sous Réserve
+        result = result.filter(w => w.latest_status === 'apte_partielle');
+      } else if (filterStatus === 'apte') {
+        // Juste les Aptes
+        result = result.filter(w => w.latest_status === 'apte');
+      }
+    }
     // C. Filter Search (Using the deferred value!)
     if (deferredSearch) {
       const lower = deferredSearch.toLowerCase();
@@ -154,7 +175,7 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     }
 
     return result;
-  }, [workers, deferredSearch, filterDept, showArchived, sortConfig, departments]);
+  }, [workers, deferredSearch, filterDept, showArchived, sortConfig, departments, filterStatus]);
   // ==================================================================================
   // 4. BATCH OPERATIONS HANDLERS
   // ==================================================================================
@@ -649,6 +670,19 @@ const handleBatchResultConfirm = async (payload) => {
                 </option>
               ))}
             </select>
+            <select
+              className="input"
+              style={{ width: 'auto', borderRadius: '50px', fontWeight: filterStatus ? 'bold' : 'normal', color: filterStatus ? 'var(--primary)' : 'inherit' }}
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="">Tout le monde</option>
+              <option value="late">⚠️ En Retard</option>
+              <option value="due_soon">📅 À Prévoir (Bientôt)</option>
+              <option value="inapte">🔴 Inaptes (Malades)</option>
+              <option value="apte_partielle">🟠 Aptes Partiels</option>
+              <option value="apte">🟢 Aptes</option>
+            </select>
             <label
               style={{
                 display: 'flex',
@@ -665,12 +699,13 @@ const handleBatchResultConfirm = async (payload) => {
               />
               Archives
             </label>
-            {(searchTerm || filterDept) && (
+            {(searchTerm || filterDept || filterStatus) && (
               <button
                 className="btn btn-outline btn-sm"
                 onClick={() => {
                   setSearchTerm('');
                   setFilterDept('');
+                  setFilterStatus('')
                 }}
               >
                 Effacer

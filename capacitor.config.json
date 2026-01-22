@@ -1,5 +1,11 @@
 {
   "appId": "com.coprowatch.app",
   "appName": "Copro Watch",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "Keyboard": {
+      "resize": "none",
+      "style": "DARK"
+    }
+  }
 }
