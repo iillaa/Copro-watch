@@ -311,38 +311,30 @@ const handleBatchResultConfirm = async (payload) => {
 
 
 // [SURGICAL FIX: BATCH DELETE WITH SYNC]
+  // [CORRECTED FOR WORKER LIST]
   const handleBatchDelete = async () => {
-    if (window.confirm(`Supprimer définitivement ${selectedIds.size} examens ?`)) {
-      try {
-        const idsToDelete = Array.from(selectedIds);
-        
-        // 1. Delete all selected exams
-        await Promise.all(idsToDelete.map((id) => db.deleteExam(id)));
+    // 1. Confirm Intent (Deleting WORKERS)
+    if (!window.confirm(`Supprimer définitivement ${selectedIds.size} travailleurs ?`)) {
+      return;
+    }
 
-        // 2. [FIX] SYNC: Recalculate Worker Status based on remaining exams
-        // We must fetch the remaining exams explicitly
-        const remainingExams = await db.getExamsByWorker(worker.id);
-        
-        // This will return { latest_status: null, ... } if empty (thanks to your logic.js fix)
-        const newStatus = logic.recalculateWorkerStatus(remainingExams);
-        
-        // 3. Save the new dates/aptitude to the worker
-        const updatedWorker = {
-          ...worker,
-          ...newStatus
-        };
-        await db.saveWorker(updatedWorker);
+    try {
+      setIsLoading(true);
+      const targets = Array.from(selectedIds);
+      
+      // 2. Delete WORKERS (Not exams)
+      await Promise.all(targets.map((id) => db.deleteWorker(id)));
 
-        // 4. Update UI
-        setSelectedIds(new Set());
-        // We reload data to reflect the changes immediately
-        loadData(); 
-        
-        alert('Historique supprimé et statut mis à jour.');
-      } catch (e) {
-        console.error("Batch Delete Error:", e);
-        alert("Erreur lors de la mise à jour du statut.");
-      }
+      // 3. Reload List
+      setSelectedIds(new Set());
+      await loadData(); 
+      
+      alert('Suppression terminée.');
+    } catch (e) {
+      console.error("Batch Delete Failed:", e);
+      alert("Erreur lors de la suppression.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
