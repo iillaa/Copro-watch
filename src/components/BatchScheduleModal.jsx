@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { FaCalendarAlt, FaTimes, FaSave } from 'react-icons/fa';
 
 export default function BatchScheduleModal({ count, onConfirm, onCancel }) {
+  // Default to today
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [examType, setExamType] = useState('visite_periodique');
+
+  // [REMOVED] 'examType' state. Your app only creates empty requests (Stage 1).
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onConfirm(date, examType);
+    onConfirm(date); // We only send the date now
   };
 
   return (
@@ -28,7 +30,7 @@ export default function BatchScheduleModal({ count, onConfirm, onCancel }) {
       <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
           <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <FaCalendarAlt /> Planifier pour {count}
+            <FaCalendarAlt /> Nouvelle Analyse ({count})
           </h3>
           <button onClick={onCancel} className="btn-icon">
             <FaTimes />
@@ -40,7 +42,7 @@ export default function BatchScheduleModal({ count, onConfirm, onCancel }) {
           style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
         >
           <div>
-            <label className="label">Date de Consultation</label>
+            <label className="label">Date de la demande (Prélèvement)</label>
             <input
               type="date"
               className="input"
@@ -50,32 +52,21 @@ export default function BatchScheduleModal({ count, onConfirm, onCancel }) {
             />
           </div>
 
-          <div>
-            <label className="label">Type de Visite</label>
-            <select
-              className="input"
-              value={examType}
-              onChange={(e) => setExamType(e.target.value)}
-            >
-              <option value="visite_periodique">Visite Périodique</option>
-              <option value="visite_embauche">Visite d'Embauche</option>
-              <option value="reprise">Visite de Reprise</option>
-              <option value="spontanee">Visite Spontanée</option>
-            </select>
-          </div>
+          {/* [REMOVED] The Dropdown Menu for "Type de Visite" was deleted here */}
 
-          <p
+          <div
             style={{
               fontSize: '0.9rem',
-              color: '#666',
-              background: '#f8fafc',
+              color: '#3b82f6',
+              background: '#eff6ff',
               padding: '10px',
               borderRadius: '4px',
+              borderLeft: '4px solid #3b82f6'
             }}
           >
-            Cela créera une consultation pour chaque travailleur sélectionné et mettra à jour leur
-            prochaine date d'échéance.
-          </p>
+            <strong>Note :</strong> Cela créera {count} analyses "EN ATTENTE" (Vides). 
+            La date de prochaine visite restera inchangée tant que le résultat n'est pas validé.
+          </div>
 
           <div
             style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem' }}
@@ -84,7 +75,7 @@ export default function BatchScheduleModal({ count, onConfirm, onCancel }) {
               Annuler
             </button>
             <button type="submit" className="btn btn-primary">
-              <FaSave /> Valider
+              <FaSave /> Créer
             </button>
           </div>
         </form>

@@ -8,6 +8,7 @@ import MoveWorkersModal from './MoveWorkersModal'; // [NEW] Move Modal
 import { pdfService } from '../services/pdfGenerator'; // [NEW]
 import BatchScheduleModal from './BatchScheduleModal'; // [NEW]
 import BatchPrintModal from './BatchPrintModal'; // [NEW]
+import BatchResultModal from './BatchResultModal'; // [NEW]
 import { exportWorkersToExcel } from '../services/excelExport';
 import {
   FaPlus,
@@ -30,6 +31,7 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
 
   const [showScheduleModal, setShowScheduleModal] = useState(false); // [NEW]
   const [showPrintModal, setShowPrintModal] = useState(false); // [NEW]
+  const [showResultModal, setShowResultModal] = useState(false); // [NEW]
 
   // Data State
   const [workers, setWorkers] = useState([]);
@@ -184,34 +186,43 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     setSelectedIds(newSet);
   };
 
-  // [NEW] BATCH SCHEDULE HANDLER
-  const handleBatchScheduleConfirm = async (dateStr, type) => {
-    // Calcul date prochaine (ex: +6 mois pour périodique)
-    const examDate = new Date(dateStr);
-    let nextDueDate = new Date(examDate);
-    nextDueDate.setMonth(nextDueDate.getMonth() + logic.EXAM_INTERVAL_MONTHS);
-
+  // [SURGICAL FIX: BATCH WITH DOCTOR NAME]
+  const handleBatchScheduleConfirm = async (dateStr) => {
+    // 1. Identify Targets
     const targets = workers.filter((w) => selectedIds.has(w.id));
+
+    // 2. [NEW] Fetch the Default Doctor Name (Same as ExamForm)
+    const settings = await db.getSettings();
+    const defaultDoctor = settings.doctor_name || 'Dr. Kibeche Ali Dia Eddine';
 
     await Promise.all(
       targets.map(async (w) => {
-        // 1. Ajouter l'examen
-        await db.saveExam({
+        // 3. Create the Exam (Clone of Manual Creation)
+        const newExam = {
           worker_id: w.id,
-          exam_date: dateStr,
-          exam_type: type,
-          notes: 'Planification groupée (Batch)',
-          completed: false,
-        });
-        // 2. Mettre à jour le statut du travailleur
-        await db.saveWorker({ ...w, next_exam_due: nextDueDate.toISOString() });
+          exam_date: dateStr,         // Date requested
+          physician_name: defaultDoctor, // [FIX] Now includes the doctor!
+          notes: 'Analyse Groupée (Batch)',
+          status: 'open',             // Still "En attente"
+          lab_result: null,
+          decision: null,
+        };
+
+        // 4. Save to DB
+        await db.saveExam(newExam);
+
+        // 5. Sync Worker Dates
+        const allExams = await db.getExamsByWorker(w.id);
+        const statusUpdate = logic.recalculateWorkerStatus(allExams);
+        await db.saveWorker({ ...w, ...statusUpdate });
       })
     );
 
+    // 6. Cleanup
     setShowScheduleModal(false);
     setSelectedIds(new Set());
-    loadData();
-    alert(`${targets.length} consultations planifiées !`);
+    loadData(); // Refresh list immediately
+    alert(`${targets.length} analyses créées pour ${defaultDoctor}.`);
   };
 
   // [NEW] BATCH PRINT HANDLER
@@ -239,13 +250,99 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     setShowPrintModal(false);
   };
 
-  const handleBatchDelete = async () => {
-    if (window.confirm(`Supprimer définitivement ${selectedIds.size} travailleurs ?`)) {
-      await Promise.all(Array.from(selectedIds).map((id) => db.deleteWorker(id)));
+// [NEW] BATCH RESULT HANDLER
+const handleBatchResultConfirm = async (payload) => {
+  const targets = workers.filter((w) => selectedIds.has(w.id));
 
-      setSelectedIds(new Set());
-      // [FIX] Mode stays ON after delete
-      loadData();
+  await Promise.all(targets.map(async (w) => {
+    // 1. Find the LATEST OPEN exam for this worker
+    const allExams = await db.getExamsByWorker(w.id);
+
+    // Sort by date descending
+    const sorted = allExams.sort((a, b) => new Date(b.exam_date) - new Date(a.exam_date));
+
+    // Find the most recent 'open' exam, OR just take the last exam if none are explicitly open
+    let targetExam = sorted.find(e => e.status === 'open') || sorted[0];
+
+    if (!targetExam) return; // Should not happen if workflow is followed
+
+    // 2. Prepare the Update
+    const updateData = {
+      ...targetExam,
+      status: 'closed', // We are closing it now
+      lab_result: {
+        result: payload.mode, // 'negative' or 'positive'
+        date: payload.date,
+        parasite: payload.parasite || ''
+      },
+      decision: {
+        status: payload.decision, // 'apte', 'inapte', etc.
+        date: payload.date
+      }
+    };
+
+    // Add Treatment if positive
+    if (payload.mode === 'positive') {
+      updateData.treatment = {
+        drug: payload.treatment,
+        start_date: payload.date,
+        retest_date: logic.calculateRetestDate(payload.date, payload.retestDays)
+      };
+    } else {
+      // If Negative, ensure we clear any old treatment data if reusing an object
+      updateData.treatment = null;
+    }
+
+    // 3. Save Exam
+    await db.saveExam(updateData);
+
+    // 4. Sync Worker Status (This calculates the next +6 months or +7 days)
+    const refreshedExams = await db.getExamsByWorker(w.id);
+    const statusUpdate = logic.recalculateWorkerStatus(refreshedExams);
+    await db.saveWorker({ ...w, ...statusUpdate });
+  }));
+
+  setShowResultModal(false);
+  setSelectedIds(new Set());
+  loadData();
+  alert(`${targets.length} résultats mis à jour !`);
+};
+
+
+
+// [SURGICAL FIX: BATCH DELETE WITH SYNC]
+  const handleBatchDelete = async () => {
+    if (window.confirm(`Supprimer définitivement ${selectedIds.size} examens ?`)) {
+      try {
+        const idsToDelete = Array.from(selectedIds);
+        
+        // 1. Delete all selected exams
+        await Promise.all(idsToDelete.map((id) => db.deleteExam(id)));
+
+        // 2. [FIX] SYNC: Recalculate Worker Status based on remaining exams
+        // We must fetch the remaining exams explicitly
+        const remainingExams = await db.getExamsByWorker(worker.id);
+        
+        // This will return { latest_status: null, ... } if empty (thanks to your logic.js fix)
+        const newStatus = logic.recalculateWorkerStatus(remainingExams);
+        
+        // 3. Save the new dates/aptitude to the worker
+        const updatedWorker = {
+          ...worker,
+          ...newStatus
+        };
+        await db.saveWorker(updatedWorker);
+
+        // 4. Update UI
+        setSelectedIds(new Set());
+        // We reload data to reflect the changes immediately
+        loadData(); 
+        
+        alert('Historique supprimé et statut mis à jour.');
+      } catch (e) {
+        console.error("Batch Delete Error:", e);
+        alert("Erreur lors de la mise à jour du statut.");
+      }
     }
   };
 
@@ -785,6 +882,7 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
           onMove={() => setShowMoveModal(true)}
           onSchedule={() => setShowScheduleModal(true)} // [NEW]
           onPrint={() => setShowPrintModal(true)} // [NEW]
+          onResult={() => setShowResultModal(true)} // [NEW]
           onCancel={() => setSelectedIds(new Set())}
         />
       )}
@@ -823,6 +921,14 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
           onCancel={() => setShowPrintModal(false)}
         />
       )}
+
+      {showResultModal && (
+  <BatchResultModal
+    count={selectedIds.size}
+    onConfirm={handleBatchResultConfirm}
+    onCancel={() => setShowResultModal(false)}
+  />
+)}
     </div>
   );
 }

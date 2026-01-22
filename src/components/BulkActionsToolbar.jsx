@@ -1,4 +1,4 @@
-import { FaTrash, FaArchive, FaArrowRight, FaTimes, FaCalendarAlt, FaPrint } from 'react-icons/fa';
+import { FaTrash, FaArchive, FaArrowRight, FaTimes, FaCalendarAlt, FaPrint, FaClipboardCheck } from 'react-icons/fa';
 
 export default function BulkActionsToolbar({
   selectedCount,
@@ -7,6 +7,7 @@ export default function BulkActionsToolbar({
   onMove,
   onSchedule, // [NEW]
   onPrint, // [NEW]
+  onResult,
   onCancel,
 }) {
   return (
@@ -42,6 +43,17 @@ export default function BulkActionsToolbar({
             title="Planifier Consultation"
           >
             <FaCalendarAlt />
+          </button>
+        )}
+        
+{onResult && (
+          <button
+            onClick={onResult}
+            className="btn btn-sm btn-white" 
+            
+            title="Saisir Résultats Groupés"
+          >
+            <FaClipboardCheck />
           </button>
         )}
 
