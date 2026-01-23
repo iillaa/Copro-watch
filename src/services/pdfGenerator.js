@@ -1,5 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { logic } from './logic';
+import { Filesystem, Directory } from '@capacitor/filesystem'; 
+import { Capacitor } from '@capacitor/core';
 
 const MARGIN = 20;
 
@@ -7,7 +9,7 @@ export const pdfService = {
   /**
    * Génère un PDF pour les TRAVAILLEURS (Batch ou Individuel)
    */
-  generateBatchDoc: (workers, docType, options = {}) => {
+ generateBatchDoc: async (workers, docType, options = {}) => {
     const doc = new jsPDF('p', 'mm', 'a4');
 
     if (docType === 'list_manager') {
@@ -42,10 +44,29 @@ export const pdfService = {
       });
     }
 
-    // Sauvegarde du fichier
+  // [FIX] SAUVEGARDE HYBRIDE (Mobile & Web)
     const dateStr = new Date().toISOString().split('T')[0];
-    doc.save(`CoproWatch_${docType}_${dateStr}.pdf`);
-  },
+    const fileName = `CoproWatch_${docType}_${dateStr}.pdf`;
+
+    if (Capacitor.isNativePlatform()) {
+      // 📱 ANDROID: Write to Documents
+      try {
+        const base64Data = doc.output('datauristring').split(',')[1];
+        await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Documents,
+        });
+        alert(`✅ Fichier sauvegardé dans Documents :\n${fileName}`);
+      } catch (e) {
+        console.error(e);
+        alert("❌ Erreur de sauvegarde. Vérifiez les permissions.");
+      }
+    } else {
+      // 💻 WEB: Download
+      doc.save(fileName);
+    }
+  }, // End of generateBatchDoc
 };
 
 // ==========================================
