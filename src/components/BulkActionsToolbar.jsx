@@ -1,4 +1,12 @@
-import { FaTrash, FaArchive, FaArrowRight, FaTimes, FaCalendarAlt, FaPrint, FaClipboardCheck } from 'react-icons/fa';
+import {
+  FaTrash,
+  FaArchive,
+  FaArrowRight,
+  FaTimes,
+  FaCalendarAlt,
+  FaPrint,
+  FaClipboardCheck,
+} from 'react-icons/fa';
 
 export default function BulkActionsToolbar({
   selectedCount,
@@ -45,12 +53,11 @@ export default function BulkActionsToolbar({
             <FaCalendarAlt />
           </button>
         )}
-        
-{onResult && (
+
+        {onResult && (
           <button
             onClick={onResult}
-            className="btn btn-sm btn-white" 
-            
+            className="btn btn-sm btn-white"
             title="Saisir Résultats Groupés"
           >
             <FaClipboardCheck />

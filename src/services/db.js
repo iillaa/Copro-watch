@@ -31,10 +31,10 @@ function triggerBackupCheck() {
       // If triggerType is not false (it's a string), we proceed
       if (triggerType) {
         console.log('[DB] Auto-backup triggered by:', triggerType);
-        
+
         // [IMPORTANT] Pass 'triggerType' as the 2nd argument
         await backupService.performAutoExport(
-          async () => await exportData(), 
+          async () => await exportData(),
           triggerType // <--- This ensures it goes to the right file
         );
       }

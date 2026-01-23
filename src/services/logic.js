@@ -79,15 +79,15 @@ export const logic = {
     return this.formatDate(addDays(startDate, days));
   },
 
-recalculateWorkerStatus(exams) {
+  recalculateWorkerStatus(exams) {
     // 1. Check if history is empty (e.g. after Batch Delete)
     if (!exams || exams.length === 0) {
       return {
         last_exam_date: null,
         next_exam_due: this.formatDate(new Date()),
-        latest_status: null  // [CRITICAL FIX] You MUST set this to null explicitly!
+        latest_status: null, // [CRITICAL FIX] You MUST set this to null explicitly!
       };
-    }    // Safe Sort
+    } // Safe Sort
     const sortedExams = [...exams].sort((a, b) => {
       const dateA = safeDate(a.exam_date) || new Date(0);
       const dateB = safeDate(b.exam_date) || new Date(0);

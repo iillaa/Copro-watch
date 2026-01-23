@@ -61,11 +61,11 @@ export default function BatchScheduleModal({ count, onConfirm, onCancel }) {
               background: '#eff6ff',
               padding: '10px',
               borderRadius: '4px',
-              borderLeft: '4px solid #3b82f6'
+              borderLeft: '4px solid #3b82f6',
             }}
           >
-            <strong>Note :</strong> Cela créera {count} analyses "EN ATTENTE" (Vides). 
-            La date de prochaine visite restera inchangée tant que le résultat n'est pas validé.
+            <strong>Note :</strong> Cela créera {count} analyses "EN ATTENTE" (Vides). La date de
+            prochaine visite restera inchangée tant que le résultat n'est pas validé.
           </div>
 
           <div

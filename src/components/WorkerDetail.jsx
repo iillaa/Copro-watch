@@ -103,25 +103,25 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
     if (window.confirm(`Supprimer définitivement ${selectedIds.size} examens ?`)) {
       try {
         const idsToDelete = Array.from(selectedIds);
-        
+
         // 1. Delete Exams
         await Promise.all(idsToDelete.map((id) => db.deleteExam(id)));
 
         // 2. SYNC: Recalculate based on what's left
         const remainingExams = await db.getExamsByWorker(worker.id);
         const newStatus = logic.recalculateWorkerStatus(remainingExams);
-        
+
         // 3. Save Update
         await db.saveWorker({ ...worker, ...newStatus });
 
         // 4. Reload
         setSelectedIds(new Set());
-        loadData(); 
-        
+        loadData();
+
         alert('Historique nettoyé et statut mis à jour.');
       } catch (e) {
         console.error(e);
-        alert("Erreur de synchronisation.");
+        alert('Erreur de synchronisation.');
       }
     }
   };

@@ -49,9 +49,9 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
   const [filterDept, setFilterDept] = useState(
     () => localStorage.getItem('worker_filter_dept') || ''
   );
-const [filterStatus, setFilterStatus] = useState(''); // '' = Tous, 'late', 'apte', 'inapte', 'due_soon'
-  
-const [sortConfig, setSortConfig] = useState({
+  const [filterStatus, setFilterStatus] = useState(''); // '' = Tous, 'late', 'apte', 'inapte', 'due_soon'
+
+  const [sortConfig, setSortConfig] = useState({
     key: 'full_name',
     direction: 'asc',
   });
@@ -116,25 +116,28 @@ const [sortConfig, setSortConfig] = useState({
     if (filterDept) {
       result = result.filter((w) => w.department_id === Number(filterDept));
     }
-// B2. Filter Status (The New Feature)
+    // B2. Filter Status (The New Feature)
     if (filterStatus) {
       const today = new Date();
-      
+
       if (filterStatus === 'late') {
         // En Retard Only
-        result = result.filter(w => !w.archived && logic.isOverdue(w.next_exam_due));
+        result = result.filter((w) => !w.archived && logic.isOverdue(w.next_exam_due));
       } else if (filterStatus === 'due_soon') {
         // À Prévoir (15 jours)
-        result = result.filter(w => !w.archived && logic.isDueSoon(w.next_exam_due) && !logic.isOverdue(w.next_exam_due));
+        result = result.filter(
+          (w) =>
+            !w.archived && logic.isDueSoon(w.next_exam_due) && !logic.isOverdue(w.next_exam_due)
+        );
       } else if (filterStatus === 'inapte') {
         // Inapte Temporaire (Malades)
-        result = result.filter(w => w.latest_status === 'inapte');
+        result = result.filter((w) => w.latest_status === 'inapte');
       } else if (filterStatus === 'apte_partielle') {
         // Apte Sous Réserve
-        result = result.filter(w => w.latest_status === 'apte_partielle');
+        result = result.filter((w) => w.latest_status === 'apte_partielle');
       } else if (filterStatus === 'apte') {
         // Juste les Aptes
-        result = result.filter(w => w.latest_status === 'apte');
+        result = result.filter((w) => w.latest_status === 'apte');
       }
     }
     // C. Filter Search (Using the deferred value!)
@@ -221,10 +224,10 @@ const [sortConfig, setSortConfig] = useState({
         // 3. Create the Exam (Clone of Manual Creation)
         const newExam = {
           worker_id: w.id,
-          exam_date: dateStr,         // Date requested
+          exam_date: dateStr, // Date requested
           physician_name: defaultDoctor, // [FIX] Now includes the doctor!
           notes: 'Analyse Groupée (Batch)',
-          status: 'open',             // Still "En attente"
+          status: 'open', // Still "En attente"
           lab_result: null,
           decision: null,
         };
@@ -271,67 +274,67 @@ const [sortConfig, setSortConfig] = useState({
     setShowPrintModal(false);
   };
 
-// [NEW] BATCH RESULT HANDLER
-const handleBatchResultConfirm = async (payload) => {
-  const targets = workers.filter((w) => selectedIds.has(w.id));
+  // [NEW] BATCH RESULT HANDLER
+  const handleBatchResultConfirm = async (payload) => {
+    const targets = workers.filter((w) => selectedIds.has(w.id));
 
-  await Promise.all(targets.map(async (w) => {
-    // 1. Find the LATEST OPEN exam for this worker
-    const allExams = await db.getExamsByWorker(w.id);
+    await Promise.all(
+      targets.map(async (w) => {
+        // 1. Find the LATEST OPEN exam for this worker
+        const allExams = await db.getExamsByWorker(w.id);
 
-    // Sort by date descending
-    const sorted = allExams.sort((a, b) => new Date(b.exam_date) - new Date(a.exam_date));
+        // Sort by date descending
+        const sorted = allExams.sort((a, b) => new Date(b.exam_date) - new Date(a.exam_date));
 
-    // Find the most recent 'open' exam, OR just take the last exam if none are explicitly open
-    let targetExam = sorted.find(e => e.status === 'open') || sorted[0];
+        // Find the most recent 'open' exam, OR just take the last exam if none are explicitly open
+        let targetExam = sorted.find((e) => e.status === 'open') || sorted[0];
 
-    if (!targetExam) return; // Should not happen if workflow is followed
+        if (!targetExam) return; // Should not happen if workflow is followed
 
-    // 2. Prepare the Update
-    const updateData = {
-      ...targetExam,
-      status: 'closed', // We are closing it now
-      lab_result: {
-        result: payload.mode, // 'negative' or 'positive'
-        date: payload.date,
-        parasite: payload.parasite || ''
-      },
-      decision: {
-        status: payload.decision, // 'apte', 'inapte', etc.
-        date: payload.date
-      }
-    };
+        // 2. Prepare the Update
+        const updateData = {
+          ...targetExam,
+          status: 'closed', // We are closing it now
+          lab_result: {
+            result: payload.mode, // 'negative' or 'positive'
+            date: payload.date,
+            parasite: payload.parasite || '',
+          },
+          decision: {
+            status: payload.decision, // 'apte', 'inapte', etc.
+            date: payload.date,
+          },
+        };
 
-    // Add Treatment if positive
-    if (payload.mode === 'positive') {
-      updateData.treatment = {
-        drug: payload.treatment,
-        start_date: payload.date,
-        retest_date: logic.calculateRetestDate(payload.date, payload.retestDays)
-      };
-    } else {
-      // If Negative, ensure we clear any old treatment data if reusing an object
-      updateData.treatment = null;
-    }
+        // Add Treatment if positive
+        if (payload.mode === 'positive') {
+          updateData.treatment = {
+            drug: payload.treatment,
+            start_date: payload.date,
+            retest_date: logic.calculateRetestDate(payload.date, payload.retestDays),
+          };
+        } else {
+          // If Negative, ensure we clear any old treatment data if reusing an object
+          updateData.treatment = null;
+        }
 
-    // 3. Save Exam
-    await db.saveExam(updateData);
+        // 3. Save Exam
+        await db.saveExam(updateData);
 
-    // 4. Sync Worker Status (This calculates the next +6 months or +7 days)
-    const refreshedExams = await db.getExamsByWorker(w.id);
-    const statusUpdate = logic.recalculateWorkerStatus(refreshedExams);
-    await db.saveWorker({ ...w, ...statusUpdate });
-  }));
+        // 4. Sync Worker Status (This calculates the next +6 months or +7 days)
+        const refreshedExams = await db.getExamsByWorker(w.id);
+        const statusUpdate = logic.recalculateWorkerStatus(refreshedExams);
+        await db.saveWorker({ ...w, ...statusUpdate });
+      })
+    );
 
-  setShowResultModal(false);
-  setSelectedIds(new Set());
-  loadData();
-  alert(`${targets.length} résultats mis à jour !`);
-};
+    setShowResultModal(false);
+    setSelectedIds(new Set());
+    loadData();
+    alert(`${targets.length} résultats mis à jour !`);
+  };
 
-
-
-// [SURGICAL FIX: BATCH DELETE WITH SYNC]
+  // [SURGICAL FIX: BATCH DELETE WITH SYNC]
   // [CORRECTED FOR WORKER LIST]
   const handleBatchDelete = async () => {
     // 1. Confirm Intent (Deleting WORKERS)
@@ -342,18 +345,18 @@ const handleBatchResultConfirm = async (payload) => {
     try {
       setIsLoading(true);
       const targets = Array.from(selectedIds);
-      
+
       // 2. Delete WORKERS (Not exams)
       await Promise.all(targets.map((id) => db.deleteWorker(id)));
 
       // 3. Reload List
       setSelectedIds(new Set());
-      await loadData(); 
-      
+      await loadData();
+
       alert('Suppression terminée.');
     } catch (e) {
-      console.error("Batch Delete Failed:", e);
-      alert("Erreur lors de la suppression.");
+      console.error('Batch Delete Failed:', e);
+      alert('Erreur lors de la suppression.');
     } finally {
       setIsLoading(false);
     }
@@ -672,7 +675,12 @@ const handleBatchResultConfirm = async (payload) => {
             </select>
             <select
               className="input"
-              style={{ width: 'auto', borderRadius: '50px', fontWeight: filterStatus ? 'bold' : 'normal', color: filterStatus ? 'var(--primary)' : 'inherit' }}
+              style={{
+                width: 'auto',
+                borderRadius: '50px',
+                fontWeight: filterStatus ? 'bold' : 'normal',
+                color: filterStatus ? 'var(--primary)' : 'inherit',
+              }}
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
             >
@@ -705,7 +713,7 @@ const handleBatchResultConfirm = async (payload) => {
                 onClick={() => {
                   setSearchTerm('');
                   setFilterDept('');
-                  setFilterStatus('')
+                  setFilterStatus('');
                 }}
               >
                 Effacer
@@ -950,12 +958,12 @@ const handleBatchResultConfirm = async (payload) => {
       )}
 
       {showResultModal && (
-  <BatchResultModal
-    count={selectedIds.size}
-    onConfirm={handleBatchResultConfirm}
-    onCancel={() => setShowResultModal(false)}
-  />
-)}
+        <BatchResultModal
+          count={selectedIds.size}
+          onConfirm={handleBatchResultConfirm}
+          onCancel={() => setShowResultModal(false)}
+        />
+      )}
     </div>
   );
 }
