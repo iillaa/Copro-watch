@@ -6,7 +6,7 @@ import { encryptString, decryptString } from './crypto'; // IMPORT ADDED
 class CoproDatabase extends Dexie {
   constructor() {
     super('CoproWatchDB');
-    
+
     // KEEP Version 1 (For history)
     this.version(1).stores({
       workers: '++id, full_name, national_id, department_id, archived',
@@ -141,7 +141,7 @@ export const db = {
 
     // Delete Orphans
     await dbInstance.exams.where('worker_id').equals(numId).delete();
-    
+
     // Delete Worker
     await dbInstance.workers.delete(numId);
     await triggerBackupCheck();
@@ -186,7 +186,7 @@ export const db = {
 
     // C. FINAL: Delete the Service itself
     await dbInstance.departments.delete(numId);
-    
+
     await triggerBackupCheck();
   },
 
@@ -225,15 +225,15 @@ export const db = {
     await triggerBackupCheck();
     return { ...dept, id };
   },
- // 1. Fix for Water Services
+  // 1. Fix for Water Services
   async deleteWaterDepartment(id) {
     const numId = Number(id); // [CRITICAL] Convert once, use everywhere
-    
+
     // Delete Orphans (Uses numId)
     await dbInstance.water_analyses.where('structure_id').equals(numId).delete();
-    
+
     // Delete Service (Uses numId)
-    await dbInstance.water_departments.delete(numId); 
+    await dbInstance.water_departments.delete(numId);
     await triggerBackupCheck();
   },
 
@@ -263,31 +263,31 @@ export const db = {
     console.log('🧹 Starting Cleanup...');
     let deletedExams = 0;
     let deletedWater = 0;
-    
+
     // 1. Clean Exams (Ghost Workers)
-    const workerIds = new Set((await dbInstance.workers.toArray()).map(w => w.id));
+    const workerIds = new Set((await dbInstance.workers.toArray()).map((w) => w.id));
     const allExams = await dbInstance.exams.toArray();
-    const orphanExamIds = allExams
-      .filter(e => !workerIds.has(e.worker_id))
-      .map(e => e.id);
-    
+    const orphanExamIds = allExams.filter((e) => !workerIds.has(e.worker_id)).map((e) => e.id);
+
     if (orphanExamIds.length > 0) {
       await dbInstance.exams.bulkDelete(orphanExamIds);
       deletedExams = orphanExamIds.length;
     }
 
     // 2. Clean Water Logs (Ghost Locations)
-    const deptIds = new Set((await dbInstance.departments.toArray()).map(d => d.id));
-    const waterDeptIds = new Set((await dbInstance.water_departments.toArray()).map(d => d.id));
+    const deptIds = new Set((await dbInstance.departments.toArray()).map((d) => d.id));
+    const waterDeptIds = new Set((await dbInstance.water_departments.toArray()).map((d) => d.id));
     const allWater = await dbInstance.water_analyses.toArray();
-    
-    const orphanWaterIds = allWater.filter(log => {
-      // Rule 1: If it has a department_id, that ID must exist
-      if (log.department_id && !deptIds.has(log.department_id)) return true;
-      // Rule 2: If it has a structure_id, that ID must exist
-      if (log.structure_id && !waterDeptIds.has(log.structure_id)) return true;
-      return false;
-    }).map(l => l.id);
+
+    const orphanWaterIds = allWater
+      .filter((log) => {
+        // Rule 1: If it has a department_id, that ID must exist
+        if (log.department_id && !deptIds.has(log.department_id)) return true;
+        // Rule 2: If it has a structure_id, that ID must exist
+        if (log.structure_id && !waterDeptIds.has(log.structure_id)) return true;
+        return false;
+      })
+      .map((l) => l.id);
 
     if (orphanWaterIds.length > 0) {
       await dbInstance.water_analyses.bulkDelete(orphanWaterIds);

@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { logic } from './logic';
-import { Filesystem, Directory } from '@capacitor/filesystem'; 
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
 
 const MARGIN = 20;
@@ -9,7 +9,7 @@ export const pdfService = {
   /**
    * Génère un PDF pour les TRAVAILLEURS (Batch ou Individuel)
    */
- generateBatchDoc: async (workers, docType, options = {}) => {
+  generateBatchDoc: async (workers, docType, options = {}) => {
     const doc = new jsPDF('p', 'mm', 'a4');
 
     if (docType === 'list_manager') {
@@ -44,7 +44,7 @@ export const pdfService = {
       });
     }
 
-  // [FIX] SAUVEGARDE HYBRIDE (Mobile & Web)
+    // [FIX] SAUVEGARDE HYBRIDE (Mobile & Web)
     const dateStr = new Date().toISOString().split('T')[0];
     const fileName = `CoproWatch_${docType}_${dateStr}.pdf`;
 
@@ -60,7 +60,7 @@ export const pdfService = {
         alert(`✅ Fichier sauvegardé dans Documents :\n${fileName}`);
       } catch (e) {
         console.error(e);
-        alert("❌ Erreur de sauvegarde. Vérifiez les permissions.");
+        alert('❌ Erreur de sauvegarde. Vérifiez les permissions.');
       }
     } else {
       // 💻 WEB: Download
