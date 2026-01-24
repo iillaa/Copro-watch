@@ -467,6 +467,19 @@ export default function Settings({
       setMsg('Erreur lors de la suppression.');
     }
   };
+const handleCleanup = async () => {
+    if(!window.confirm("Voulez-vous nettoyer la base de données ?\n(Supprime les tests orphelins liés à des services supprimés)")) return;
+    
+    try {
+        const result = await db.cleanupOrphans();
+        alert(`Nettoyage Terminé ! 🧹\n\nSupprimé :\n- ${result.exams} examens fantômes\n- ${result.water} analyses d'eau orphelines`);
+        // Optional: Reload to refresh UI
+        window.location.reload(); 
+    } catch(e) {
+        alert("Erreur: " + e.message);
+    }
+};
+
 
   return (
     <div>
@@ -528,6 +541,7 @@ export default function Settings({
             onChange={(e) => setDoctorName(e.target.value)}
           />
         </div>
+        
 
         <div style={{ marginBottom: '1rem' }}>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
@@ -550,6 +564,7 @@ export default function Settings({
             }}
           />
         </div>
+        
 
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
           <button className="btn btn-primary" onClick={handleSave}>
@@ -588,6 +603,14 @@ export default function Settings({
           </label>
         </div>
       </div>
+      
+      <div className="card" style={{ marginTop: '1rem', borderColor: 'orange' }}>
+    <h3>Maintenance</h3>
+    <p>Réparer les erreurs de base de données (Services supprimés, etc.)</p>
+    <button className="btn btn-outline" onClick={handleCleanup} style={{ color: 'orange', borderColor: 'orange' }}>
+        🧹 Nettoyer les Orphelins
+    </button>
+</div>
 
       {/* --- NEW SIDE-BY-SIDE SECTION --- */}
 
@@ -1073,4 +1096,5 @@ export default function Settings({
       </div>
     </div>
   );
+  
 }

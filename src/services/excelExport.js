@@ -3,7 +3,7 @@ import { saveAs } from 'file-saver';
 import { db } from './db';
 import { logic } from './logic';
 
-// Helper: Convert ArrayBuffer to Base64
+// Helper: Convert ArrayBuffer to Base64 (For Android)
 const arrayBufferToBase64 = (buffer) => {
   let binary = '';
   const bytes = new Uint8Array(buffer);
@@ -16,7 +16,7 @@ const arrayBufferToBase64 = (buffer) => {
 
 export const exportWorkersToExcel = async (workers, departments) => {
   try {
-    console.log('[Excel] Starting Export generation...');
+    console.log('[Excel] Starting Export...');
 
     // 1. DATA PREPARATION
     let allExams = [];
@@ -44,107 +44,142 @@ export const exportWorkersToExcel = async (workers, departments) => {
     workbook.created = new Date();
 
     // ==========================================
-    // SHEET 0: TABLEAU DE BORD (UI IMPROVED)
+    // 📊 SHEET 1: TABLEAU DE BORD
     // ==========================================
     const sheetDash = workbook.addWorksheet('Tableau de Bord', {
       views: [{ showGridLines: false }]
     });
 
-    // --- LOGIC CORRECTION FOR COUNTS ---
     const totalWorkers = workers.length;
     
-    // We strictly categorize based on "Current Priority":
-    // 1. Overdue -> "En Retard"
-    // 2. If not overdue -> Check Status
-    const overdueList = workers.filter(w => logic.isOverdue(w.next_exam_due));
-    const activeList = workers.filter(w => !logic.isOverdue(w.next_exam_due));
+    // --- NEW PRIORITY LOGIC ---
+    // 1. Inapte + Retard = "INAPTE (RETARD)" -> Count as Inapte AND Retard
+    // 2. Apte + Retard = "En Retard" -> Count as Retard
+    
+    let stats = {
+        apte: 0,
+        aptePartiel: 0,
+        inapte: 0,
+        retard: 0,
+        inapteRetard: 0 // Specific counter for the "Important" case
+    };
 
-    const lateCount = overdueList.length;
-    const apteCount = activeList.filter(w => w.latest_status === 'apte').length;
-    const inapteCount = activeList.filter(w => w.latest_status === 'inapte').length;
-    const partialCount = activeList.filter(w => w.latest_status === 'apte_partielle').length;
+    workers.forEach(w => {
+        const isLate = logic.isOverdue(w.next_exam_due);
+        const stat = w.latest_status;
+
+        if (stat === 'inapte') {
+            stats.inapte++; // Always count as Inapte
+            if (isLate) {
+                stats.retard++;
+                stats.inapteRetard++;
+            }
+        } else if (stat === 'apte_partielle') {
+            stats.aptePartiel++;
+            if (isLate) stats.retard++;
+        } else if (stat === 'apte') {
+             if (isLate) {
+                 stats.retard++; // Expired Apte becomes Retard
+             } else {
+                 stats.apte++;
+             }
+        } else {
+             // En attente / No status
+             if (isLate) stats.retard++;
+        }
+    });
     
     // Water Stats
     const waterTotal = waterLogs.length;
     const waterPotable = waterLogs.filter(w => w.result === 'potable').length;
     const waterCompliance = waterTotal > 0 ? (waterPotable / waterTotal) : 0;
 
-    // --- DRAWING THE "WIDGETS" ---
-    
-    // Title
-    sheetDash.mergeCells('B2:F3');
+    // --- DRAWING THE DASHBOARD ---
+
+    // Title Block
+    sheetDash.mergeCells('B2:E3');
     const titleCell = sheetDash.getCell('B2');
     titleCell.value = 'RAPPORT DE SANTÉ AU TRAVAIL';
-    titleCell.font = { size: 18, bold: true, color: { argb: 'FF4F46E5' } };
+    titleCell.font = { size: 20, bold: true, color: { argb: 'FFFFFFFF' } }; // White Text
     titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-    titleCell.border = { bottom: { style: 'medium', color: { argb: 'FF4F46E5' } } };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } }; // Indigo Background
 
-    // SECTION 1: SANTÉ (MEDICAL)
-    sheetDash.getCell('B5').value = "1. STATISTIQUES MÉDICALES";
-    sheetDash.getCell('B5').font = { size: 12, bold: true };
-
-    const medicalData = [
-      ['Total Effectif', totalWorkers, 'FFFFFF', '6B7280'], // Gray
-      ['Aptes (Actifs)', apteCount, 'DCFCE7', '166534'],     // Green
-      ['Aptes Partiels', partialCount, 'FEF9C3', '854D0E'],  // Yellow
-      ['Inaptes', inapteCount, 'FEE2E2', '991B1B'],          // Red
-      ['En Retard (URGENT)', lateCount, '7F1D1D', 'FFFFFF']  // Dark Red + White Text
+    // SECTION 1: SANTÉ
+    sheetDash.getCell('B5').value = "🩺 STATISTIQUES MÉDICALES";
+    sheetDash.getCell('B5').font = { size: 14, bold: true, color: { argb: 'FF374151' } };
+    
+    const medicalCards = [
+        { label: 'EFFECTIF TOTAL', val: totalWorkers, color: '1F2937', bg: 'F3F4F6' },
+        { label: 'APTES (ACTIFS)', val: stats.apte, color: '166534', bg: 'DCFCE7' },
+        { label: 'APTES PARTIELS', val: stats.aptePartiel, color: '854D0E', bg: 'FEF9C3' },
+        { label: 'INAPTES', val: stats.inapte, color: '991B1B', bg: 'FEE2E2' },
+        { label: '⚠️ TOTAL RETARDS', val: stats.retard, color: 'FFFFFF', bg: 'EF4444' }
     ];
+
+    // [NEW] Alert Row for "Inapte + Retard"
+    if (stats.inapteRetard > 0) {
+        medicalCards.push({ 
+            label: '🚨 INAPTES NON REVOIS (GRAVE)', 
+            val: stats.inapteRetard, 
+            color: 'FFFFFF', 
+            bg: '7F1D1D' // Dark Red
+        });
+    }
 
     let row = 7;
-    medicalData.forEach(([label, val, bg, color]) => {
-      sheetDash.getCell(`B${row}`).value = label;
-      sheetDash.getCell(`C${row}`).value = val;
-      
-      // Styling like a card
-      const cellLabel = sheetDash.getCell(`B${row}`);
-      const cellVal = sheetDash.getCell(`C${row}`);
-      
-      cellLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + bg } };
-      cellLabel.font = { color: { argb: 'FF' + color }, bold: true };
-      cellLabel.border = { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'} };
-
-      cellVal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + bg } };
-      cellVal.font = { color: { argb: 'FF' + color }, bold: true };
-      cellVal.alignment = { horizontal: 'center' };
-      cellVal.border = { top: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-      
-      row++;
-    });
-
-    // SECTION 2: EAU (WATER)
-    row += 2;
-    sheetDash.getCell(`B${row}`).value = "2. QUALITÉ DE L'EAU";
-    sheetDash.getCell(`B${row}`).font = { size: 12, bold: true };
-    row += 2;
-
-    const waterDataList = [
-      ['Total Analyses', waterTotal],
-      ['Conformes', waterPotable],
-      ['Non Conformes', waterTotal - waterPotable],
-      ['Taux de Conformité', waterCompliance]
-    ];
-
-    waterDataList.forEach(([label, val]) => {
-        sheetDash.getCell(`B${row}`).value = label;
-        sheetDash.getCell(`C${row}`).value = val;
+    medicalCards.forEach(card => {
+        sheetDash.mergeCells(`B${row}:C${row}`); // Label Area
         
-        if (label.includes('Taux')) {
-             sheetDash.getCell(`C${row}`).numFmt = '0.0%';
-             // Color code the percentage
-             if(val < 0.8) sheetDash.getCell(`C${row}`).font = { color: { argb: 'FFDC2626' }, bold: true }; // Red if < 80%
-             else sheetDash.getCell(`C${row}`).font = { color: { argb: 'FF16A34A' }, bold: true }; // Green
-        }
+        const cellLabel = sheetDash.getCell(`B${row}`);
+        cellLabel.value = card.label;
+        cellLabel.font = { bold: true, color: { argb: 'FF' + card.color } };
+        cellLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + card.bg } };
+        cellLabel.border = { top: {style:'thin', color: {argb:'FFD1D5DB'}}, bottom: {style:'thin', color: {argb:'FFD1D5DB'}}, left: {style:'thin', color: {argb:'FFD1D5DB'}} };
+
+        const cellVal = sheetDash.getCell(`D${row}`);
+        cellVal.value = card.val;
+        cellVal.font = { size: 12, bold: true, color: { argb: 'FF' + card.color } };
+        cellVal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + card.bg } };
+        cellVal.alignment = { horizontal: 'center' };
+        cellVal.border = { top: {style:'thin', color: {argb:'FFD1D5DB'}}, bottom: {style:'thin', color: {argb:'FFD1D5DB'}}, right: {style:'thin', color: {argb:'FFD1D5DB'}} };
         
-        sheetDash.getCell(`B${row}`).border = { bottom: {style: 'dotted'} };
         row++;
     });
 
-    sheetDash.getColumn(2).width = 30; // Col B
-    sheetDash.getColumn(3).width = 15; // Col C
+    // SECTION 2: EAU
+    row += 2;
+    sheetDash.getCell(`B${row}`).value = "💧 QUALITÉ DE L'EAU";
+    sheetDash.getCell(`B${row}`).font = { size: 14, bold: true, color: { argb: 'FF374151' } };
+    row += 2;
+
+    const waterCards = [
+        { label: 'Analyses Totales', val: waterTotal },
+        { label: '✅ Conformes', val: waterPotable },
+        { label: '❌ Non Conformes', val: waterTotal - waterPotable },
+        { label: 'Taux de Conformité', val: waterCompliance, fmt: '0.0%' }
+    ];
+
+    waterCards.forEach(card => {
+        sheetDash.mergeCells(`B${row}:C${row}`);
+        const c1 = sheetDash.getCell(`B${row}`);
+        c1.value = card.label;
+        c1.font = { color: { argb: 'FF4B5563' } };
+        c1.border = { bottom: {style:'dotted', color: {argb:'FFE5E7EB'}} };
+
+        const c2 = sheetDash.getCell(`D${row}`);
+        c2.value = card.val;
+        if(card.fmt) c2.numFmt = card.fmt;
+        c2.font = { bold: true };
+        c2.alignment = { horizontal: 'center' };
+        c2.border = { bottom: {style:'dotted', color: {argb:'FFE5E7EB'}} };
+        row++;
+    });
+
+    sheetDash.getColumn(2).width = 30;
+    sheetDash.getColumn(4).width = 15;
 
     // ==========================================
-    // SHEET 1: TRAVAILLEURS
+    // 👥 SHEET 2: TRAVAILLEURS
     // ==========================================
     const sheetWorkers = workbook.addWorksheet('Travailleurs', {
         views: [{ state: 'frozen', ySplit: 1 }]
@@ -158,27 +193,28 @@ export const exportWorkersToExcel = async (workers, departments) => {
       { header: 'Date Naissance', key: 'birth_date', width: 15 },
       { header: 'Dernier Examen', key: 'last_exam_date', width: 18 },
       { header: 'Prochain Dû', key: 'next_exam_due', width: 18 },
-      { header: 'Statut Actuel', key: 'status', width: 20 },
+      { header: 'Statut Actuel', key: 'status', width: 25 }, // Wider for combined status
     ];
 
     const workerRows = workers.map((w) => {
       const dept = departments.find((d) => d.id == w.department_id);
       const wp = workplaces.find(loc => loc.id == w.workplace_id);
 
-      // --- LOGIC MATCHING THE DASHBOARD ---
+      // --- NEW COMBINED STATUS LOGIC ---
       let statusLabel = '-';
       const stat = w.latest_status; 
+      const isLate = logic.isOverdue(w.next_exam_due);
 
-      if (logic.isOverdue(w.next_exam_due)) {
-         statusLabel = 'En Retard';
-      } else if (stat === 'apte') {
-         statusLabel = 'Apte';
-      } else if (stat === 'inapte') {
-         statusLabel = 'Inapte';
+      if (stat === 'inapte') {
+          // Priority 1: Inapte is always visible
+          statusLabel = isLate ? 'INAPTE (RETARD)' : 'Inapte';
       } else if (stat === 'apte_partielle') {
-         statusLabel = 'Apte Partiel';
+          statusLabel = isLate ? 'APTE PARTIEL (RETARD)' : 'Apte Partiel';
+      } else if (stat === 'apte') {
+          // If Apte but late, the Aptitude is expired -> En Retard
+          statusLabel = isLate ? 'En Retard' : 'Apte';
       } else {
-         statusLabel = 'En attente';
+          statusLabel = isLate ? 'En Retard' : 'En attente';
       }
 
       return {
@@ -198,137 +234,143 @@ export const exportWorkersToExcel = async (workers, departments) => {
     applyConditionalFormatting(sheetWorkers);
 
     // ==========================================
-    // SHEET 2: HISTORIQUE (GROUPED BY WORKER)
+    // 🗂️ SHEET 3: HISTORIQUE (GROUPED)
     // ==========================================
-    const relevantExams = allExams.filter(e => workers.some(w => w.id == e.worker_id));
-
-    if (relevantExams.length > 0) {
-      const sheetVisits = workbook.addWorksheet('Historique Médical', {
+    const sheetVisits = workbook.addWorksheet('Historique Médical', {
         views: [{ state: 'frozen', ySplit: 1 }]
-      });
-      
-      sheetVisits.columns = [
-        { header: 'Travailleur', key: 'worker_name', width: 30 }, // Moved First
+    });
+
+    sheetVisits.columns = [
         { header: 'Date', key: 'date', width: 15 },
         { header: 'Type Visite', key: 'type', width: 20 },
         { header: 'Conclusion', key: 'conclusion', width: 20 },
         { header: 'Notes', key: 'notes', width: 40 },
-      ];
+    ];
+    styleSheet(sheetVisits);
 
-      const visitRows = relevantExams.map((e) => {
-        const worker = workers.find((w) => w.id == e.worker_id);
-        
-        let conc = '-';
-        if (e.decision && e.decision.status) {
-            conc = e.decision.status.toUpperCase();
-        }
+    const sortedWorkers = [...workers].sort((a,b) => a.full_name.localeCompare(b.full_name));
 
-        return {
-          worker_name: worker ? worker.full_name : 'Inconnu',
-          date: logic.formatDateDisplay(e.exam_date),
-          type: e.type === 'periodic' ? 'Périodique' : e.type === 'embauche' ? 'Embauche' : 'Spontanée',
-          conclusion: conc,
-          notes: e.comments || '-',
-          // Hidden Sort Keys
-          _sortDate: e.exam_date,
-          _sortName: worker ? worker.full_name : 'ZZZ'
-        };
-      });
-      
-      // --- SORTING: By Name (ASC) THEN By Date (DESC) ---
-      visitRows.sort((a, b) => {
-        // Primary: Name
-        const nameA = a._sortName.toLowerCase();
-        const nameB = b._sortName.toLowerCase();
-        if (nameA < nameB) return -1;
-        if (nameA > nameB) return 1;
-        
-        // Secondary: Date (Newest first)
-        const dateA = new Date(a._sortDate || 0);
-        const dateB = new Date(b._sortDate || 0);
-        return dateB - dateA;
-      });
-      
-      // Clean up helper keys before adding
-      const cleanRows = visitRows.map(({_sortDate, _sortName, ...rest}) => rest);
-      
-      sheetVisits.addRows(cleanRows);
-      styleSheet(sheetVisits);
-    }
+    sortedWorkers.forEach(worker => {
+        const myExams = allExams.filter(e => e.worker_id == worker.id);
+        if (myExams.length === 0) return;
+
+        myExams.sort((a, b) => new Date(b.exam_date) - new Date(a.exam_date));
+
+        // GROUP HEADER
+        const headerRow = sheetVisits.addRow([worker.full_name.toUpperCase() + ` (Mat: ${worker.national_id})`]);
+        sheetVisits.mergeCells(`A${headerRow.number}:D${headerRow.number}`);
+        headerRow.getCell(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6B7280' } };
+        headerRow.getCell(1).alignment = { horizontal: 'left', indent: 1 };
+
+        myExams.forEach(e => {
+            let conc = '-';
+            if (e.decision && e.decision.status) conc = e.decision.status.toUpperCase();
+            sheetVisits.addRow({
+                date: logic.formatDateDisplay(e.exam_date),
+                type: e.type === 'periodic' ? 'Périodique' : e.type === 'embauche' ? 'Embauche' : 'Spontanée',
+                conclusion: conc,
+                notes: e.comments || '-'
+            });
+        });
+        sheetVisits.addRow([]); 
+    });
+
 
     // ==========================================
-    // SHEET 3: ANALYSES D'EAU (FIXED LOCATIONS)
+    // 🧪 SHEET 4: ANALYSES D'EAU (GROUPED BY SERVICE)
     // ==========================================
     if (waterLogs.length > 0) {
       const sheetWater = workbook.addWorksheet("Analyses d'Eau", {
         views: [{ state: 'frozen', ySplit: 1 }]
       });
       
+      // COLUMNS (Removed Location Column because it's now a Group Header)
       sheetWater.columns = [
         { header: 'Date', key: 'date', width: 15 },
-        { header: 'Service/Lieu', key: 'location', width: 30 },
-        { header: 'Résultat', key: 'result', width: 20 },
+        { header: 'Résultat', key: 'result', width: 25 },
         { header: 'Décision', key: 'decision', width: 20 },
       ];
-
-      const waterRows = waterLogs.map((l) => {
-        let resLabel = '-';
-        let decisionLabel = '-';
-        if (l.result === 'potable') {
-          resLabel = 'CONFORME';
-          decisionLabel = 'Potable';
-        } else if (l.result === 'non_potable') {
-          resLabel = 'NON CONFORME';
-          decisionLabel = 'Non Potable';
-        } else {
-          resLabel = 'EN COURS';
-        }
-
-        // --- TRIPLE CHECK LOCATION ---
-        let loc = l.location; // 1. Custom string?
-        
-        if (!loc && l.department_id) {
-             // 2. Is it a Water Dept ID?
-            const waterDept = waterDepts.find(d => d.id == l.department_id);
-            if (waterDept) {
-                loc = waterDept.name;
-            } else {
-                // 3. Is it an HR Dept ID?
-                const hrDept = departments.find(d => d.id == l.department_id);
-                if (hrDept) loc = hrDept.name;
-            }
-        }
-
-        return {
-          date: logic.formatDateDisplay(l.sample_date || l.request_date),
-          location: loc || 'Lieu Inconnu',
-          result: resLabel,
-          decision: decisionLabel,
-        };
-      });
-
-      // Sort by Date
-      waterRows.sort((a, b) => {
-         try {
-            const dA = a.date.split('/').reverse().join('-');
-            const dB = b.date.split('/').reverse().join('-');
-            return new Date(dB) - new Date(dA);
-        } catch(e) { return 0; }
-      });
-      
-      sheetWater.addRows(waterRows);
       styleSheet(sheetWater);
 
-      // Color coding
-      sheetWater.eachRow((row, rowNumber) => {
-        if(rowNumber === 1) return;
-        const cell = row.getCell('result');
-        if(cell.value === 'CONFORME') {
-             cell.font = { color: { argb: 'FF006100' }, bold: true };
-        } else if (cell.value === 'NON CONFORME') {
-             cell.font = { color: { argb: 'FF9C0006' }, bold: true };
-             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
-        }
+      // 1. PREPARE GROUPS
+      const waterGroups = {};
+      
+      // Helper to find location name
+      const getLocationName = (log) => {
+          if (log.location) return log.location;
+          // Try Structure
+          if (log.structure_id) {
+              const d = waterDepts.find(x => x.id == log.structure_id);
+              if (d) return d.name;
+          }
+          // Try Dept
+          if (log.department_id) {
+              const d = departments.find(x => x.id == log.department_id);
+              if (d) return d.name;
+          }
+          return "LIEU INDÉFINI (Orphelin)";
+      };
+
+      waterLogs.forEach(log => {
+          const locName = getLocationName(log);
+          if (!waterGroups[locName]) waterGroups[locName] = [];
+          waterGroups[locName].push(log);
+      });
+
+      // 2. SORT GROUPS ALPHABETICALLY
+      const sortedLocs = Object.keys(waterGroups).sort();
+
+      // 3. RENDER GROUPS
+      sortedLocs.forEach(loc => {
+          // GROUP HEADER
+          const headerRow = sheetWater.addRow([loc.toUpperCase()]);
+          sheetWater.mergeCells(`A${headerRow.number}:C${headerRow.number}`);
+          headerRow.getCell(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          headerRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0EA5E9' } }; // Sky Blue
+          headerRow.getCell(1).alignment = { horizontal: 'left', indent: 1 };
+
+          // ROWS
+          const logs = waterGroups[loc];
+          // Sort by Date Descending
+          logs.sort((a,b) => {
+              const dA = new Date(a.sample_date || a.request_date || 0);
+              const dB = new Date(b.sample_date || b.request_date || 0);
+              return dB - dA;
+          });
+
+          logs.forEach(l => {
+              let resLabel = '-';
+              let decisionLabel = '-';
+              let color = '000000';
+              let bg = null;
+
+              if (l.result === 'potable') {
+                  resLabel = '✅ CONFORME';
+                  decisionLabel = 'Potable';
+                  color = '166534'; // Green Text
+              } else if (l.result === 'non_potable') {
+                  resLabel = '❌ NON CONFORME';
+                  decisionLabel = 'Non Potable';
+                  color = '991B1B'; // Red Text
+                  bg = 'FEE2E2'; // Red BG
+              } else {
+                  resLabel = '⏳ EN COURS';
+              }
+
+              const row = sheetWater.addRow({
+                  date: logic.formatDateDisplay(l.sample_date || l.request_date),
+                  result: resLabel,
+                  decision: decisionLabel
+              });
+
+              // Apply styles
+              const cellRes = row.getCell('result');
+              cellRes.font = { color: { argb: 'FF' + color }, bold: true };
+              if (bg) cellRes.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + bg } };
+          });
+
+          sheetWater.addRow([]); // Spacer
       });
     }
 
@@ -344,16 +386,10 @@ export const exportWorkersToExcel = async (workers, departments) => {
       try {
         await Filesystem.requestPermissions();
         try {
-           // Ensure folder exists
           await Filesystem.stat({ path: 'copro-watch', directory: Directory.Documents });
         } catch {
-          await Filesystem.mkdir({
-            path: 'copro-watch',
-            directory: Directory.Documents,
-            recursive: true,
-          });
+          await Filesystem.mkdir({ path: 'copro-watch', directory: Directory.Documents, recursive: true });
         }
-        
         const base64Data = arrayBufferToBase64(buffer);
         await Filesystem.writeFile({
           path: `copro-watch/${filename}`,
@@ -365,9 +401,7 @@ export const exportWorkersToExcel = async (workers, departments) => {
         throw new Error("Impossible d'écrire dans Documents. Vérifiez les permissions.");
       }
     } else {
-      const blob = new Blob([buffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       saveAs(blob, filename);
     }
   } catch (error) {
@@ -385,20 +419,15 @@ function styleSheet(sheet) {
   headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
   headerRow.height = 25;
 
-  sheet.eachRow((row, rowNumber) => {
-    if (rowNumber === 1) return;
-    row.eachCell((cell) => {
-      cell.border = {
-        top: { style: 'thin', color: { argb: 'FFEEEEEE' } },
-        left: { style: 'thin', color: { argb: 'FFEEEEEE' } },
-        bottom: { style: 'thin', color: { argb: 'FFEEEEEE' } },
-        right: { style: 'thin', color: { argb: 'FFEEEEEE' } },
-      };
-      cell.alignment = { vertical: 'middle', horizontal: 'left' };
-    });
+  // Add borders to header
+  headerRow.eachCell(cell => {
+      cell.border = { bottom: { style: 'medium', color: { argb: 'FFFFFFFF' } } };
   });
 
-  sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: sheet.columns.length } };
+  // Default Width
+  if(sheet.columns) {
+      sheet.columns.forEach(col => { if(!col.width) col.width = 20; });
+  }
 }
 
 function applyConditionalFormatting(sheet) {
@@ -410,10 +439,11 @@ function applyConditionalFormatting(sheet) {
         if (val === 'Apte') {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6EFCE' } };
             cell.font = { color: { argb: 'FF006100' } };
-        } else if (val === 'Inapte' || val === 'En Retard') {
+        } else if (val.includes('INAPTE') || val.includes('Retard')) {
+            // RED for Inapte or Retard
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
-            cell.font = { color: { argb: 'FF9C0006' } };
-        } else if (val === 'Apte Partiel') {
+            cell.font = { color: { argb: 'FF9C0006' }, bold: true };
+        } else if (val.includes('Partiel')) {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEB9C' } };
             cell.font = { color: { argb: 'FF9C5700' } };
         }

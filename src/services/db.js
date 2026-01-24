@@ -6,6 +6,8 @@ import { encryptString, decryptString } from './crypto'; // IMPORT ADDED
 class CoproDatabase extends Dexie {
   constructor() {
     super('CoproWatchDB');
+    
+    // KEEP Version 1 (For history)
     this.version(1).stores({
       workers: '++id, full_name, national_id, department_id, archived',
       departments: '++id',
@@ -13,7 +15,19 @@ class CoproDatabase extends Dexie {
       exams: '++id, worker_id, exam_date',
       water_analyses: '++id, sample_date',
       water_departments: '++id',
-      settings: 'key', // For simple key-value storage
+      settings: 'key',
+    });
+
+    // [ADD THIS] Version 2: Updates the database structure
+    this.version(2).stores({
+      workers: '++id, full_name, national_id, department_id, archived',
+      departments: '++id',
+      workplaces: '++id',
+      exams: '++id, worker_id, exam_date',
+      // 👇 ADDED 'department_id' and 'structure_id' here
+      water_analyses: '++id, sample_date, department_id, structure_id',
+      water_departments: '++id',
+      settings: 'key',
     });
   }
 }
@@ -121,8 +135,15 @@ export const db = {
     await triggerBackupCheck();
     return { ...worker, id };
   },
+  // 3. Fix for Workers
   async deleteWorker(id) {
-    await dbInstance.workers.delete(id);
+    const numId = Number(id); // [CRITICAL] Convert once, use everywhere
+
+    // Delete Orphans
+    await dbInstance.exams.where('worker_id').equals(numId).delete();
+    
+    // Delete Worker
+    await dbInstance.workers.delete(numId);
     await triggerBackupCheck();
   },
 
@@ -153,8 +174,19 @@ export const db = {
     await triggerBackupCheck();
     return { ...dept, id };
   },
+  // 2. Fix for HR Services (Settings > Services RH)
   async deleteDepartment(id) {
-    await dbInstance.departments.delete(id);
+    const numId = Number(id); // Force Number
+
+    // A. PRIMARY: Delete Workers (This is the most important part for HR)
+    await dbInstance.workers.where('department_id').equals(numId).delete();
+
+    // B. SECONDARY: Safety Net for Water (Prevents errors if any test was linked)
+    await dbInstance.water_analyses.where('department_id').equals(numId).delete();
+
+    // C. FINAL: Delete the Service itself
+    await dbInstance.departments.delete(numId);
+    
     await triggerBackupCheck();
   },
 
@@ -193,8 +225,15 @@ export const db = {
     await triggerBackupCheck();
     return { ...dept, id };
   },
+ // 1. Fix for Water Services
   async deleteWaterDepartment(id) {
-    await dbInstance.water_departments.delete(id);
+    const numId = Number(id); // [CRITICAL] Convert once, use everywhere
+    
+    // Delete Orphans (Uses numId)
+    await dbInstance.water_analyses.where('structure_id').equals(numId).delete();
+    
+    // Delete Service (Uses numId)
+    await dbInstance.water_departments.delete(numId); 
     await triggerBackupCheck();
   },
 
@@ -218,5 +257,44 @@ export const db = {
       console.error('Import failed', e);
       return false;
     }
+  },
+  // [NEW] JANITOR FUNCTION
+  async cleanupOrphans() {
+    console.log('🧹 Starting Cleanup...');
+    let deletedExams = 0;
+    let deletedWater = 0;
+    
+    // 1. Clean Exams (Ghost Workers)
+    const workerIds = new Set((await dbInstance.workers.toArray()).map(w => w.id));
+    const allExams = await dbInstance.exams.toArray();
+    const orphanExamIds = allExams
+      .filter(e => !workerIds.has(e.worker_id))
+      .map(e => e.id);
+    
+    if (orphanExamIds.length > 0) {
+      await dbInstance.exams.bulkDelete(orphanExamIds);
+      deletedExams = orphanExamIds.length;
+    }
+
+    // 2. Clean Water Logs (Ghost Locations)
+    const deptIds = new Set((await dbInstance.departments.toArray()).map(d => d.id));
+    const waterDeptIds = new Set((await dbInstance.water_departments.toArray()).map(d => d.id));
+    const allWater = await dbInstance.water_analyses.toArray();
+    
+    const orphanWaterIds = allWater.filter(log => {
+      // Rule 1: If it has a department_id, that ID must exist
+      if (log.department_id && !deptIds.has(log.department_id)) return true;
+      // Rule 2: If it has a structure_id, that ID must exist
+      if (log.structure_id && !waterDeptIds.has(log.structure_id)) return true;
+      return false;
+    }).map(l => l.id);
+
+    if (orphanWaterIds.length > 0) {
+      await dbInstance.water_analyses.bulkDelete(orphanWaterIds);
+      deletedWater = orphanWaterIds.length;
+    }
+
+    await triggerBackupCheck();
+    return { exams: deletedExams, water: deletedWater };
   },
 };
