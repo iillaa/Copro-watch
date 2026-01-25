@@ -208,22 +208,28 @@ export default function Settings({
     }
   };
 
-  const handleGetBackupNow = async () => {
+const handleGetBackupNow = async () => {
     try {
       setBackupStatus('Creating backup...');
       console.log('Starting manual backup...');
 
       const json = await db.exportData();
-      console.log('Export data generated, length:', json.length);
+      
+      // [FIX] Generate a unique filename with DATE and TIME
+      const now = new Date();
+      const dateStr = now.getFullYear() + '-' +
+                     String(now.getMonth()+1).padStart(2, '0') + '-' +
+                     String(now.getDate()).padStart(2, '0') + '_' +
+                     String(now.getHours()).padStart(2, '0') + '-' +
+                     String(now.getMinutes()).padStart(2, '0');
+      
+      const filename = `backup_manuel_${dateStr}.json`; // Example: backup_manuel_2026-01-25_12-30.json
 
-      // Use unique filename generation (will create timestamped filename)
-      const success = await backupService.saveBackupJSON(json);
-      console.log('Backup save result:', success);
+      // [FIX] Pass the filename to the service
+      const success = await backupService.saveBackupJSON(json, filename);
 
       if (success) {
-        setBackupStatus('Backup saved successfully with unique filename!');
-
-        // Refresh backup progress
+        setBackupStatus(`Backup saved: ${filename}`);
         const status = await backupService.getBackupStatus();
         setBackupProgress(status);
       } else {

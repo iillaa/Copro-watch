@@ -198,47 +198,104 @@ function getRealDate(fileObj) {
   return fileObj.lastModified;
 }
 
-// --- SMART READ (COMPARE 3 FILES) ---
+// REPLACES the old readBackupJSON function
 export async function readBackupJSON() {
-  // 1. Load candidates
-  const manual = await getFileContent(MANUAL_BACKUP_FILE_NAME);
-  const autoCounter = await getFileContent(AUTO_BACKUP_COUNTER_FILE);
-  const autoTime = await getFileContent(AUTO_BACKUP_TIME_FILE);
+  const { Capacitor } = await import('@capacitor/core');
+  let candidates = [];
 
-  // 2. Get Dates
-  const dManual = getRealDate(manual);
-  const dCounter = getRealDate(autoCounter);
-  const dTime = getRealDate(autoTime);
+  try {
+    // ---------------------------------------------------------
+    // 1. SCANNING PHASE (The "Not Lazy" Part)
+    // ---------------------------------------------------------
+    
+    // A. ANDROID: Scan the Documents/copro-watch folder
+    if (Capacitor.isNativePlatform()) {
+      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+      try {
+        const result = await Filesystem.readdir({
+          path: 'copro-watch',
+          directory: Directory.Documents
+        });
+        
+        // Convert Capacitor file list to our format
+        // result.files contains { name, mtime, size, ... }
+        candidates = result.files.map(f => ({
+          name: f.name,
+          time: Number(f.mtime), // Crucial: Sort by system modified time
+          platform: 'android'
+        }));
+      } catch (e) {
+        console.warn('[Backup] Readdir failed (Android):', e);
+      }
+    } 
+    // B. WEB: Scan the Directory Handle
+    else if (backupDir) {
+      try {
+        for await (const entry of backupDir.values()) {
+          if (entry.kind === 'file') {
+            const file = await entry.getFile();
+            candidates.push({
+              name: entry.name,
+              time: file.lastModified,
+              platform: 'web'
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('[Backup] Readdir failed (Web):', e);
+      }
+    }
 
-  console.log('[Backup] Dates Found:', {
-    manual: new Date(dManual).toLocaleString(),
-    counter: new Date(dCounter).toLocaleString(),
-    time: new Date(dTime).toLocaleString(),
-  });
+    // ---------------------------------------------------------
+    // 2. FILTERING PHASE
+    // ---------------------------------------------------------
+    // Only look at .json files that look like backups (safety filter)
+    const validBackups = candidates.filter(c => 
+      c.name.endsWith('.json') && 
+      (c.name.includes('backup') || c.name.includes('export'))
+    );
 
-  // 3. Find Winner
-  let best = null;
-  let maxDate = 0;
+    if (validBackups.length === 0) {
+      // Fallback: If folder scan fails completely, try the old hardcoded way
+      return await readBackupJSONLegacy(); 
+    }
 
-  if (manual && dManual > maxDate) {
-    best = manual;
-    maxDate = dManual;
+    // ---------------------------------------------------------
+    // 3. SELECTION PHASE
+    // ---------------------------------------------------------
+    // Sort Descending (Newest Time First)
+    validBackups.sort((a, b) => b.time - a.time);
+
+    const winner = validBackups[0];
+    console.log(`[Backup] Smart Select: Picking ${winner.name} (Modified: ${new Date(winner.time).toLocaleString()})`);
+
+    // 4. Read the winner
+    return await getFileContent(winner.name);
+
+  } catch (e) {
+    console.error('[Backup] Smart Read Error:', e);
+    throw new Error("Impossible de scanner le dossier de sauvegarde.");
   }
-  if (autoCounter && dCounter > maxDate) {
-    best = autoCounter;
-    maxDate = dCounter;
-  }
-  if (autoTime && dTime > maxDate) {
-    best = autoTime;
-    maxDate = dTime;
-  }
+}
 
-  if (best) {
-    console.log(`[Backup] Winner: ${best.name} (${new Date(maxDate).toLocaleString()})`);
-    return best;
-  }
+// [HELPER] Legacy fallback in case 'readdir' is denied permission
+async function readBackupJSONLegacy() {
+    console.log('[Backup] Scanning failed, using legacy fallback...');
+    const files = ['backup-manuel.json', 'backup-auto-compteur.json', 'backup-auto-temps.json'];
+    let best = null;
+    let maxDate = 0;
 
-  throw new Error('Aucun fichier de sauvegarde trouvé.');
+    for (const f of files) {
+        const content = await getFileContent(f);
+        if (content) {
+            if (content.lastModified > maxDate) {
+                maxDate = content.lastModified;
+                best = content;
+            }
+        }
+    }
+    if (best) return best;
+    throw new Error('Aucune sauvegarde trouvée.');
 }
 
 // --- LOGIC TRIGGERS ---
