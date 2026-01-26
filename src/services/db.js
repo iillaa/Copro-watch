@@ -34,34 +34,37 @@ class CoproDatabase extends Dexie {
 
 const dbInstance = new CoproDatabase();
 
-// 3. Helper to trigger auto-backup check (Lazy / Non-Blocking)
-// This counts EVERY change but waits for the CPU to be free to avoid lag.
-function triggerBackupCheck() {
-  const runBackup = async () => {
-    try {
-      // [UPDATED] Capture the trigger type ('TIME' or 'COUNTER')
-      const triggerType = await backupService.registerChange();
+// [FIXED] Split Logic: Increment NOW (Async), Export LATER (Background)
+async function triggerBackupCheck() {
+  try {
+    // 1. IMMEDIATE: Increment counter & save to DB.
+    // We await this so the UI updates instantly.
+    const triggerType = await backupService.registerChange();
 
-      // If triggerType is not false (it's a string), we proceed
-      if (triggerType) {
-        console.log('[DB] Auto-backup triggered by:', triggerType);
+    // 2. BACKGROUND: If backup is due, schedule the heavy export lazily
+    if (triggerType) {
+      console.log(`[DB] Backup due (${triggerType}). Scheduling export...`);
 
-        // [IMPORTANT] Pass 'triggerType' as the 2nd argument
-        await backupService.performAutoExport(
-          async () => await exportData(),
-          triggerType // <--- This ensures it goes to the right file
-        );
+      const runExport = async () => {
+        try {
+          await backupService.performAutoExport(
+            async () => await exportData(),
+            triggerType
+          );
+        } catch (e) {
+          console.warn('[DB] Background export failed', e);
+        }
+      };
+
+      // Use idle callback for heavy JSON generation
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(runExport, { timeout: 10000 });
+      } else {
+        setTimeout(runExport, 1000);
       }
-    } catch (e) {
-      console.warn('[DB] Auto backup trigger failed', e);
     }
-  };
-
-  // ... (Keep the requestIdleCallback logic below unchanged) ...
-  if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(runBackup, { timeout: 5000 });
-  } else {
-    setTimeout(runBackup, 2000);
+  } catch (e) {
+    console.error('[DB] Backup trigger error:', e);
   }
 }
 // 4. Export Global Function (Used by UI and Backup)
@@ -132,7 +135,7 @@ export const db = {
   },
   async saveWorker(worker) {
     const id = await dbInstance.workers.put(worker);
-    await triggerBackupCheck();
+    await triggerBackupCheck(); // [FIX] Awaited
     return { ...worker, id };
   },
   // 3. Fix for Workers
@@ -144,7 +147,7 @@ export const db = {
 
     // Delete Worker
     await dbInstance.workers.delete(numId);
-    await triggerBackupCheck();
+    await triggerBackupCheck(); // [FIX] Awaited
   },
 
   // --- EXAMS ---
@@ -157,12 +160,12 @@ export const db = {
   },
   async saveExam(exam) {
     const id = await dbInstance.exams.put(exam);
-    await triggerBackupCheck();
+    await triggerBackupCheck(); // [FIX] Awaited
     return { ...exam, id };
   },
   async deleteExam(id) {
     await dbInstance.exams.delete(id);
-    await triggerBackupCheck();
+    await triggerBackupCheck(); // [FIX] Awaited
   },
 
   // --- DEPARTMENTS ---
@@ -171,7 +174,7 @@ export const db = {
   },
   async saveDepartment(dept) {
     const id = await dbInstance.departments.put(dept);
-    await triggerBackupCheck();
+    await triggerBackupCheck(); // [FIX] Awaited
     return { ...dept, id };
   },
   // 2. Fix for HR Services (Settings > Services RH)
@@ -187,7 +190,7 @@ export const db = {
     // C. FINAL: Delete the Service itself
     await dbInstance.departments.delete(numId);
 
-    await triggerBackupCheck();
+    await triggerBackupCheck(); // [FIX] Awaited
   },
 
   // --- WORKPLACES ---
@@ -196,12 +199,12 @@ export const db = {
   },
   async saveWorkplace(workplace) {
     const id = await dbInstance.workplaces.put(workplace);
-    await triggerBackupCheck();
+    await triggerBackupCheck(); // [FIX] Awaited
     return { ...workplace, id };
   },
   async deleteWorkplace(id) {
     await dbInstance.workplaces.delete(id);
-    await triggerBackupCheck();
+    await triggerBackupCheck(); // [FIX] Awaited
   },
 
   // --- WATER ---
@@ -210,19 +213,19 @@ export const db = {
   },
   async saveWaterAnalysis(analysis) {
     const id = await dbInstance.water_analyses.put(analysis);
-    await triggerBackupCheck();
+    await triggerBackupCheck(); // [FIX] Awaited
     return { ...analysis, id };
   },
   async deleteWaterAnalysis(id) {
     await dbInstance.water_analyses.delete(id);
-    await triggerBackupCheck();
+    await triggerBackupCheck(); // [FIX] Awaited
   },
   async getWaterDepartments() {
     return await dbInstance.water_departments.toArray();
   },
   async saveWaterDepartment(dept) {
     const id = await dbInstance.water_departments.put(dept);
-    await triggerBackupCheck();
+    await triggerBackupCheck(); // [FIX] Awaited
     return { ...dept, id };
   },
   // 1. Fix for Water Services
@@ -234,7 +237,7 @@ export const db = {
 
     // Delete Service (Uses numId)
     await dbInstance.water_departments.delete(numId);
-    await triggerBackupCheck();
+    await triggerBackupCheck(); // [FIX] Awaited
   },
 
   // --- IMPORT / EXPORT ---

@@ -17,12 +17,12 @@ let counter = 0;
 let threshold = DEFAULT_THRESHOLD;
 let timeThreshold = DEFAULT_TIME_THRESHOLD;
 let lastAutoBackup = 0;
+let lastRegisterTime = 0;
 
 let autoImportEnabled = false;
 let lastImported = 0;
 let backupDir = null;
 let isInitialized = false;
-
 let dbApi = null;
 
 // --- INITIALIZATION ---
@@ -298,32 +298,47 @@ async function readBackupJSONLegacy() {
     throw new Error('Aucune sauvegarde trouvée.');
 }
 
-// --- LOGIC TRIGGERS ---
+// [SURGICAL REPLACEMENT] src/services/backup.js
+
 export async function registerChange() {
-  if (!isInitialized || !dbApi) await init(dbApi);
-  if (!dbApi) return false;
+  if (!dbApi) {
+    console.warn('[Backup] Cannot register change: DB not initialized.');
+    return false;
+  }
+
+  // [FIX] Debounce: If updates happen within 500ms, count them as ONE action.
+  // This prevents double-counting when "Save Exam" also triggers "Save Worker".
+  const now = Date.now();
+  if (now - lastRegisterTime < 500) {
+    return false;
+  }
+  lastRegisterTime = now;
 
   counter++;
 
   // 1. Calc Time
-  const now = Date.now();
+  // Safety: If lastAutoBackup is missing/zero, assume 'now'
+  if (!lastAutoBackup) lastAutoBackup = now; 
+  
   const timeElapsed = now - lastAutoBackup;
   const isTimeDue = timeElapsed >= timeThreshold;
   const isCounterDue = counter >= threshold;
 
   // 2. Save Progress
-  await dbApi.saveSettings({ backup_counter: counter });
+  try {
+    await dbApi.saveSettings({ backup_counter: counter });
+  } catch (e) {
+    console.warn('[Backup] Failed to save counter to DB', e);
+  }
 
-  // 3. Trigger Logic (Prioritize Time, then Counter)
+  // 3. Trigger Logic
   if (isTimeDue) {
     console.log('[Backup] Time Triggered!');
-    // Pass 'TIME' to use the specific file
     return 'TIME';
   }
 
   if (isCounterDue) {
     console.log('[Backup] Counter Triggered!');
-    // Pass 'COUNTER' to use the specific file
     return 'COUNTER';
   }
 
