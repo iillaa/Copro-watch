@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
 import { FaTimes, FaSave, FaFlask } from 'react-icons/fa';
+import { useToast } from './Toast';
 
 export default function WaterAnalysisForm({
   type,
@@ -12,6 +13,7 @@ export default function WaterAnalysisForm({
   onSuccess,
   onCancel,
 }) {
+  const { showToast, ToastContainer } = useToast();
   const [formData, setFormData] = useState({
     department_id: department?.id || analysis?.department_id || analysis?.structure_id,
     request_date: new Date().toISOString().split('T')[0], // Default Request to Today
@@ -73,29 +75,28 @@ export default function WaterAnalysisForm({
       ...prev,
       [name]: value,
     }));
-    if (error) setError('');
   };
 
   const validateForm = () => {
     if (!formData.department_id) {
-      setError('Veuillez sélectionner un service.');
+      showToast('Veuillez sélectionner un service.', 'error');
       return false;
     }
 
     // 1. Validate Request Date
     if (!formData.request_date) {
-      setError('Veuillez saisir la date de demande.');
+      showToast('Veuillez saisir la date de demande.', 'error');
       return false;
     }
 
     // 2. Validate Sample Date (if result is present)
     if (formData.result && formData.result !== 'pending' && !formData.sample_date) {
-      setError('Une date de prélèvement est requise pour enregistrer un résultat.');
+      showToast('Une date de prélèvement est requise pour enregistrer un résultat.', 'error');
       return false;
     }
 
     if ((type === 'result' || type === 'retest') && !formData.result) {
-      setError("Veuillez saisir le résultat de l'analyse.");
+      showToast("Veuillez saisir le résultat de l'analyse.", 'error');
       return false;
     }
 
@@ -107,7 +108,6 @@ export default function WaterAnalysisForm({
     if (!validateForm()) return;
 
     setLoading(true);
-    setError('');
 
     try {
       let analysisData = { ...formData };
@@ -121,7 +121,7 @@ export default function WaterAnalysisForm({
       onSuccess(analysisData);
     } catch (error) {
       console.error('Error saving water analysis:', error);
-      setError('Erreur lors de la sauvegarde. Veuillez réessayer.');
+      showToast('Erreur lors de la sauvegarde. Veuillez réessayer.', 'error');
     } finally {
       setLoading(false);
     }
@@ -283,20 +283,6 @@ export default function WaterAnalysisForm({
             />
           </div>
 
-          {error && (
-            <div
-              style={{
-                padding: '0.75rem',
-                backgroundColor: '#f8d7da',
-                color: '#721c24',
-                borderRadius: '4px',
-                marginBottom: '1rem',
-              }}
-            >
-              {error}
-            </div>
-          )}
-
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
             <button type="button" onClick={onCancel} className="btn btn-outline" disabled={loading}>
               Annuler
@@ -307,6 +293,7 @@ export default function WaterAnalysisForm({
             </button>
           </div>
         </form>
+        <ToastContainer />
       </div>
     </div>
   );

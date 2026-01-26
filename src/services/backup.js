@@ -199,103 +199,99 @@ function getRealDate(fileObj) {
 }
 
 // REPLACES the old readBackupJSON function
+// [SURGICAL REPLACEMENT]
 export async function readBackupJSON() {
+  // 1. Load Capacitor (Works in APK & Standalone)
   const { Capacitor } = await import('@capacitor/core');
   let candidates = [];
 
   try {
     // ---------------------------------------------------------
-    // 1. SCANNING PHASE (The "Not Lazy" Part)
+    // A. APK MODE (Android Native)
     // ---------------------------------------------------------
-    
-    // A. ANDROID: Scan the Documents/copro-watch folder
     if (Capacitor.isNativePlatform()) {
       const { Filesystem, Directory } = await import('@capacitor/filesystem');
       try {
         const result = await Filesystem.readdir({
           path: 'copro-watch',
-          directory: Directory.Documents
+          directory: Directory.Documents,
         });
-        
-        // Convert Capacitor file list to our format
-        // result.files contains { name, mtime, size, ... }
-        candidates = result.files.map(f => ({
-          name: f.name,
-          time: Number(f.mtime), // Crucial: Sort by system modified time
-          platform: 'android'
-        }));
+
+        candidates = result.files
+          .filter((f) => f.name.endsWith('.json'))
+          .map((f) => ({
+            name: f.name,
+            time: Number(f.mtime),
+            platform: 'android',
+          }));
       } catch (e) {
-        console.warn('[Backup] Readdir failed (Android):', e);
+        console.warn('[Backup] Android scan failed. Permission denied?');
+        // Do not crash. Just ignore folder scanning.
       }
-    } 
-    // B. WEB: Scan the Directory Handle
+    }
+    // ---------------------------------------------------------
+    // B. STANDALONE HTML / WEB MODE
+    // ---------------------------------------------------------
     else if (backupDir) {
       try {
+        // Only works if user previously granted permission
         for await (const entry of backupDir.values()) {
-          if (entry.kind === 'file') {
+          if (entry.kind === 'file' && entry.name.endsWith('.json')) {
             const file = await entry.getFile();
             candidates.push({
               name: entry.name,
               time: file.lastModified,
-              platform: 'web'
+              platform: 'web',
             });
           }
         }
       } catch (e) {
-        console.warn('[Backup] Readdir failed (Web):', e);
+        console.warn('[Backup] Web folder scan failed. Browser blocked access.');
+        // Do not crash. Just ignore folder scanning.
       }
     }
 
     // ---------------------------------------------------------
-    // 2. FILTERING PHASE
+    // C. FAIL-SAFE DECISION
     // ---------------------------------------------------------
-    // Only look at .json files that look like backups (safety filter)
-    const validBackups = candidates.filter(c => 
-      c.name.endsWith('.json') && 
-      (c.name.includes('backup') || c.name.includes('export'))
-    );
-
-    if (validBackups.length === 0) {
-      // Fallback: If folder scan fails completely, try the old hardcoded way
-      return await readBackupJSONLegacy(); 
+    if (candidates.length === 0) {
+      console.log('[Backup] No folder access. Switching to internal storage (Legacy).');
+      return await readBackupJSONLegacy();
     }
 
-    // ---------------------------------------------------------
-    // 3. SELECTION PHASE
-    // ---------------------------------------------------------
-    // Sort Descending (Newest Time First)
-    validBackups.sort((a, b) => b.time - a.time);
+    // If we found files, pick the newest one
+    candidates.sort((a, b) => b.time - a.time);
+    const winner = candidates[0];
+    console.log(`[Backup] Auto-loading external file: ${winner.name}`);
 
-    const winner = validBackups[0];
-    console.log(`[Backup] Smart Select: Picking ${winner.name} (Modified: ${new Date(winner.time).toLocaleString()})`);
+    const content = await getFileContent(winner.name);
+    if (!content) return await readBackupJSONLegacy(); // Safety fallback
 
-    // 4. Read the winner
-    return await getFileContent(winner.name);
-
+    return content;
   } catch (e) {
-    console.error('[Backup] Smart Read Error:', e);
-    throw new Error("Impossible de scanner le dossier de sauvegarde.");
+    console.error('[Backup] Critical error handled:', e);
+    // 🚨 SAFETY NET: Never crash, always fallback
+    return await readBackupJSONLegacy();
   }
 }
-
 // [HELPER] Legacy fallback in case 'readdir' is denied permission
 async function readBackupJSONLegacy() {
-    console.log('[Backup] Scanning failed, using legacy fallback...');
-    const files = ['backup-manuel.json', 'backup-auto-compteur.json', 'backup-auto-temps.json'];
-    let best = null;
-    let maxDate = 0;
+  console.log('[Backup] Scanning failed, using legacy fallback...');
+  const files = ['backup-manuel.json', 'backup-auto-compteur.json', 'backup-auto-temps.json'];
+  let best = null;
+  let maxDate = 0;
 
-    for (const f of files) {
-        const content = await getFileContent(f);
-        if (content) {
-            if (content.lastModified > maxDate) {
-                maxDate = content.lastModified;
-                best = content;
-            }
-        }
+  for (const f of files) {
+    const content = await getFileContent(f);
+    if (content) {
+      if (content.lastModified > maxDate) {
+        maxDate = content.lastModified;
+        best = content;
+      }
     }
-    if (best) return best;
-    throw new Error('Aucune sauvegarde trouvée.');
+  }
+  if (best) return best;
+  throw new Error('Aucune sauvegarde trouvée.');
 }
 
 // [SURGICAL REPLACEMENT] src/services/backup.js
@@ -318,8 +314,8 @@ export async function registerChange() {
 
   // 1. Calc Time
   // Safety: If lastAutoBackup is missing/zero, assume 'now'
-  if (!lastAutoBackup) lastAutoBackup = now; 
-  
+  if (!lastAutoBackup) lastAutoBackup = now;
+
   const timeElapsed = now - lastAutoBackup;
   const isTimeDue = timeElapsed >= timeThreshold;
   const isCounterDue = counter >= threshold;

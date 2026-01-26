@@ -10,6 +10,7 @@ import BatchScheduleModal from './BatchScheduleModal'; // [NEW]
 import BatchPrintModal from './BatchPrintModal'; // [NEW]
 import BatchResultModal from './BatchResultModal'; // [NEW]
 import { exportWorkersToExcel } from '../services/excelExport';
+import { useToast } from './Toast'; // [NEW] Import Toast Hook
 import {
   FaPlus,
   FaSearch,
@@ -24,7 +25,52 @@ import {
   FaCheckSquare, // [NEW] Icon for Toggle
 } from 'react-icons/fa';
 
+// [SURGICAL ADDITION] Fix #5: Loading Skeleton
+// Place this BEFORE "export default function WorkerList"
+const LoadingSkeleton = ({ mode }) => {
+  // Match the grid template of the main table
+  const gridTemplate = mode
+    ? '50px 1.9fr 0.8fr 1fr 0.9fr 2.2fr 100px'
+    : '0px 1.5fr 0.8fr 1fr 0.9fr 2.2fr 100px';
+
+  return (
+    <div className="scroll-wrapper" style={{ paddingBottom: '120px' }}>
+      <div className="hybrid-container">
+        {/* Fake Header */}
+        <div className="hybrid-header" style={{ gridTemplateColumns: gridTemplate, opacity: 0.7 }}>
+          <div></div>
+          {/* Check */}
+          <div>Nom</div>
+          <div>Matricule</div>
+          <div>Service</div>
+          <div>Dernier</div>
+          <div>Prochain</div>
+          <div></div>
+        </div>
+        {/* Fake Rows */}
+        {[...Array(6)].map((_, i) => (
+          <div
+            key={i}
+            className="hybrid-row loading-shimmer"
+            style={{
+              gridTemplateColumns: gridTemplate,
+              height: '60px',
+              marginBottom: '0.6rem',
+              border: '1px solid #e2e8f0',
+            }}
+          >
+            {/* Just empty divs to shimmer */}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export default function WorkerList({ onNavigateWorker, compactMode }) {
+  // [NEW] Toast Hook
+  const { showToast, ToastContainer } = useToast();
+
   // ==================================================================================
   // 1. STATE MANAGEMENT
   // ==================================================================================
@@ -179,6 +225,18 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
 
     return result;
   }, [workers, deferredSearch, filterDept, showArchived, sortConfig, departments, filterStatus]);
+
+  // [SURGICAL ADDITION] Fix #4: Memoized List for Performance
+  // This prevents recalculating "isOverdue" and "Department Name" on every render.
+  const memoizedWorkers = useMemo(() => {
+    return filteredWorkers.map((w) => ({
+      ...w,
+      // Pre-calculate these values once:
+      isOverdue: logic.isOverdue(w.next_exam_due),
+      deptName: departments.find((d) => d.id == w.department_id)?.name || '-',
+      statusConfig: w.latest_status, // Keep raw status, render logic handles the badge
+    }));
+  }, [filteredWorkers, departments]);
   // ==================================================================================
   // 4. BATCH OPERATIONS HANDLERS
   // ==================================================================================
@@ -246,7 +304,9 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     setShowScheduleModal(false);
     setSelectedIds(new Set());
     loadData(); // Refresh list immediately
-    alert(`${targets.length} analyses créées pour ${defaultDoctor}.`);
+    // OLD: alert(`${targets.length} analyses créées pour ${defaultDoctor}.`);
+    // NEW:
+    showToast(`${targets.length} analyses créées pour ${defaultDoctor}.`, 'success');
   };
 
   // [NEW] BATCH PRINT HANDLER
@@ -331,7 +391,9 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     setShowResultModal(false);
     setSelectedIds(new Set());
     loadData();
-    alert(`${targets.length} résultats mis à jour !`);
+    // OLD: alert(`${targets.length} résultats mis à jour !`);
+    // NEW:
+    showToast(`${targets.length} résultats mis à jour !`, 'success');
   };
 
   // [SURGICAL FIX: BATCH DELETE WITH SYNC]
@@ -353,10 +415,14 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
       setSelectedIds(new Set());
       await loadData();
 
-      alert('Suppression terminée.');
+      // OLD: alert('Suppression terminée.');
+      // NEW:
+      showToast('Suppression terminée.', 'success');
     } catch (e) {
       console.error('Batch Delete Failed:', e);
-      alert('Erreur lors de la suppression.');
+      // OLD: alert('Erreur lors de la suppression.');
+      // NEW:
+      showToast('Erreur lors de la suppression.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -429,9 +495,13 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
         setDeletingId(worker.id); // [NEW] Start loading
         await db.deleteWorker(worker.id);
         await loadData(); // Wait for reload
+        // [Optional] You can add a success toast here if you like
+        showToast('Travailleur supprimé.', 'success');
       } catch (error) {
         console.error('Delete failed', error);
-        alert('Erreur lors de la suppression');
+        // OLD: alert('Erreur lors de la suppression');
+        // NEW:
+        showToast('Erreur lors de la suppression', 'error');
       } finally {
         setDeletingId(null); // [NEW] Stop loading
       }
@@ -446,25 +516,35 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
         json,
         `medical_backup_${new Date().toISOString().split('T')[0]}.json`
       );
-      alert('Export réussi ! (Vérifiez le dossier Documents/copro-watch)');
+      // OLD: alert('Export réussi ! (Vérifiez le dossier Documents/copro-watch)');
+      // NEW:
+      showToast('Export réussi ! (Vérifiez le dossier Documents)', 'success');
     } catch (e) {
       console.error(e);
-      alert("Erreur lors de l'export: " + e.message);
+      // OLD: alert("Erreur lors de l'export: " + e.message);
+      // NEW:
+      showToast("Erreur lors de l'export: " + e.message, 'error');
     }
   };
   // [NEW] Excel Reporting Function
   const handleExcelExport = async () => {
     if (filteredWorkers.length === 0) {
-      alert('Aucune donnée affichée à exporter.');
+      // OLD: alert('Aucune donnée affichée à exporter.');
+      // NEW:
+      showToast('Aucune donnée affichée à exporter.', 'warning');
       return;
     }
 
     // Uses the current filtered list (respects your search/department filters)
     try {
       await exportWorkersToExcel(filteredWorkers, departments);
+      // [Optional] Add success toast
+      showToast('Fichier Excel généré !', 'success');
     } catch (error) {
       console.error('Export Excel failed:', error);
-      alert('Erreur lors de la création du fichier Excel.');
+      // OLD: alert('Erreur lors de la création du fichier Excel.');
+      // NEW:
+      showToast('Erreur lors de la création du fichier Excel.', 'error');
     }
   };
 
@@ -475,10 +555,14 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     reader.onload = async (evt) => {
       const success = await db.importData(evt.target.result);
       if (success) {
-        alert('Import réussi !');
+        // OLD: alert('Import réussi !');
+        // NEW:
+        showToast('Import réussi !', 'success');
         loadData();
       } else {
-        alert("Erreur lors de l'import.");
+        // OLD: alert("Erreur lors de l'import.");
+        // NEW:
+        showToast("Erreur lors de l'import.", 'error');
       }
     };
     reader.readAsText(file);
@@ -505,6 +589,29 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
     return (
       <span className={`badge ${conf.class}`} style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}>
         {conf.label}
+      </span>
+    );
+  };
+
+  // [HELPER] Search Highlighter
+  const highlightMatch = (text, search) => {
+    if (!search || !text) return text;
+    // Split text based on the search term (case insensitive)
+    const parts = text.toString().split(new RegExp(`(${search})`, 'gi'));
+    return (
+      <span>
+        {parts.map((part, i) =>
+          part.toLowerCase() === search.toLowerCase() ? (
+            <span
+              key={i}
+              style={{ backgroundColor: '#fef08a', color: 'black', borderRadius: '2px' }}
+            >
+              {part}
+            </span>
+          ) : (
+            part
+          )
+        )}
       </span>
     );
   };
@@ -621,16 +728,15 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
           </button>
         </div>
       </div>
-      {/* [LOGIC] Show Loading, Empty State, or Data */}
+
+      {/* [SURGICAL REPLACEMENT] Fix #4 & #5: Skeleton + Optimized Map */}
       {isLoading ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-          <div className="loading-spinner"></div> Chargement...
-        </div>
+        <LoadingSkeleton mode={isSelectionMode} />
       ) : workers.length === 0 ? (
         emptyStateUI
       ) : (
         <>
-          {/* FILTERS BAR */}
+          {/* FILTERS BAR (Kept exactly as it was) */}
           <div
             className="card"
             style={{
@@ -758,10 +864,8 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
                 <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>Actions</div>
               </div>
 
-              {/* 2. SCROLLABLE DATA ROWS */}
-              {filteredWorkers.map((w) => {
-                const isOverdue = logic.isOverdue(w.next_exam_due);
-                const status = w.latest_status; // [FIX] Use cached status from worker object
+              {/* 2. OPTIMIZED DATA ROWS (Uses memoizedWorkers now!) */}
+              {memoizedWorkers.map((w) => {
                 const isSelected = selectedIds.has(w.id);
 
                 return (
@@ -771,7 +875,7 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
                       isSelectionMode ? toggleSelectOne(w.id) : onNavigateWorker(w.id)
                     }
                     className={`hybrid-row ${isSelected ? 'selected' : ''} ${
-                      !w.archived && isOverdue ? 'overdue-worker-row' : ''
+                      !w.archived && w.isOverdue ? 'overdue-worker-row' : ''
                     }`}
                     style={{
                       gridTemplateColumns: gridTemplate,
@@ -792,7 +896,7 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
 
                     {/* Nom et prénom */}
                     <div className="hybrid-cell cell-name">
-                      {w.full_name}
+                      {highlightMatch(w.full_name, deferredSearch)}
                       {w.archived && (
                         <span
                           className="badge"
@@ -801,7 +905,6 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
                             marginLeft: '5px',
                             background: '#eee',
                             color: '#666',
-                            border: 'none',
                           }}
                         >
                           Archivé
@@ -821,29 +924,28 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
                           color: '#64748b',
                         }}
                       >
-                        {w.national_id}
+                        {highlightMatch(w.national_id, deferredSearch)}
                       </span>
                     </div>
 
-                    {/* Service */}
-                    <div className="hybrid-cell">{getDeptName(w.department_id)}</div>
+                    {/* Service (Uses pre-calculated name) */}
+                    <div className="hybrid-cell">{w.deptName}</div>
 
                     {/* Dernier Exam */}
                     <div className="hybrid-cell">
                       {w.last_exam_date ? logic.formatDateDisplay(new Date(w.last_exam_date)) : '-'}
                     </div>
 
-                    {/* Col 6: Prochain Dû */}
+                    {/* Prochain Dû (Optimized) */}
                     <div
                       className="hybrid-cell"
                       style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
-                      {/* [FIX] Fixed width '85px' prevents wiggling when scrolling */}
                       <span style={{ fontWeight: 600, minWidth: '85px', display: 'inline-block' }}>
                         {logic.formatDateDisplay(w.next_exam_due)}
                       </span>
-                      {renderStatusBadge(status)}
-                      {!w.archived && isOverdue && (
+                      {renderStatusBadge(w.latest_status)}
+                      {!w.archived && w.isOverdue && (
                         <span
                           className="badge badge-red"
                           style={{ fontSize: '0.65rem', padding: '2px 6px' }}
@@ -865,7 +967,7 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
                       <button
                         className="btn btn-outline btn-sm"
                         onClick={(e) => handleDelete(e, w)}
-                        disabled={deletingId === w.id} // Disable if deleting this one
+                        disabled={deletingId === w.id}
                         style={{
                           color: 'var(--danger)',
                           borderColor: 'var(--danger)',
@@ -873,7 +975,6 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
                         }}
                         title="Supprimer"
                       >
-                        {/* Show Spinner or Icon */}
                         {deletingId === w.id ? (
                           <div
                             className="loading-spinner"
@@ -888,7 +989,8 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
                 );
               })}
 
-              {filteredWorkers.length === 0 && (
+              {/* Empty Search Result State */}
+              {memoizedWorkers.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
                   <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>🔍</div>
                   <p>Aucun résultat trouvé.</p>
@@ -907,8 +1009,8 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
           </div>
         </>
       )}
-      {/* FLOATERS */}
 
+      {/* FLOATERS */}
       {selectedIds.size > 0 && (
         <BulkActionsToolbar
           selectedCount={selectedIds.size}
@@ -964,6 +1066,9 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
           onCancel={() => setShowResultModal(false)}
         />
       )}
+
+      {/* [NEW] TOAST CONTAINER */}
+      <ToastContainer />
     </div>
   );
 }

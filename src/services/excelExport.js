@@ -40,7 +40,7 @@ export const exportWorkersToExcel = async (workers, departments) => {
     }
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Copro-Watch v2.0';
+    workbook.creator = 'Copro-Watch v2.1';
     workbook.created = new Date();
 
     // ==========================================

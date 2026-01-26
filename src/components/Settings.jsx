@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { db } from '../services/db';
 import { hashString } from '../services/crypto'; // [NEW]
 import backupService from '../services/backup';
+import { useToast } from './Toast';
 import {
   FaSave,
   FaLock,
@@ -24,7 +25,7 @@ export default function Settings({
   // Initialize empty. We only set it if the user types a NEW pin.
   const [pin, setPin] = useState('');
   const [doctorName, setDoctorName] = useState(''); // [NEW]
-  const [msg, setMsg] = useState('');
+  const { showToast, ToastContainer } = useToast();
   const fileRef = useRef();
 
   const [backupDir, setBackupDir] = useState(null);
@@ -58,8 +59,7 @@ export default function Settings({
     // 2. Only if user TYPED something, we validate and update
     if (pin.length > 0) {
       if (pin.length !== 4 || isNaN(pin)) {
-        setMsg('Le PIN doit être composé de 4 chiffres.');
-        setTimeout(() => setMsg(''), 3000);
+        showToast('Le PIN doit être composé de 4 chiffres.', 'error');
         return;
       }
       // Hash the NEW pin
@@ -78,8 +78,7 @@ export default function Settings({
       setPin(''); // Clear the field for security
     }
 
-    setMsg('Paramètres sauvegardés !');
-    setTimeout(() => setMsg(''), 3000);
+    showToast('Paramètres sauvegardés !', 'success');
   };
 
   const handleExportEncrypted = async () => {
@@ -88,36 +87,32 @@ export default function Settings({
       if (!pw) return;
 
       console.log('Starting encrypted export...');
-      setMsg("Génération de l'export chiffré...");
+      showToast("Génération de l'export chiffré...", 'info');
       const enc = await db.exportDataEncrypted(pw);
       console.log('Export data generated, using backup service...');
 
       // Use backup service directly for Android native export
       await backupService.saveBackupJSON(enc, 'medical-export-encrypted.json');
-      setMsg('Export chiffré réussi ! Sauvegardé dans Documents/copro-watch/');
-      setTimeout(() => setMsg(''), 5000);
+      showToast('Export chiffré réussi ! Sauvegardé dans Documents/copro-watch/', 'success');
     } catch (e) {
       console.error('Encrypted export failed:', e);
-      setMsg("Échec de l'export chiffré: " + (e.message || e));
-      setTimeout(() => setMsg(''), 5000);
+      showToast("Échec de l'export chiffré: " + (e.message || e), 'error');
     }
   };
 
   const handleExportPlain = async () => {
     try {
       console.log('Starting plain export...');
-      setMsg("Génération de l'export...");
+      showToast("Génération de l'export...", 'info');
       const plain = await db.exportData();
       console.log('Export data generated, using backup service...');
 
       // Use backup service directly for Android native export
       await backupService.saveBackupJSON(plain, 'medical-export.json');
-      setMsg('Export réussi ! Sauvegardé dans Documents/copro-watch/');
-      setTimeout(() => setMsg(''), 5000);
+      showToast('Export réussi ! Sauvegardé dans Documents/copro-watch/', 'success');
     } catch (e) {
       console.error('Plain export failed:', e);
-      setMsg("Échec de l'export: " + (e.message || e));
-      setTimeout(() => setMsg(''), 5000);
+      showToast("Échec de l'export: " + (e.message || e), 'error');
     }
   };
 
@@ -128,8 +123,10 @@ export default function Settings({
     if (!pw) return;
     const text = await file.text();
     const ok = await db.importDataEncrypted(text, pw);
-    setMsg(ok ? 'Données importées (chiffrées).' : "Échec de l'import chiffré");
-    setTimeout(() => setMsg(''), 3000);
+    showToast(
+      ok ? 'Données importées (chiffrées).' : "Échec de l'import chiffré",
+      ok ? 'success' : 'error'
+    );
   };
 
   const handleImportPlain = async (e) => {
@@ -137,8 +134,7 @@ export default function Settings({
     if (!file) return;
     const text = await file.text();
     const ok = await db.importData(text);
-    setMsg(ok ? 'Données importées.' : "Échec de l'import");
-    setTimeout(() => setMsg(''), 3000);
+    showToast(ok ? 'Données importées.' : "Échec de l'import", ok ? 'success' : 'error');
   };
 
   useEffect(() => {
@@ -208,21 +204,26 @@ export default function Settings({
     }
   };
 
-const handleGetBackupNow = async () => {
+  const handleGetBackupNow = async () => {
     try {
       setBackupStatus('Creating backup...');
       console.log('Starting manual backup...');
 
       const json = await db.exportData();
-      
+
       // [FIX] Generate a unique filename with DATE and TIME
       const now = new Date();
-      const dateStr = now.getFullYear() + '-' +
-                     String(now.getMonth()+1).padStart(2, '0') + '-' +
-                     String(now.getDate()).padStart(2, '0') + '_' +
-                     String(now.getHours()).padStart(2, '0') + '-' +
-                     String(now.getMinutes()).padStart(2, '0');
-      
+      const dateStr =
+        now.getFullYear() +
+        '-' +
+        String(now.getMonth() + 1).padStart(2, '0') +
+        '-' +
+        String(now.getDate()).padStart(2, '0') +
+        '_' +
+        String(now.getHours()).padStart(2, '0') +
+        '-' +
+        String(now.getMinutes()).padStart(2, '0');
+
       const filename = `backup_manuel_${dateStr}.json`; // Example: backup_manuel_2026-01-25_12-30.json
 
       // [FIX] Pass the filename to the service
@@ -333,8 +334,7 @@ const handleGetBackupNow = async () => {
 
   const addDepartment = async () => {
     if (!newDepartmentName.trim()) {
-      setMsg('Veuillez saisir un nom de service.');
-      setTimeout(() => setMsg(''), 3000);
+      showToast('Veuillez saisir un nom de service.', 'error');
       return;
     }
 
@@ -343,12 +343,10 @@ const handleGetBackupNow = async () => {
       await db.saveDepartment(newDept);
       setNewDepartmentName('');
       await loadDepartments();
-      setMsg('Service ajouté avec succès !');
-      setTimeout(() => setMsg(''), 3000);
+      showToast('Service ajouté avec succès !', 'success');
     } catch (error) {
       console.error('Error adding department:', error);
-      setMsg("Erreur lors de l'ajout du service.");
-      setTimeout(() => setMsg(''), 3000);
+      showToast("Erreur lors de l'ajout du service.", 'error');
     }
   };
 
@@ -374,12 +372,13 @@ const handleGetBackupNow = async () => {
       // 4. Delete the service
       await db.deleteDepartment(id);
       await loadDepartments();
-      setMsg(count > 0 ? `Service et ${count} travailleurs supprimés.` : 'Service supprimé.');
-      setTimeout(() => setMsg(''), 3000);
+      showToast(
+        count > 0 ? `Service et ${count} travailleurs supprimés.` : 'Service supprimé.',
+        'success'
+      );
     } catch (error) {
       console.error('Error deleting department:', error);
-      setMsg('Erreur lors de la suppression.');
-      setTimeout(() => setMsg(''), 3000);
+      showToast('Erreur lors de la suppression.', 'error');
     }
   };
 
@@ -390,11 +389,10 @@ const handleGetBackupNow = async () => {
       await db.saveWorkplace({ name: newWorkplaceName.trim() });
       setNewWorkplaceName('');
       await loadWorkplaces();
-      setMsg('Lieu de travail ajouté !');
-      setTimeout(() => setMsg(''), 3000);
+      showToast('Lieu de travail ajouté !', 'success');
     } catch (e) {
       console.error(e);
-      setMsg("Erreur lors de l'ajout.");
+      showToast("Erreur lors de l'ajout.", 'error');
     }
   };
 
@@ -403,10 +401,10 @@ const handleGetBackupNow = async () => {
       try {
         await db.deleteWorkplace(id);
         await loadWorkplaces();
-        setMsg('Lieu supprimé.');
-        setTimeout(() => setMsg(''), 3000);
+        showToast('Lieu supprimé.', 'success');
       } catch (e) {
         console.error(e);
+        showToast('Erreur lors de la suppression.', 'error');
       }
     }
   };
@@ -425,8 +423,7 @@ const handleGetBackupNow = async () => {
 
   const addWaterDepartment = async () => {
     if (!newWaterDepartmentName.trim()) {
-      setMsg("Veuillez saisir un nom de service d'eau.");
-      setTimeout(() => setMsg(''), 3000);
+      showToast("Veuillez saisir un nom de service d'eau.", 'error');
       return;
     }
 
@@ -435,12 +432,10 @@ const handleGetBackupNow = async () => {
       await db.saveWaterDepartment(newDept);
       setNewWaterDepartmentName('');
       await loadWaterDepartments();
-      setMsg("Service d'eau ajouté avec succès !");
-      setTimeout(() => setMsg(''), 3000);
+      showToast("Service d'eau ajouté avec succès !", 'success');
     } catch (error) {
       console.error('Error adding water department:', error);
-      setMsg("Erreur lors de l'ajout du service d'eau.");
-      setTimeout(() => setMsg(''), 3000);
+      showToast("Erreur lors de l'ajout du service d'eau.", 'error');
     }
   };
 
@@ -466,11 +461,10 @@ const handleGetBackupNow = async () => {
       // 4. Delete the service
       await db.deleteWaterDepartment(id);
       await loadWaterDepartments();
-      setMsg("Service d'eau et historique supprimés.");
-      setTimeout(() => setMsg(''), 3000);
+      showToast("Service d'eau et historique supprimés.", 'success');
     } catch (error) {
       console.error('Error deleting water dept:', error);
-      setMsg('Erreur lors de la suppression.');
+      showToast('Erreur lors de la suppression.', 'error');
     }
   };
   const handleCleanup = async () => {
@@ -1081,24 +1075,6 @@ const handleGetBackupNow = async () => {
         </div>
       </div>
 
-      {msg && (
-        <p
-          style={{
-            color:
-              msg.includes('import') ||
-              msg.includes('sauvegardé') ||
-              msg.includes('ajouté') ||
-              msg.includes('supprimé')
-                ? 'var(--success)'
-                : 'var(--danger)',
-            fontSize: '0.9rem',
-            marginTop: '0.5rem',
-          }}
-        >
-          {msg}
-        </p>
-      )}
-
       {/* --- ADDED CREDITS SECTION (MOVED INSIDE) --- */}
       <div
         className="credit"
@@ -1106,8 +1082,10 @@ const handleGetBackupNow = async () => {
       >
         <div className="credit-title">Développé par</div>
         <div className="credit-author">Dr Kibeche Ali Dia Eddine</div>
-        <div className="credit-version">2.0</div>
+        <div className="credit-version">2.1</div>
       </div>
+
+      <ToastContainer />
     </div>
   );
 }

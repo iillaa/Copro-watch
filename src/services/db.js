@@ -47,10 +47,7 @@ async function triggerBackupCheck() {
 
       const runExport = async () => {
         try {
-          await backupService.performAutoExport(
-            async () => await exportData(),
-            triggerType
-          );
+          await backupService.performAutoExport(async () => await exportData(), triggerType);
         } catch (e) {
           console.warn('[DB] Background export failed', e);
         }
@@ -140,14 +137,31 @@ export const db = {
   },
   // 3. Fix for Workers
   async deleteWorker(id) {
-    const numId = Number(id); // [CRITICAL] Convert once, use everywhere
+    const numId = Number(id);
 
-    // Delete Orphans
-    await dbInstance.exams.where('worker_id').equals(numId).delete();
+    try {
+      // Use a transaction to ensure atomic deletion (all or nothing)
+      await dbInstance.transaction('rw', dbInstance.exams, dbInstance.workers, async () => {
+        // 1. Delete all exams for this worker first
+        await dbInstance.exams.where('worker_id').equals(numId).delete();
 
-    // Delete Worker
-    await dbInstance.workers.delete(numId);
-    await triggerBackupCheck(); // [FIX] Awaited
+        // 2. Delete the worker
+        await dbInstance.workers.delete(numId);
+      });
+
+      // 3. Safety Check: Verify no orphans remain
+      const orphanCheck = await dbInstance.exams.where('worker_id').equals(numId).count();
+      if (orphanCheck > 0) {
+        console.warn(`[DB] Warning: ${orphanCheck} orphan exams remained. Cleaning up...`);
+        await dbInstance.exams.where('worker_id').equals(numId).delete();
+      }
+
+      await triggerBackupCheck();
+      console.log(`[DB] Worker ${numId} deleted successfully.`);
+    } catch (error) {
+      console.error('[DB] Worker deletion failed:', error);
+      throw error; // Re-throw to let UI know
+    }
   },
 
   // --- EXAMS ---

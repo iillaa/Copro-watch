@@ -5,6 +5,7 @@ import { FaPrint } from 'react-icons/fa';
 import { pdfService } from '../services/pdfGenerator'; // [NEW]
 import BatchPrintModal from './BatchPrintModal'; // [NEW]
 import ExamForm from './ExamForm';
+import { useToast } from './Toast'; // [NEW]
 // AJOUT : Import des icônes d'archive et FaCheckSquare
 import {
   FaArrowLeft,
@@ -27,6 +28,9 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
   const [showPrintModal, setShowPrintModal] = useState(false); // [NEW] Pour le PDF Smart
   const [deptName, setDeptName] = useState('');
   const [workplaceName, setWorkplaceName] = useState('');
+
+  // [NEW] Toast
+  const { showToast, ToastContainer } = useToast();
 
   // [NEW] Persistent Selection Mode State
   const [isSelectionMode, setIsSelectionMode] = useState(
@@ -118,10 +122,10 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
         setSelectedIds(new Set());
         loadData();
 
-        alert('Historique nettoyé et statut mis à jour.');
+        showToast('Historique nettoyé et statut mis à jour', 'success');
       } catch (e) {
         console.error(e);
-        alert('Erreur de synchronisation.');
+        showToast('Erreur de synchronisation', 'error');
       }
     }
   };
@@ -160,7 +164,7 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
       loadData();
     } catch (e) {
       console.error('Erreur sync:', e);
-      alert('Erreur lors de la mise à jour des dates.');
+      showToast('Erreur lors de la mise à jour des dates', 'error');
     }
   };
 
@@ -191,7 +195,7 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
       const updatedWorker = { ...worker, archived: newStatus };
       await db.saveWorker(updatedWorker);
 
-      alert(`Travailleur ${newStatus ? 'archivé' : 'réactivé'} avec succès.`);
+      showToast(`Travailleur ${newStatus ? 'archivé' : 'réactivé'} avec succès`, 'success');
       loadData();
     }
   };
@@ -512,6 +516,8 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
           }}
         />
       )}
+
+      <ToastContainer />
     </div>
   );
 }

@@ -198,7 +198,7 @@ function App() {
         <div className="credit" style={{ marginTop: 'auto' }}>
           <div className="credit-title">Développé par</div>
           <div className="credit-author">Dr Kibeche Ali Dia Eddine</div>
-          <div className="credit-version">2.0</div>
+          <div className="credit-version">2.1</div>
         </div>
       </aside>
 

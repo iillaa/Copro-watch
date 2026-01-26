@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
+import { useToast } from './Toast';
 
 export default function WorkerForm({ workerToEdit, onClose, onSave }) {
+  const { showToast, ToastContainer } = useToast();
   const [departments, setDepartments] = useState([]);
   const [workplaces, setWorkplaces] = useState([]);
 
@@ -42,7 +44,7 @@ export default function WorkerForm({ workerToEdit, onClose, onSave }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.workplace_id) {
-      alert('Veuillez sélectionner un lieu de travail.');
+      showToast('Veuillez sélectionner un lieu de travail.', 'error');
       return;
     }
     // --- LOGIQUE ANTI-DOUBLON ---
@@ -64,10 +66,7 @@ export default function WorkerForm({ workerToEdit, onClose, onSave }) {
         return nameMatch || matriculeMatch || phoneMatch;
       });
       if (duplicate) {
-        alert(
-          `Doublon détecté avec le travailleur : ${duplicate.full_name}.\n` +
-            `(Nom, Matricule ou Téléphone identique)`
-        );
+        showToast(`Doublon détecté : ${duplicate.full_name}`, 'error');
         return; // Arrêter l'enregistrement
       }
     } catch (error) {
@@ -255,6 +254,7 @@ export default function WorkerForm({ workerToEdit, onClose, onSave }) {
             </button>
           </div>
         </form>
+        <ToastContainer />
       </div>
     </div>
   );

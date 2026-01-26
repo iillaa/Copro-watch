@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { logic } from '../services/logic';
+import { useToast } from './Toast';
 import WaterAnalysisForm from './WaterAnalysisForm';
 import BulkActionsToolbar from './BulkActionsToolbar';
 import {
@@ -12,6 +13,9 @@ import {
 } from 'react-icons/fa';
 
 export default function WaterServiceDetail({ department, onBack, onSave, compactMode }) {
+  // Toast
+  const { showToast, ToastContainer } = useToast();
+
   // ==================================================================================
   // 1. STATE MANAGEMENT
   // ==================================================================================
@@ -72,6 +76,7 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
       await db.deleteWaterAnalysis(analysisId);
       loadData();
       if (onSave) onSave();
+      showToast('Analyse supprimée', 'success');
     }
   };
 
@@ -125,6 +130,7 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
       setSelectedIds(new Set());
       loadData();
       if (onSave) onSave();
+      showToast(`${idsToDelete.length} analyses supprimées`, 'success');
     }
   };
 
@@ -308,6 +314,8 @@ export default function WaterServiceDetail({ department, onBack, onSave, compact
           onCancel={() => setShowForm(false)}
         />
       )}
+
+      <ToastContainer />
     </div>
   );
 }
