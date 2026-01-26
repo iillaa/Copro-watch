@@ -32,11 +32,14 @@
   - _Idée :_ Option pour basculer l'interface en noir/gris foncé.
   - _But :_ Confort visuel pour le travail de nuit et économie de batterie.
 - [x] **Concept : Actions en Masse (Bulk Actions)**
-  - _État :_ ✅ Terminé (v1.2)
+  - _État :_ ✅ Terminé (v2.1)
   - _Détail :_ Suppression, Planification, Résultats, Archivage et Impression en masse.
 - [ ] **Concept : Recherche Avancée**
   - _Idée :_ Filtres combinés dans la barre de recherche.
   - _But :_ Trouver "Cuisiniers" + "En Retard" + "Dep: SWAG" en une seule requête.
+- [x] **Concept : Transfert de Département**
+  - _État :_ ✅ Terminé (v2.1)
+  - _Détail :_ Modal pour déplacer plusieurs travailleurs entre services.
 
 ### 🔒 Sécurité & Technique
 
@@ -53,3 +56,4 @@
 
 - [x] **v1.0** : Core (Gestion Travailleurs, Examens, Eau), Sauvegarde Smart Backup.
 - [x] **v1.2** : Batch Workflows (Résultats, Planning), PDF Engine, Excel Engine, Global Sync.
+- [x] **v2.1** : Bulk Actions (Suppression massive, Impression groupée), Transfert inter-départements, Interface optimisée, Standalone HTML Build.

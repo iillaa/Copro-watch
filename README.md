@@ -14,6 +14,7 @@ Une application web autonome (Single Page Application) conçue pour la gestion d
 - **Base de données complète** : Ajout, modification et archivage des travailleurs.
 - **Organisation** : Gestion par Départements (SWAG, BMPJ, etc.) et Lieux de travail.
 - **Recherche** : Filtrage instantané pour retrouver un dossier.
+- **Transfert** : Déplacement massif de travailleurs entre services.
 
 ### 🧪 Cycle d'Examen Médical Complet
 
@@ -22,15 +23,17 @@ Une application web autonome (Single Page Application) conçue pour la gestion d
   2.  Saisie des résultats (Positif/Négatif/En cours).
   3.  **Si Négatif** : Génération automatique du certificat d'aptitude et calcul de la prochaine échéance (+6 mois).
   4.  **Si Positif** : Protocole de traitement, marquage "Inapte", et planification automatique de la contre-visite (+7/10 jours).
+- **Actions de Masse** : Planification, résultat et impression groupés pour plusieurs travailleurs.
 - **Analyses d'Eau** : Module dédié pour le suivi de la qualité de l'eau (Chlore, pH, Bactério) avec historique complet.
 
-### 🛡️ Sécurité & Sauvegarde (Nouveau Système v1.0)
+### 🛡️ Sécurité & Sauvegarde
 
 L'application dispose d'un système de sauvegarde "Fail-Safe" pour éviter toute perte de données :
 
 - **Sauvegarde Automatique** : Un fichier `backup-auto.json` est généré/mis à jour automatiquement toutes les **10 modifications** (paramétrable).
 - **Sauvegarde Manuelle** : Un fichier `backup-manuel.json` distinct est créé lorsque vous cliquez sur "Sauvegarder" dans les paramètres.
 - **Restauration Intelligente** : Lors de l'importation d'un dossier de sauvegarde, l'application compare les dates des fichiers Auto et Manuel et charge automatiquement **le plus récent** pour éviter d'écraser des données récentes avec une vieille sauvegarde.
+- **Verrouillage PIN** : Protection par code à 4 chiffres pour accéder à l'application.
 
 ---
 
@@ -44,9 +47,9 @@ C'est la méthode la plus flexible. Elle compile toute l'application (code, base
 
 1.  **Générer le fichier** :
     ```bash
-    npm run build:file
+    npm run build:standalone
     ```
-2.  **Récupérer** : Le fichier se trouve dans `dist/index-standalone.html`.
+2.  **Récupérer** : Le fichier se trouve dans `dist-standalone/index.html`.
 3.  **Utiliser** : Copiez ce fichier sur n'importe quel ordinateur. Double-cliquez pour l'ouvrir dans Chrome/Edge/Firefox. Aucune installation n'est requise.
 
 ### Option B : Application Android (APK) 📱
@@ -100,7 +103,7 @@ Pour les développeurs souhaitant modifier le code source.
 | `npm install`             | Installe toutes les dépendances du projet.                                                             |
 | `npm run dev`             | Lance le serveur de développement local (avec rechargement à chaud).                                   |
 | `npm run build`           | Compile l'application pour le web (dossier `dist/`).                                                   |
-| `npm run build:standalone | **Crée la version portable** (`index-standalone.html`). Combine le build web + l'injection des assets. |
+| `npm run build:standalone` | **Crée la version portable** (`dist-standalone/index.html`). Combine le build web + l'injection des assets. |
 | `npx cap sync`            | Synchronise le code web avec le projet Android natif.                                                  |
 | `npm run lint`            | Vérifie la qualité du code (ESLint).                                                                   |
 
@@ -108,11 +111,24 @@ Pour les développeurs souhaitant modifier le code source.
 
 - `src/components` : Interface utilisateur (Tableaux, Formulaires).
 - `src/services` : Logique métier.
-  - `db.js` : Gestion de la base de données IndexedDB (Workers, Exams).
-  - `backup.js` : **Cœur du système de sauvegarde** (Auto/Manuel, Permissions Android, Logique Smart Import).
-  - `logic.js` : Règles métiers (Calcul des dates, Statuts, Aptitude).
+  - [`db.js`](src/services/db.js) : Gestion de la base de données IndexedDB (Workers, Exams).
+  - [`backup.js`](src/services/backup.js) : **Cœur du système de sauvegarde** (Auto/Manuel, Permissions Android, Logique Smart Import).
+  - [`logic.js`](src/services/logic.js) : Règles métiers (Calcul des dates, Statuts, Aptitude).
+  - [`excelExport.js`](src/services/excelExport.js) : Export Excel multi-feuilles.
+  - [`pdfGenerator.js`](src/services/pdfGenerator.js) : Génération de PDF (Certificats, Convocations, Demandes).
 
-## Histoire du Projet
+### Stack Technique
+
+- **Frontend** : React 19 + Vite
+- **Base de données** : Dexie.js (IndexedDB)
+- **Mobile** : Capacitor 8
+- **PDF** : jspdf + jspdf-autotable
+- **Excel** : xlsx (SheetJS)
+- **Design** : Neobrutalism (CSS pur)
+
+---
+
+## 📜 Histoire du Projet
 
 Ce projet a été développé en plusieurs phases, démontrant l'évolution des outils de développement IA :
 
@@ -121,3 +137,9 @@ Ce projet a été développé en plusieurs phases, démontrant l'évolution des 
 3. **Phase de finalisation** : Perfectionné par **BlackBox** utilisant **MiniMax M2 + Gemini 3 pro** pour les dernières retouches, finitions du UI et optimisations des fonctions
 
 Cette approche multi-outils a permis de créer une application robuste et complète, en tirant parti des forces uniques de chaque plateforme d'IA.
+
+---
+
+## 📄 License
+
+Ce projet est destiné à un usage interne. Consultez le fichier LICENSE pour plus de détails.

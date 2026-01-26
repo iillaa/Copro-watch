@@ -13,7 +13,7 @@ Here is the detailed `CODEMAP.md` file. Save this in your project root. It cover
 ```markdown
 # 🗺️ Copro-Watch Project Code Map
 
-> **Version:** 1.1.0
+> **Version:** 2.1.0
 > **Purpose:** Offline-first Medical Fleet Management (SPA)
 > **Stack:** React 19, Vite, Capacitor 8, Dexie (IndexedDB)
 
@@ -37,7 +37,7 @@ Here is the detailed `CODEMAP.md` file. Save this in your project root. It cover
 | `vite.standalone.config.js`     | **Special Build:** Compiles app into a single `.html` file (portable mode). |
 | `capacitor.config.json`         | Android native settings (App ID: `com.coprowatch.app`).                     |
 | `TECHNICAL_ARCHITECTURE.md`     | Security protocols and backup logic documentation.                          |
-| `ANDROID_BUILD_INSTRUCTIONS.md` | Guide for generating the APK.                                               |
+| `ANDROID_BUILD_INSTRUCTIONS.md` | Guide for generating the APK.                                              |
 
 ### 🧠 Logic Layer (`src/services/`)
 
@@ -45,10 +45,10 @@ This is the brain of the application.
 
 - **`db.js`** (The Database)
 
-  - **Wrapper:** `Dexie` (replacing LocalForage).
+  - **Wrapper:** `Dexie`.
   - **Tables:** `workers`, `departments`, `workplaces`, `exams`, `water_analyses`, `water_departments`.
   - **Features:** Handles migration from old `localforage` data automatically.
-  - **Triggers:** Calls `backupService.registerChange()` on every save/delete.
+  - **Triggers:** Calls `backup.registerChange()` on every save/delete.
 
 - **`backup.js`** (The Safety Net)
 
@@ -70,17 +70,25 @@ This is the brain of the application.
   - **Calculations:** Determines `next_exam_due` and `status` (Apte, Inapte).
   - **Stats:** Generates dashboard counters (Overdue, Due Soon).
 
+- **`excelExport.js`** (Data Export)
+  - Generates `.xlsx` files with multiple sheets (Workers, Exams, Water History).
+
+- **`pdfGenerator.js`** (Document Engine)
+  - Generates PDF certificates, summons, water analysis requests, and attendance sheets.
+
 ### 🎨 UI Components (`src/components/`)
 
 #### 🔐 Core & Layout
 
 - **`App.jsx`**: Main Router. Manages `PinLock` state and Sidebar navigation.
 - **`PinLock.jsx`**: 4-digit security overlay. Blocks access until correct PIN (Default: `0011` or DB setting) is entered.
+- **`ErrorBoundary.jsx`**: Prevents white screen of death if a component crashes.
+- **`Toast.jsx`**: Global notification system for success/error messages.
 - **`Settings.jsx`**:
   - Manage PIN.
   - Backup Controls (Export, Import, Threshold).
   - **CRUD:** Manage Departments (RH) and Workplaces.
-- **`ErrorBoundary.jsx`**: Prevents white screen of death if a component crashes.
+- **`MoveWorkersModal.jsx`**: Modal for moving workers between departments.
 
 #### 📊 Dashboard & Workers
 
@@ -95,11 +103,15 @@ This is the brain of the application.
 - **`AddWorkerForm.jsx`**: Modal to create/edit a worker.
 - **`ExamForm.jsx`**: The medical visit form.
   - Inputs: Date, Weight, Result (Pos/Neg), Treatment, Decision.
+- **`BulkActionsToolbar.jsx`**: Floating toolbar for multi-select operations.
+- **`BatchScheduleModal.jsx`**: Modal to schedule multiple exams.
+- **`BatchPrintModal.jsx`**: Modal for batch PDF generation.
+- **`BatchResultModal.jsx`**: Modal for entering results for multiple workers.
 
 #### 💧 Water Analysis Module
 
 - **`WaterAnalyses.jsx`**: Main container for the Water module.
-- **`WaterAnalysisPanel.jsx`**: Quick input for daily checks (Chlorine, pH).
+- **`WaterAnalysisPanel.jsx`**: Quick input for daily checks (Chlorine, pH, Temperature).
 - **`WaterAnalysesOverview.jsx`**: Summary table of all water points.
 - **`WaterAnalysesHistory.jsx`**: Log of past water tests.
 - **`WaterAnalysisForm.jsx`**: Detailed form for a specific water test.
@@ -122,4 +134,3 @@ This is the brain of the application.
     `ExamForm` -> `db.saveExam()` -> `IndexedDB` -> `backup.registerChange()` -> (if counter > 10) -> `backup.performAutoExport()`.
 2.  **App Launch:**
     `App.jsx` -> `db.init()` (Migrate if needed) -> `backup.checkAndAutoImport()` (Load fresh data) -> `PinLock` (Block UI).
-```
