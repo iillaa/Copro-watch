@@ -169,11 +169,11 @@ _Utile pour : Humains et IA._
 
 ## 🔧 COMMANDES DE DÉVELOPPEMENT
 
-| Commande | Description |
-| :------- | :---------- |
-| `npm install` | Installe les dépendances |
-| `npm run dev` | Serveur de dev avec hot reload |
-| `npm run build` | Build web standard (dossier `dist/`) |
+| Commande                   | Description                                 |
+| :------------------------- | :------------------------------------------ |
+| `npm install`              | Installe les dépendances                    |
+| `npm run dev`              | Serveur de dev avec hot reload              |
+| `npm run build`            | Build web standard (dossier `dist/`)        |
 | `npm run build:standalone` | Build portable (dossier `dist-standalone/`) |
-| `npx cap sync` | Sync avec le projet Android |
-| `npm run lint` | Vérification ESLint |
+| `npx cap sync`             | Sync avec le projet Android                 |
+| `npm run lint`             | Vérification ESLint                         |

@@ -37,7 +37,7 @@ Here is the detailed `CODEMAP.md` file. Save this in your project root. It cover
 | `vite.standalone.config.js`     | **Special Build:** Compiles app into a single `.html` file (portable mode). |
 | `capacitor.config.json`         | Android native settings (App ID: `com.coprowatch.app`).                     |
 | `TECHNICAL_ARCHITECTURE.md`     | Security protocols and backup logic documentation.                          |
-| `ANDROID_BUILD_INSTRUCTIONS.md` | Guide for generating the APK.                                              |
+| `ANDROID_BUILD_INSTRUCTIONS.md` | Guide for generating the APK.                                               |
 
 ### 🧠 Logic Layer (`src/services/`)
 
@@ -64,6 +64,7 @@ This is the brain of the application.
   - **Usage:** Encrypts exports (`.json`) so they can be safely transported.
 
 - **`logic.js`** (The Doctor)
+
   - **Rules:**
     - Standard Exam Interval: **6 Months**.
     - Retest Interval (Positive Case): **7 Days**.
@@ -71,6 +72,7 @@ This is the brain of the application.
   - **Stats:** Generates dashboard counters (Overdue, Due Soon).
 
 - **`excelExport.js`** (Data Export)
+
   - Generates `.xlsx` files with multiple sheets (Workers, Exams, Water History).
 
 - **`pdfGenerator.js`** (Document Engine)
@@ -134,3 +136,4 @@ This is the brain of the application.
     `ExamForm` -> `db.saveExam()` -> `IndexedDB` -> `backup.registerChange()` -> (if counter > 10) -> `backup.performAutoExport()`.
 2.  **App Launch:**
     `App.jsx` -> `db.init()` (Migrate if needed) -> `backup.checkAndAutoImport()` (Load fresh data) -> `PinLock` (Block UI).
+```

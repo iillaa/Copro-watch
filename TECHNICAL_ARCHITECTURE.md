@@ -88,14 +88,14 @@ The project utilizes automated pipelines for consistent build delivery via GitHu
 
 ### 7.1 Core Tables
 
-| Table | Fields | Indexes |
-| :---- | :----- | :------ |
-| `workers` | id, firstName, lastName, departmentId, workplaceId, pin, status, nextExamDue | status, departmentId |
-| `departments` | id, name | name |
-| `workplaces` | id, name | name |
-| `exams` | id, workerId, date, weight, result, treatment, decision, nextExamDue | workerId, date |
-| `water_departments` | id, name | name |
-| `water_analyses` | id, waterDeptId, date, chlorine, ph, temperature, coliformes, notes | waterDeptId, date |
+| Table               | Fields                                                                       | Indexes              |
+| :------------------ | :--------------------------------------------------------------------------- | :------------------- |
+| `workers`           | id, firstName, lastName, departmentId, workplaceId, pin, status, nextExamDue | status, departmentId |
+| `departments`       | id, name                                                                     | name                 |
+| `workplaces`        | id, name                                                                     | name                 |
+| `exams`             | id, workerId, date, weight, result, treatment, decision, nextExamDue         | workerId, date       |
+| `water_departments` | id, name                                                                     | name                 |
+| `water_analyses`    | id, waterDeptId, date, chlorine, ph, temperature, coliformes, notes          | waterDeptId, date    |
 
 ### 7.2 Settings Table
 
@@ -106,19 +106,19 @@ The project utilizes automated pipelines for consistent build delivery via GitHu
 
 For automated analysis tools:
 
-| Component | Path | Status |
-| :-------- | :--- | :----- |
-| Security Core | `src/services/crypto.js` | EXISTS |
-| Backup Core | `src/services/backup.js` | EXISTS |
-| Auth Core | `src/components/PinLock.jsx` | EXISTS |
-| Excel Export | `src/services/excelExport.js` | EXISTS |
+| Component     | Path                           | Status |
+| :------------ | :----------------------------- | :----- |
+| Security Core | `src/services/crypto.js`       | EXISTS |
+| Backup Core   | `src/services/backup.js`       | EXISTS |
+| Auth Core     | `src/components/PinLock.jsx`   | EXISTS |
+| Excel Export  | `src/services/excelExport.js`  | EXISTS |
 | PDF Generator | `src/services/pdfGenerator.js` | EXISTS |
-| CI/CD | `.github/workflows` | EXISTS |
+| CI/CD         | `.github/workflows`            | EXISTS |
 
 ## 9. Build Variants
 
-| Variant | Command | Output | Purpose |
-| :------ | :------ | :----- | :------ |
-| Web | `npm run build` | `dist/` | Standard web deployment |
-| Standalone | `npm run build:standalone` | `dist-standalone/index.html` | Single portable HTML file |
-| Android | `./gradlew assembleRelease` | `android/app/build/outputs/apk/release/` | APK for Android devices |
+| Variant    | Command                     | Output                                   | Purpose                   |
+| :--------- | :-------------------------- | :--------------------------------------- | :------------------------ |
+| Web        | `npm run build`             | `dist/`                                  | Standard web deployment   |
+| Standalone | `npm run build:standalone`  | `dist-standalone/index.html`             | Single portable HTML file |
+| Android    | `./gradlew assembleRelease` | `android/app/build/outputs/apk/release/` | APK for Android devices   |
