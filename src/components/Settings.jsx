@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { db } from '../services/db';
-import { hashString } from '../services/crypto'; // [NEW]
+import { hashString } from '../services/crypto';
 import backupService from '../services/backup';
 import { useToast } from './Toast';
 import {
@@ -13,6 +13,10 @@ import {
   FaBuilding,
   FaTint,
   FaBriefcase,
+  FaCog,
+  FaHistory,
+  FaShieldAlt,
+  FaDatabase,
 } from 'react-icons/fa';
 
 export default function Settings({
@@ -22,9 +26,13 @@ export default function Settings({
   currentPin,
   onPinChange,
 }) {
+  // --- NAVIGATION STATE ---
+  const [activeTab, setActiveTab] = useState('general');
+
+  // --- EXISTING STATE & LOGIC ---
   // Initialize empty. We only set it if the user types a NEW pin.
   const [pin, setPin] = useState('');
-  const [doctorName, setDoctorName] = useState(''); // [NEW]
+  const [doctorName, setDoctorName] = useState('');
   const { showToast, ToastContainer } = useToast();
   const fileRef = useRef();
 
@@ -47,7 +55,6 @@ export default function Settings({
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
 
   // Water Departments management (séparés)
-
   const [waterDepartments, setWaterDepartments] = useState([]);
   const [newWaterDepartmentName, setNewWaterDepartmentName] = useState('');
   const [waterDepartmentsLoading, setWaterDepartmentsLoading] = useState(false);
@@ -142,7 +149,7 @@ export default function Settings({
     (async () => {
       try {
         await backupService.init();
-        // Initialize threshold from service (get the current threshold value, not the counter)
+        // Initialize threshold from service
         const currentThreshold = (await backupService.getCurrentThreshold?.()) || 10;
         setBackupThreshold(currentThreshold);
         setAutoImportEnabled(await backupService.getAutoImport());
@@ -156,7 +163,7 @@ export default function Settings({
       }
     })();
 
-    // [NEW] Load Doctor Name
+    // Load Doctor Name
     const loadDoctorName = async () => {
       const s = await db.getSettings();
       if (s.doctor_name) setDoctorName(s.doctor_name);
@@ -165,7 +172,6 @@ export default function Settings({
 
     // Load departments
     loadDepartments();
-
     loadWorkplaces();
     // Load water departments
     loadWaterDepartments();
@@ -211,7 +217,7 @@ export default function Settings({
 
       const json = await db.exportData();
 
-      // [FIX] Generate a unique filename with DATE and TIME
+      // Generate a unique filename with DATE and TIME
       const now = new Date();
       const dateStr =
         now.getFullYear() +
@@ -224,9 +230,8 @@ export default function Settings({
         '-' +
         String(now.getMinutes()).padStart(2, '0');
 
-      const filename = `backup_manuel_${dateStr}.json`; // Example: backup_manuel_2026-01-25_12-30.json
+      const filename = `backup_manuel_${dateStr}.json`;
 
-      // [FIX] Pass the filename to the service
       const success = await backupService.saveBackupJSON(json, filename);
 
       if (success) {
@@ -302,7 +307,8 @@ export default function Settings({
     }
     setTimeout(() => setBackupStatus(''), 3000);
   };
-  // --- NEW WORKPLACE LOGIC START ---
+
+  // --- WORKPLACE LOGIC ---
   const loadWorkplaces = async () => {
     try {
       const places = await db.getWorkplaces();
@@ -311,78 +317,7 @@ export default function Settings({
       console.error('Error loading workplaces:', error);
     }
   };
-  // --- NEW WORKPLACE LOGIC END ---
-  // Department management functions
-  const loadDepartments = async () => {
-    setDepartmentsLoading(true);
-    try {
-      // On charge les services ET les travailleurs
-      const [depts, workers] = await Promise.all([db.getDepartments(), db.getWorkers()]);
 
-      // On ajoute un champ 'count' à chaque département (travailleurs actifs uniquement)
-      const deptsWithCount = depts.map((d) => ({
-        ...d,
-        count: workers.filter((w) => w.department_id === d.id && !w.archived).length,
-      }));
-
-      setDepartments(deptsWithCount);
-    } catch (error) {
-      console.error('Error loading departments:', error);
-    }
-    setDepartmentsLoading(false);
-  };
-
-  const addDepartment = async () => {
-    if (!newDepartmentName.trim()) {
-      showToast('Veuillez saisir un nom de service.', 'error');
-      return;
-    }
-
-    try {
-      const newDept = { name: newDepartmentName.trim() };
-      await db.saveDepartment(newDept);
-      setNewDepartmentName('');
-      await loadDepartments();
-      showToast('Service ajouté avec succès !', 'success');
-    } catch (error) {
-      console.error('Error adding department:', error);
-      showToast("Erreur lors de l'ajout du service.", 'error');
-    }
-  };
-
-  const deleteDepartment = async (id) => {
-    // 1. Count associated workers first
-    const workers = await db.getWorkers();
-    const linkedWorkers = workers.filter((w) => w.department_id === id);
-    const count = linkedWorkers.length;
-
-    // 2. Scary Confirmation
-    if (count > 0) {
-      const confirmMsg = `ATTENTION: Ce service contient ${count} travailleur(s).\n\nSi vous supprimez ce service, CES TRAVAILLEURS SERONT AUSSI SUPPRIMÉS.\n\nConfirmer la suppression totale ?`;
-      if (!window.confirm(confirmMsg)) return;
-
-      // 3. Cascade Delete (Delete workers first)
-      await Promise.all(linkedWorkers.map((w) => db.deleteWorker(w.id)));
-    } else {
-      // Standard confirmation for empty service
-      if (!window.confirm('Supprimer ce service vide ?')) return;
-    }
-
-    try {
-      // 4. Delete the service
-      await db.deleteDepartment(id);
-      await loadDepartments();
-      showToast(
-        count > 0 ? `Service et ${count} travailleurs supprimés.` : 'Service supprimé.',
-        'success'
-      );
-    } catch (error) {
-      console.error('Error deleting department:', error);
-      showToast('Erreur lors de la suppression.', 'error');
-    }
-  };
-
-  // --- WORKPLACES HANDLERS ---
   const addWorkplace = async () => {
     if (!newWorkplaceName.trim()) return;
     try {
@@ -409,7 +344,66 @@ export default function Settings({
     }
   };
 
-  // Water Departments management functions
+  // --- DEPARTMENT LOGIC ---
+  const loadDepartments = async () => {
+    setDepartmentsLoading(true);
+    try {
+      const [depts, workers] = await Promise.all([db.getDepartments(), db.getWorkers()]);
+      const deptsWithCount = depts.map((d) => ({
+        ...d,
+        count: workers.filter((w) => w.department_id === d.id && !w.archived).length,
+      }));
+      setDepartments(deptsWithCount);
+    } catch (error) {
+      console.error('Error loading departments:', error);
+    }
+    setDepartmentsLoading(false);
+  };
+
+  const addDepartment = async () => {
+    if (!newDepartmentName.trim()) {
+      showToast('Veuillez saisir un nom de service.', 'error');
+      return;
+    }
+    try {
+      const newDept = { name: newDepartmentName.trim() };
+      await db.saveDepartment(newDept);
+      setNewDepartmentName('');
+      await loadDepartments();
+      showToast('Service ajouté avec succès !', 'success');
+    } catch (error) {
+      console.error('Error adding department:', error);
+      showToast("Erreur lors de l'ajout du service.", 'error');
+    }
+  };
+
+  const deleteDepartment = async (id) => {
+    const workers = await db.getWorkers();
+    const linkedWorkers = workers.filter((w) => w.department_id === id);
+    const count = linkedWorkers.length;
+
+    if (count > 0) {
+      const confirmMsg = `ATTENTION: Ce service contient ${count} travailleur(s).\n\nSi vous supprimez ce service, CES TRAVAILLEURS SERONT AUSSI SUPPRIMÉS.\n\nConfirmer la suppression totale ?`;
+      if (!window.confirm(confirmMsg)) return;
+      await Promise.all(linkedWorkers.map((w) => db.deleteWorker(w.id)));
+    } else {
+      if (!window.confirm('Supprimer ce service vide ?')) return;
+    }
+
+    try {
+      await db.deleteDepartment(id);
+      await loadDepartments();
+      showToast(
+        count > 0 ? `Service et ${count} travailleurs supprimés.` : 'Service supprimé.',
+        'success'
+      );
+    } catch (error) {
+      console.error('Error deleting department:', error);
+      showToast('Erreur lors de la suppression.', 'error');
+    }
+  };
+
+  // --- WATER DEPT LOGIC ---
   const loadWaterDepartments = async () => {
     setWaterDepartmentsLoading(true);
     try {
@@ -426,7 +420,6 @@ export default function Settings({
       showToast("Veuillez saisir un nom de service d'eau.", 'error');
       return;
     }
-
     try {
       const newDept = { name: newWaterDepartmentName.trim() };
       await db.saveWaterDepartment(newDept);
@@ -440,25 +433,19 @@ export default function Settings({
   };
 
   const deleteWaterDepartment = async (id) => {
-    // 1. Check for linked analyses
     const analyses = await db.getWaterAnalyses();
-    // Logic check: matches logic.js (department_id or structure_id)
     const linkedAnalyses = analyses.filter((a) => a.department_id === id || a.structure_id === id);
     const count = linkedAnalyses.length;
 
-    // 2. Scary Confirmation
     if (count > 0) {
       const confirmMsg = `ATTENTION: Ce point d'eau contient ${count} analyse(s) d'historique.\n\nElles seront définitivement supprimées.\n\nConfirmer ?`;
       if (!window.confirm(confirmMsg)) return;
-
-      // 3. Cascade Delete
       await Promise.all(linkedAnalyses.map((a) => db.deleteWaterAnalysis(a.id)));
     } else {
       if (!window.confirm("Supprimer ce service d'eau ?")) return;
     }
 
     try {
-      // 4. Delete the service
       await db.deleteWaterDepartment(id);
       await loadWaterDepartments();
       showToast("Service d'eau et historique supprimés.", 'success');
@@ -467,6 +454,7 @@ export default function Settings({
       showToast('Erreur lors de la suppression.', 'error');
     }
   };
+
   const handleCleanup = async () => {
     if (
       !window.confirm(
@@ -480,164 +468,164 @@ export default function Settings({
       alert(
         `Nettoyage Terminé ! 🧹\n\nSupprimé :\n- ${result.exams} examens fantômes\n- ${result.water} analyses d'eau orphelines`
       );
-      // Optional: Reload to refresh UI
       window.location.reload();
     } catch (e) {
       alert('Erreur: ' + e.message);
     }
   };
 
+  // --- SUB-COMPONENTS FOR TABS ---
+
+  const TabButton = ({ id, icon: Icon, label }) => (
+    <button
+      onClick={() => setActiveTab(id)}
+      style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        padding: '1rem',
+        border: 'none',
+        borderBottom: activeTab === id ? '4px solid var(--primary)' : '4px solid transparent',
+        background: activeTab === id ? 'white' : '#f1f5f9',
+        color: activeTab === id ? 'var(--primary)' : 'var(--text-muted)',
+        fontWeight: 'bold',
+        cursor: 'pointer',
+        fontSize: '1rem',
+        transition: 'all 0.2s ease',
+      }}
+    >
+      <Icon size={18} />
+      <span>{label}</span>
+    </button>
+  );
+
   return (
-    <div>
-      <h2 style={{ marginBottom: '1.5rem' }}>Paramètres</h2>
+    <div style={{ maxWidth: '1280px', margin: '0 auto', paddingBottom: '3rem' }}>
+      <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <FaCog color="var(--primary)" /> Paramètres & Configuration
+      </h2>
 
-      {/* --- [NEW] AFFICHAGE SECTION --- */}
-      <div className="card" style={{ maxWidth: '500px', marginTop: '1.5rem' }}>
-        <h3
-          style={{
-            marginTop: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            color: 'var(--primary)',
-          }}
-        >
-          Affichage
-        </h3>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <span style={{ fontWeight: '600' }}>Mode Compact (Tableaux)</span>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Activer le défilement interne (scroll) pour les tableaux.
-            </p>
-          </div>
-
-          <button
-            className="btn"
-            onClick={() => setCompactMode(!compactMode)}
-            style={{
-              backgroundColor: compactMode ? 'var(--primary)' : '#e2e8f0',
-              color: compactMode ? 'white' : 'var(--text-main)',
-              minWidth: '100px',
-              fontWeight: 'bold',
-            }}
-          >
-            {compactMode ? 'Activé' : 'Désactivé'}
-          </button>
-        </div>
-      </div>
-
-      {/* Security Section */}
-      <div className="card" style={{ maxWidth: '500px' }}>
-        <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FaLock /> Sécurité
-        </h3>
-
-        {/* [NEW] Doctor Name Input */}
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-            Nom du Médecin (par défaut)
-          </label>
-          <input
-            type="text"
-            className="input"
-            placeholder="Ex: Dr. Kibeche..."
-            value={doctorName}
-            onChange={(e) => setDoctorName(e.target.value)}
-          />
-        </div>
-
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-            Code PIN (4 chiffres)
-          </label>
-          <input
-            type="password"
-            maxLength="4"
-            placeholder="****"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            style={{
-              padding: '0.5rem',
-              borderRadius: '4px',
-              border: '1px solid var(--border-color)' /* FIXED */,
-              width: '100%',
-              fontSize: '1.2rem',
-              letterSpacing: '0.2rem',
-              textAlign: 'center',
-            }}
-          />
-        </div>
-
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-          <button className="btn btn-primary" onClick={handleSave}>
-            <FaSave /> Enregistrer
-          </button>
-
-          <button className="btn btn-outline" onClick={handleExportPlain} title="Exporter (plain)">
-            <FaDownload /> Exporter
-          </button>
-
-          <button
-            className="btn btn-outline"
-            onClick={handleExportEncrypted}
-            title="Exporter (chiffré)"
-          >
-            <FaDownload /> Exporter chiffré
-          </button>
-
-          <label className="btn btn-outline" style={{ cursor: 'pointer' }} title="Importer (plain)">
-            <FaUpload /> Importer
-            <input
-              type="file"
-              ref={fileRef}
-              onChange={handleImportPlain}
-              style={{ display: 'none' }}
-            />
-          </label>
-
-          <label
-            className="btn btn-outline"
-            style={{ cursor: 'pointer' }}
-            title="Importer (chiffré)"
-          >
-            <FaUpload /> Importer chiffré
-            <input type="file" onChange={handleImportEncrypted} style={{ display: 'none' }} />
-          </label>
-        </div>
-      </div>
-
-      <div className="card" style={{ marginTop: '1rem', borderColor: 'orange' }}>
-        <h3>Maintenance</h3>
-        <p>Réparer les erreurs de base de données (Services supprimés, etc.)</p>
-        <button
-          className="btn btn-outline"
-          onClick={handleCleanup}
-          style={{ color: 'orange', borderColor: 'orange' }}
-        >
-          🧹 Nettoyer les Orphelins
-        </button>
-      </div>
-
-      {/* --- NEW SIDE-BY-SIDE SECTION --- */}
-
+      {/* --- TAB NAVIGATION --- */}
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '1.5rem',
-          marginTop: '2rem',
-          alignItems: 'start',
+          display: 'flex',
+          marginBottom: '2rem',
+          background: '#f1f5f9',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)',
         }}
       >
-        {/* LEFT: Standard Services */}
-        <div className="card" style={{ marginTop: 0 }}>
-          <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <FaBuilding /> Services (RH)
-          </h3>
+        <TabButton id="general" icon={FaShieldAlt} label="Général" />
+        <TabButton id="organization" icon={FaBuilding} label="Organisation" />
+        <TabButton id="backup" icon={FaHistory} label="Sauvegardes" />
+      </div>
 
-          <div style={{ marginBottom: '1rem' }}>
+      {/* ======================= TAB 1: GENERAL ======================= */}
+      {activeTab === 'general' && (
+        <div className="animate-fade-in" style={{ display: 'grid', gap: '1.5rem' }}>
+          {/* Section: Affichage */}
+          <div className="card" style={{ maxWidth: '600px' }}>
+            <h3
+              style={{
+                marginTop: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                color: 'var(--primary)',
+              }}
+            >
+              Affichage
+            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontWeight: '600' }}>Mode Compact (Tableaux)</span>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  Activer le défilement interne pour les tableaux longs.
+                </p>
+              </div>
+              <button
+                className="btn"
+                onClick={() => setCompactMode(!compactMode)}
+                style={{
+                  backgroundColor: compactMode ? 'var(--primary)' : '#e2e8f0',
+                  color: compactMode ? 'white' : 'var(--text-main)',
+                  minWidth: '100px',
+                  fontWeight: 'bold',
+                }}
+              >
+                {compactMode ? 'Activé' : 'Désactivé'}
+              </button>
+            </div>
+          </div>
+
+          {/* Section: Sécurité */}
+          <div className="card" style={{ maxWidth: '600px' }}>
+            <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FaLock /> Sécurité & Identité
+            </h3>
+
+            {/* Doctor Name */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                Nom du Médecin (Affiché sur les rapports)
+              </label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Ex: Dr. Kibeche..."
+                value={doctorName}
+                onChange={(e) => setDoctorName(e.target.value)}
+              />
+            </div>
+
+            {/* PIN Code */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                Changer le Code PIN (4 chiffres)
+              </label>
+              <input
+                type="password"
+                maxLength="4"
+                placeholder="****"
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                style={{
+                  padding: '0.5rem',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-color)',
+                  width: '100%',
+                  fontSize: '1.5rem',
+                  letterSpacing: '0.5rem',
+                  textAlign: 'center',
+                }}
+              />
+            </div>
+
+            <button className="btn btn-primary" onClick={handleSave} style={{ width: '100%' }}>
+              <FaSave /> Enregistrer les modifications
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ======================= TAB 2: ORGANIZATION ======================= */}
+      {activeTab === 'organization' && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '1.5rem',
+            alignItems: 'start',
+          }}
+        >
+          {/* Services RH */}
+          <div className="card" style={{ marginTop: 0 }}>
+            <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FaBuilding /> Services (RH)
+            </h3>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
               <input
                 type="text"
@@ -645,12 +633,8 @@ export default function Settings({
                 value={newDepartmentName}
                 onChange={(e) => setNewDepartmentName(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && addDepartment()}
-                style={{
-                  flex: 1,
-                  padding: '0.5rem',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-color)' /* FIXED */,
-                }}
+                className="input"
+                style={{ flex: 1 }}
               />
               <button
                 className="btn btn-primary"
@@ -663,9 +647,9 @@ export default function Settings({
 
             <div
               style={{
-                maxHeight: '300px',
+                maxHeight: '400px',
                 overflowY: 'auto',
-                border: '1px solid var(--border-color)' /* FIXED */,
+                border: '1px solid var(--border-color)',
                 borderRadius: '4px',
                 padding: '0.5rem',
                 background: '#f8fafc',
@@ -683,7 +667,7 @@ export default function Settings({
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      padding: '0.5rem',
+                      padding: '0.75rem',
                       borderBottom: '1px solid #e2e8f0',
                       background: 'white',
                       marginBottom: '4px',
@@ -691,123 +675,119 @@ export default function Settings({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontWeight: '500' }}>{dept.name}</span>
+                      <span style={{ fontWeight: '600' }}>{dept.name}</span>
                       <span
                         style={{
                           fontSize: '0.75rem',
                           background: '#e2e8f0',
                           color: '#475569',
-                          padding: '2px 6px',
-                          borderRadius: '10px',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
                           fontWeight: 'bold',
                         }}
                       >
-                        {dept.count || 0}
+                        {dept.count || 0} agents
                       </span>
                     </div>
                     <button
                       className="btn btn-sm btn-outline"
                       onClick={() => deleteDepartment(dept.id)}
                       style={{ color: 'var(--danger)', borderColor: 'transparent' }}
+                      title="Supprimer"
                     >
-                      <FaTrash size={12} />
+                      <FaTrash />
                     </button>
                   </div>
                 ))
               )}
             </div>
           </div>
-        </div>
 
-        {/* --- START OF NEW CARD: LIEUX DE TRAVAIL --- */}
-        <div className="card" style={{ marginTop: 0 }}>
-          <h3
-            style={{
-              marginTop: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              color: '#d97706',
-            }}
-          >
-            <FaBriefcase /> Lieux de Travail
-          </h3>
-
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-            <input
-              type="text"
-              placeholder="Nouveau lieu..."
-              value={newWorkplaceName}
-              onChange={(e) => setNewWorkplaceName(e.target.value)}
-              className="input"
-              style={{ flex: 1 }}
-            />
-            <button
-              className="btn btn-primary"
-              onClick={addWorkplace}
-              disabled={!newWorkplaceName || !newWorkplaceName.trim()}
+          {/* Lieux de Travail */}
+          <div className="card" style={{ marginTop: 0 }}>
+            <h3
+              style={{
+                marginTop: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                color: '#d97706',
+              }}
             >
-              <FaPlus />
-            </button>
-          </div>
+              <FaBriefcase /> Lieux de Travail
+            </h3>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <input
+                type="text"
+                placeholder="Nouveau lieu..."
+                value={newWorkplaceName}
+                onChange={(e) => setNewWorkplaceName(e.target.value)}
+                className="input"
+                style={{ flex: 1 }}
+              />
+              <button
+                className="btn btn-primary"
+                onClick={addWorkplace}
+                disabled={!newWorkplaceName || !newWorkplaceName.trim()}
+              >
+                <FaPlus />
+              </button>
+            </div>
 
-          <div
-            style={{
-              maxHeight: '250px',
-              overflowY: 'auto',
-              background: '#fffbeb',
-              padding: '0.5rem',
-              borderRadius: '4px',
-            }}
-          >
-            {(!workplaces || workplaces.length === 0) && (
-              <div style={{ textAlign: 'center', color: '#999', padding: '1rem' }}>
-                Aucun lieu défini
-              </div>
-            )}
-
-            {workplaces &&
-              workplaces.map((w) => (
-                <div
-                  key={w.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '0.5rem',
-                    borderBottom: '1px solid #fef3c7',
-                    background: 'white',
-                    marginBottom: '4px',
-                    borderRadius: '4px',
-                  }}
-                >
-                  <span style={{ fontWeight: 500 }}>{w.name}</span>
-                  <button
-                    className="btn btn-sm btn-outline"
-                    onClick={() => deleteWorkplace(w.id)}
-                    style={{ color: 'var(--danger)', borderColor: 'transparent' }}
-                  >
-                    <FaTrash size={12} />
-                  </button>
+            <div
+              style={{
+                maxHeight: '300px',
+                overflowY: 'auto',
+                background: '#fffbeb',
+                padding: '0.5rem',
+                borderRadius: '4px',
+              }}
+            >
+              {(!workplaces || workplaces.length === 0) && (
+                <div style={{ textAlign: 'center', color: '#999', padding: '1rem' }}>
+                  Aucun lieu défini
                 </div>
-              ))}
+              )}
+              {workplaces &&
+                workplaces.map((w) => (
+                  <div
+                    key={w.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      padding: '0.75rem',
+                      borderBottom: '1px solid #fef3c7',
+                      background: 'white',
+                      marginBottom: '4px',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    <span style={{ fontWeight: 500 }}>{w.name}</span>
+                    <button
+                      className="btn btn-sm btn-outline"
+                      onClick={() => deleteWorkplace(w.id)}
+                      style={{ color: 'var(--danger)', borderColor: 'transparent' }}
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
+                ))}
+            </div>
           </div>
-        </div>
 
-        {/* RIGHT: Water Services */}
-        <div className="card" style={{ marginTop: 0 }}>
-          <h3
-            style={{
-              marginTop: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              color: '#0ea5e9',
-            }}
-          >
-            <FaTint /> Services d'Eau
-          </h3>
-
-          <div style={{ marginBottom: '1rem' }}>
+          {/* Services d'Eau */}
+          <div className="card" style={{ marginTop: 0 }}>
+            <h3
+              style={{
+                marginTop: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                color: '#0ea5e9',
+              }}
+            >
+              <FaTint /> Points d'Eau
+            </h3>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
               <input
                 type="text"
@@ -815,12 +795,8 @@ export default function Settings({
                 value={newWaterDepartmentName}
                 onChange={(e) => setNewWaterDepartmentName(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && addWaterDepartment()}
-                style={{
-                  flex: 1,
-                  padding: '0.5rem',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-color)' /* FIXED */,
-                }}
+                className="input"
+                style={{ flex: 1 }}
               />
               <button
                 className="btn btn-primary"
@@ -833,9 +809,9 @@ export default function Settings({
 
             <div
               style={{
-                maxHeight: '300px',
+                maxHeight: '400px',
                 overflowY: 'auto',
-                border: '1px solid var(--border-color)' /* FIXED */,
+                border: '1px solid var(--border-color)',
                 borderRadius: '4px',
                 padding: '0.5rem',
                 background: '#f0f9ff',
@@ -853,7 +829,7 @@ export default function Settings({
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      padding: '0.5rem',
+                      padding: '0.75rem',
                       borderBottom: '1px solid #bfdbfe',
                       background: 'white',
                       marginBottom: '4px',
@@ -866,7 +842,7 @@ export default function Settings({
                       onClick={() => deleteWaterDepartment(dept.id)}
                       style={{ color: 'var(--danger)', borderColor: 'transparent' }}
                     >
-                      <FaTrash size={12} />
+                      <FaTrash />
                     </button>
                   </div>
                 ))
@@ -874,208 +850,200 @@ export default function Settings({
             </div>
           </div>
         </div>
-      </div>
-      {/* Auto Backup Section */}
-      <div className="card" style={{ maxWidth: '800px', marginTop: '2rem' }}>
-        <h3 style={{ marginTop: 0 }}>Auto Backup</h3>
+      )}
 
-        <div
-          style={{
-            padding: '0.75rem',
-            backgroundColor: 'var(--bg-secondary)',
-            borderRadius: '8px',
-            marginBottom: '1rem',
-            border: '1px solid var(--border-color)' /* FIXED */,
-          }}
-        >
-          <div
-            style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}
-          >
-            <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>📱 Android Mode:</span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Auto-backup to Documents/copro-watch folder
-            </span>
-          </div>
-        </div>
+      {/* ======================= TAB 3: BACKUP & MAINTENANCE ======================= */}
+      {activeTab === 'backup' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Auto Backup Status Card */}
+          <div className="card" style={{ borderColor: 'var(--primary)' }}>
+            <h3 style={{ marginTop: 0 }}>
+              {' '}
+              <FaHistory /> Statut Sauvegarde Auto
+            </h3>
 
-        <div
-          style={{
-            display: 'flex',
-            gap: '0.5rem',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            marginBottom: '1rem',
-          }}
-        >
-          <button className="btn btn-outline" onClick={handleChooseBackupDir}>
-            📁 Setup Backup Folder
-          </button>
-          <button className="btn btn-outline" onClick={handleGetBackupNow}>
-            💾 Backup Now
-          </button>
-          <button
-            className="btn btn-outline"
-            onClick={handleImportFromBackup}
-            title="Import from backup folder"
-          >
-            📂 Import from Backup
-          </button>
-          <button
-            className="btn btn-outline"
-            onClick={handleRefreshBackupProgress}
-            title="Refresh backup progress"
-          >
-            🔄 Refresh Progress
-          </button>
-        </div>
-
-        <div
-          style={{
-            marginTop: '0.75rem',
-            display: 'flex',
-            gap: '0.5rem',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            marginBottom: '1rem',
-          }}
-        >
-          <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>
-            Auto Export Threshold (exams):
-          </label>
-          <input
-            type="number"
-            value={backupThreshold}
-            onChange={(e) => setBackupThreshold(Number(e.target.value))}
-            style={{
-              width: '5rem',
-              padding: '0.4rem',
-              borderRadius: '4px',
-              border: '1px solid var(--border-color)' /* FIXED */,
-              fontSize: '0.9rem',
-            }}
-          />
-          <button
-            className="btn btn-outline"
-            onClick={handleThresholdSave}
-            style={{ fontSize: '0.9rem' }}
-          >
-            💾 Save
-          </button>
-        </div>
-
-        <div
-          style={{
-            marginTop: '0.75rem',
-            display: 'flex',
-            gap: '0.5rem',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            marginBottom: '1rem',
-          }}
-        >
-          <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Auto Import:</label>
-          <button
-            className={`btn ${autoImportEnabled ? 'btn-primary' : 'btn-outline'}`}
-            onClick={handleToggleAutoImport}
-            style={{ fontSize: '0.9rem' }}
-          >
-            {autoImportEnabled ? '🟢 Enabled' : '🔴 Disabled'}
-          </button>
-        </div>
-
-        <div style={{ marginTop: '0.75rem' }}>
-          <div
-            style={{
-              padding: '0.75rem',
-              backgroundColor: 'var(--bg-secondary)',
-              borderRadius: '8px',
-              border: '1px solid var(--border-color)' /* FIXED */,
-            }}
-          >
             <div
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '0.5rem',
+                padding: '1rem',
+                backgroundColor: 'var(--bg-secondary)',
+                borderRadius: '8px',
+                marginBottom: '1.5rem',
+                border: '1px solid var(--border-color)',
               }}
             >
-              <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>
-                📊 Auto Backup Progress:
-              </span>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                {backupProgress.progress} exams
-              </span>
-            </div>
-            <div
-              style={{
-                width: '100%',
-                height: '8px',
-                backgroundColor: 'var(--border-color)' /* FIXED */,
-                borderRadius: '4px',
-                overflow: 'hidden',
-              }}
-            >
+              <div style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                Progression vers l'export automatique:
+              </div>
               <div
                 style={{
-                  width: `${(backupProgress.counter / backupProgress.threshold) * 100}%`,
-                  height: '100%',
-                  backgroundColor:
-                    backupProgress.counter >= backupProgress.threshold
-                      ? 'var(--success)'
-                      : 'var(--primary)',
-                  transition: 'width 0.3s ease',
-                }}
-              />
-            </div>
-            {backupProgress.counter >= backupProgress.threshold && (
-              <div
-                style={{
-                  marginTop: '0.5rem',
-                  fontSize: '0.8rem',
-                  color: 'var(--success)',
-                  fontWeight: '500',
+                  width: '100%',
+                  height: '12px',
+                  backgroundColor: '#e2e8f0',
+                  borderRadius: '6px',
+                  overflow: 'hidden',
+                  marginBottom: '0.5rem',
                 }}
               >
-                ⚠️ Auto backup will trigger on next exam change
+                <div
+                  style={{
+                    width: `${(backupProgress.counter / backupProgress.threshold) * 100}%`,
+                    height: '100%',
+                    backgroundColor:
+                      backupProgress.counter >= backupProgress.threshold
+                        ? 'var(--success)'
+                        : 'var(--primary)',
+                    transition: 'width 0.3s ease',
+                  }}
+                />
               </div>
-            )}
-          </div>
-        </div>
+              <div
+                style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}
+              >
+                <span>Actuel: {backupProgress.progress} changements</span>
+                <span>Seuil: {backupThreshold}</span>
+              </div>
 
-        <div style={{ marginTop: '0.75rem' }}>
-          {backupStatus && (
+              {backupProgress.counter >= backupProgress.threshold && (
+                <div style={{ marginTop: '0.5rem', color: 'var(--success)', fontWeight: 'bold' }}>
+                  ⚠️ Prochain changement déclenchera une sauvegarde !
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Seuil:</label>
+                <input
+                  type="number"
+                  value={backupThreshold}
+                  onChange={(e) => setBackupThreshold(Number(e.target.value))}
+                  style={{
+                    width: '60px',
+                    padding: '0.4rem',
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                  }}
+                />
+                <button className="btn btn-sm btn-outline" onClick={handleThresholdSave}>
+                  OK
+                </button>
+              </div>
+
+              <div style={{ width: '1px', height: '30px', background: '#ccc' }}></div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.9rem', fontWeight: '500' }}>Auto-Import:</label>
+                <button
+                  className={`btn btn-sm ${autoImportEnabled ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={handleToggleAutoImport}
+                >
+                  {autoImportEnabled ? 'Activé' : 'Désactivé'}
+                </button>
+              </div>
+            </div>
+
+            {/* Status Messages */}
+            <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+              {backupStatus && (
+                <div style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{backupStatus}</div>
+              )}
+              {backupDir && <div>📂 Dossier actuel: {backupDir}</div>}
+            </div>
+          </div>
+
+          {/* Actions Manuelles Grid */}
+          <div className="card">
+            <h3 style={{ marginTop: 0 }}>
+              <FaDatabase /> Actions Manuelles
+            </h3>
+
             <div
               style={{
-                padding: '0.5rem',
-                backgroundColor: 'var(--bg-secondary)',
-                borderRadius: '4px',
-                fontSize: '0.9rem',
-                border: '1px solid var(--border-color)',
-                marginBottom: '0.5rem',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '1rem',
               }}
             >
-              {backupStatus}
+              {/* Column 1: Native Backup */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <h4 style={{ fontSize: '0.9rem', textTransform: 'uppercase', color: '#999' }}>
+                  Android Native
+                </h4>
+                <button className="btn btn-outline" onClick={handleChooseBackupDir}>
+                  📁 Choisir Dossier
+                </button>
+                <button className="btn btn-outline" onClick={handleGetBackupNow}>
+                  💾 Sauvegarder Maintenant
+                </button>
+                <button className="btn btn-outline" onClick={handleImportFromBackup}>
+                  📂 Importer depuis Dossier
+                </button>
+                <button className="btn btn-outline" onClick={handleRefreshBackupProgress}>
+                  🔄 Rafraîchir
+                </button>
+              </div>
+
+              {/* Column 2: File Export/Import */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <h4 style={{ fontSize: '0.9rem', textTransform: 'uppercase', color: '#999' }}>
+                  Fichiers (JSON)
+                </h4>
+                <button className="btn btn-outline" onClick={handleExportPlain}>
+                  <FaDownload /> Export Simple
+                </button>
+                <button className="btn btn-outline" onClick={handleExportEncrypted}>
+                  <FaLock /> Export Chiffré
+                </button>
+
+                <label className="btn btn-outline" style={{ cursor: 'pointer' }}>
+                  <FaUpload /> Import Simple
+                  <input
+                    type="file"
+                    ref={fileRef}
+                    onChange={handleImportPlain}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+
+                <label className="btn btn-outline" style={{ cursor: 'pointer' }}>
+                  <FaUpload /> Import Chiffré
+                  <input type="file" onChange={handleImportEncrypted} style={{ display: 'none' }} />
+                </label>
+              </div>
             </div>
-          )}
-          {backupDir && (
-            <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
-              <strong>📂 Current backup folder:</strong> {backupDir}
-            </div>
-          )}
-          {backupDir && (
+          </div>
+
+          {/* Maintenance Zone */}
+          <div className="card" style={{ borderColor: 'orange' }}>
+            <h3 style={{ color: 'orange', marginTop: 0 }}>Maintenance</h3>
+            <p style={{ fontSize: '0.9rem' }}>
+              Utilisez cette option si vous remarquez des ralentissements ou des erreurs liées à des
+              services supprimés.
+            </p>
             <button
               className="btn btn-outline"
-              onClick={handleClearBackupDir}
-              style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}
+              onClick={handleCleanup}
+              style={{ color: 'orange', borderColor: 'orange', width: '100%' }}
             >
-              🗑️ Clear Folder
+              🧹 Nettoyer la Base de Données (Orphelins)
             </button>
+          </div>
+
+          {backupDir && (
+            <div style={{ textAlign: 'right' }}>
+              <button
+                className="btn btn-sm btn-outline"
+                onClick={handleClearBackupDir}
+                style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}
+              >
+                🗑️ Oublier le dossier de sauvegarde
+              </button>
+            </div>
           )}
         </div>
-      </div>
+      )}
 
-      {/* --- ADDED CREDITS SECTION (MOVED INSIDE) --- */}
+      {/* --- CREDITS --- */}
       <div
         className="credit"
         style={{ marginTop: '3rem', padding: '1rem', textAlign: 'center', opacity: 0.8 }}
