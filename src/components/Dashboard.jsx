@@ -107,7 +107,7 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
               : { marginBottom: '0', marginTop: '0', lineHeight: '1.2' }
           }
         >
-          Tableau de bord
+          style={{ color: 'red' }}>Tableau de bord V2
         </h2>
         <p
           style={{
