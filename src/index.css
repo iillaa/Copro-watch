@@ -98,6 +98,8 @@ body {
   overflow-y: auto;
   height: 100%;
   z-index: 50;
+  /* [FIX] Stop sidebar scroll from moving the page */
+  overscroll-behavior: contain;
 }
 
 /* Brand */
@@ -483,6 +485,9 @@ tr:nth-child(even) td {
   max-height: 90vh;
   overflow-y: auto;
   padding: 1.5rem;
+  /* [FIX] Stop scroll from chaining to background */
+  overscroll-behavior: contain; 
+
 }
 @keyframes modalOverlayFadeIn {
   0% {
@@ -569,11 +574,33 @@ tr:nth-child(even) td {
   .nav-text {
     display: none !important;
   }
+  /* [POLISH] Centered, Square Icons for Mobile Navigation */
   .nav-item {
-    padding: 0.5rem;
+    display: flex;
+    justify-content: center; /* Centers icon Horizontally */
+    align-items: center;     /* Centers icon Vertically */
+    width: 48px !important;  /* Fixed Touch Target Size */
+    height: 48px !important;
+    padding: 0 !important;
     border: none;
     background: transparent;
     box-shadow: none;
+    border-radius: 12px;
+    margin: 0 auto;          /* Safety centering */
+  }
+  
+  /* Active State Polish */
+  .nav-item.active {
+    background: var(--primary-light);
+    color: var(--primary);
+    box-shadow: none;
+    transform: none;
+  }
+  
+  /* Make icons bigger inside the button */
+  .nav-icon {
+    font-size: 1.5rem !important;
+    margin: 0 !important;
   }
   .nav-item.active {
     background: var(--primary-light);

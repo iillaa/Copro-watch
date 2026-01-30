@@ -18,8 +18,16 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
   const toggleExpand = (section) =>
     setExpandedSection(expandedSection === section ? null : section);
 
-  // [FIX] Detect Mobile if Width is small OR Height is small (Landscape Phone)
-  const checkMobile = () => window.innerWidth < 1024 || window.innerHeight < 600;
+  // [FIX] Strict "Phone Only" Detection
+  const checkMobile = () => {
+    // 1. Portrait Phone: Width must be LESS than 768px (Excludes iPad/Tablets)
+    const isPortraitPhone = window.matchMedia("(max-width: 767px)").matches;
+    
+    // 2. Landscape Phone: Height must be LESS than 600px (Excludes Tablets)
+    const isLandscapePhone = window.matchMedia("(max-height: 600px) and (orientation: landscape)").matches;
+
+    return isPortraitPhone || isLandscapePhone;
+  };
 
   const [isMobile, setIsMobile] = useState(checkMobile());
 
