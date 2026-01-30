@@ -13,6 +13,10 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // [SURGICAL] Expansion State
+  const [expandedSection, setExpandedSection] = useState(null); // 'due', 'retest', or null
+  const toggleExpand = (section) => setExpandedSection(expandedSection === section ? null : section);
+
   // [FIX] Detect Mobile if Width is small OR Height is small (Landscape Phone)
   const checkMobile = () => window.innerWidth < 1024 || window.innerHeight < 600;
   
@@ -401,90 +405,91 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
               Rien à signaler. Tout est à jour !
             </div>
           ) : (
-            <div
-              className="scroll-wrapper"
-              style={{
-                maxHeight: compactMode ? '510px' : 'none',
-                background: 'transparent',
-                border: 'none',
-                padding: 0,
-                margin: 0,
-              }}
-            >
-              <div className="hybrid-container" style={{ minWidth: '100%' }}>
-                {/* HEADER */}
-                <div className="hybrid-header" style={{ gridTemplateColumns: gridDashboard }}>
-                  <div>Nom</div>
-                  <div style={{ whiteSpace: 'nowrap' }}>Date Prévue</div>
-                  <div style={{ textAlign: 'center' }}>Action</div>
+            <>
+              <div
+                className="scroll-wrapper"
+                style={{
+                  maxHeight: compactMode ? '510px' : 'none',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
+                  margin: 0,
+                }}
+              >
+                <div className="hybrid-container" style={{ minWidth: '100%' }}>
+                  {/* HEADER */}
+                  <div className="hybrid-header" style={{ gridTemplateColumns: gridDashboard }}>
+                    <div>Nom</div>
+                    <div style={{ whiteSpace: 'nowrap' }}>Date Prévue</div>
+                    <div style={{ textAlign: 'center' }}>Action</div>
+                  </div>
+
+                  {/* 1. OVERDUE ROWS (Red) */}
+                  {(isMobile ? stats.overdue.slice(0, 5) : stats.overdue).map((w) => (
+                    <div
+                      key={w.id}
+                      className="hybrid-row overdue-worker-row"
+                      style={{ gridTemplateColumns: gridDashboard }}
+                    >
+                      {/* Name + Badge */}
+                      <div
+                        className="hybrid-cell"
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                      >
+                        <span style={{ fontWeight: 800, color: 'var(--danger-text)' }}>
+                          {w.full_name}
+                        </span>
+                        <span
+                          className="badge badge-red"
+                          style={{ fontSize: '0.65rem', padding: '2px 6px' }}
+                        >
+                          RETARD
+                        </span>
+                      </div>
+                      {/* Date */}
+                      <div
+                        className="hybrid-cell"
+                        style={{ color: 'var(--danger)', fontWeight: 'bold' }}
+                      >
+                        {logic.formatDateDisplay(w.next_exam_due)}
+                      </div>
+                      {/* Action */}
+                      <div className="hybrid-actions">
+                        <button
+                          className="btn btn-sm btn-outline"
+                          onClick={() => onNavigateWorker(w.id)}
+                          title="Voir Dossier"
+                        >
+                          <FaEye />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* [ACTION B] Limit 'Due Soon' to 5 items on mobile unless expanded */}
+                  {(isMobile && expandedSection !== 'due' ? stats.dueSoon.slice(0, 5) : stats.dueSoon).map((w) => (
+                    <div key={w.id} className="hybrid-row" style={{ gridTemplateColumns: gridDashboard }}>
+                      <div className="hybrid-cell" style={{ fontWeight: 600 }}>{w.full_name}</div>
+                      <div className="hybrid-cell">{logic.formatDateDisplay(w.next_exam_due)}</div>
+                      <div className="hybrid-actions" style={{ justifyContent: 'center' }}>
+                        <button className="btn btn-sm btn-outline" onClick={() => onNavigateWorker(w.id)}><FaEye /></button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-
-                {/* 1. OVERDUE ROWS (Red) */}
-                {(isMobile ? stats.overdue.slice(0, 5) : stats.overdue).map((w) => (
-                  <div
-                    key={w.id}
-                    className="hybrid-row overdue-worker-row"
-                    style={{ gridTemplateColumns: gridDashboard }}
-                  >
-                    {/* Name + Badge */}
-                    <div
-                      className="hybrid-cell"
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                    >
-                      <span style={{ fontWeight: 800, color: 'var(--danger-text)' }}>
-                        {w.full_name}
-                      </span>
-                      <span
-                        className="badge badge-red"
-                        style={{ fontSize: '0.65rem', padding: '2px 6px' }}
-                      >
-                        RETARD
-                      </span>
-                    </div>
-                    {/* Date */}
-                    <div
-                      className="hybrid-cell"
-                      style={{ color: 'var(--danger)', fontWeight: 'bold' }}
-                    >
-                      {logic.formatDateDisplay(w.next_exam_due)}
-                    </div>
-                    {/* Action */}
-                    <div className="hybrid-actions">
-                      <button
-                        className="btn btn-sm btn-outline"
-                        onClick={() => onNavigateWorker(w.id)}
-                        title="Voir Dossier"
-                      >
-                        <FaEye />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {/* 2. UPCOMING ROWS (Normal) */}
-                {(isMobile ? stats.dueSoon.slice(0, 5) : stats.dueSoon).map((w) => (
-                  <div
-                    key={w.id}
-                    className="hybrid-row"
-                    style={{ gridTemplateColumns: gridDashboard }}
-                  >
-                    <div className="hybrid-cell" style={{ fontWeight: 600 }}>
-                      {w.full_name}
-                    </div>
-                    <div className="hybrid-cell">{logic.formatDateDisplay(w.next_exam_due)}</div>
-                    <div className="hybrid-actions">
-                      <button
-                        className="btn btn-sm btn-outline"
-                        onClick={() => onNavigateWorker(w.id)}
-                        title="Voir Dossier"
-                      >
-                        <FaEye />
-                      </button>
-                    </div>
-                  </div>
-                ))}
               </div>
-            </div>
+
+              {/* [ACTION B] The 'Show More' Button */}
+              {isMobile && stats.dueSoon.length > 5 && (
+                <button
+                  onClick={() => toggleExpand('due')}
+                  className="btn btn-sm btn-outline"
+                  style={{ width: '100%', marginTop: '0.5rem', border: '1px dashed var(--primary)', color: 'var(--primary)' }}
+                >
+                  {expandedSection === 'due' ? 'Réduire ▲' : `Voir ${stats.dueSoon.length - 5} autres ▼`}
+                </button>
+              )}
+            </>
           )}
         </div>
 
@@ -520,64 +525,54 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
               Aucune contre-visite prévue.
             </div>
           ) : (
-            <div
-              className="scroll-wrapper"
-              style={{
-                maxHeight: compactMode ? '510px' : 'none',
-                background: 'transparent',
-                border: 'none',
-                padding: 0,
-                margin: 0,
-              }}
-            >
-              <div className="hybrid-container" style={{ minWidth: '100%' }}>
-                {/* HEADER */}
-                <div className="hybrid-header" style={{ gridTemplateColumns: gridDashboard }}>
-                  <div>Patient (Suivi)</div>
-                  <div>Date Prévue</div>
-                  <div style={{ textAlign: 'center' }}>Action</div>
-                </div>
-
-                {/* ROWS */}
-                {(isMobile ? stats.retests.slice(0, 5) : stats.retests).map((item) => (
-                  <div
-                    key={item.worker.id}
-                    className="hybrid-row"
-                    style={{ gridTemplateColumns: gridDashboard }}
-                  >
-                    {/* Patient Name + Icon */}
-                    <div
-                      className="hybrid-cell"
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                    >
-                      <div
-                        style={{
-                          background: 'var(--primary-light)',
-                          padding: '6px',
-                          borderRadius: '50%',
-                          display: 'flex',
-                        }}
-                      >
-                        <FaMicroscope size={10} color="var(--primary)" />
-                      </div>
-                      <span style={{ fontWeight: 700 }}>{item.worker.full_name}</span>
-                    </div>
-                    {/* Date */}
-                    <div className="hybrid-cell">{logic.formatDateDisplay(item.date)}</div>
-                    {/* Action */}
-                    <div className="hybrid-actions">
-                      <button
-                        className="btn btn-sm btn-outline"
-                        onClick={() => onNavigateWorker(item.worker.id)}
-                        title="Ouvrir Dossier"
-                      >
-                        <FaEye />
-                      </button>
-                    </div>
+            <>
+              <div
+                className="scroll-wrapper"
+                style={{
+                  maxHeight: compactMode ? '510px' : 'none',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
+                  margin: 0,
+                }}
+              >
+                <div className="hybrid-container" style={{ minWidth: '100%' }}>
+                  {/* HEADER */}
+                  <div className="hybrid-header" style={{ gridTemplateColumns: gridDashboard }}>
+                    <div>Patient (Suivi)</div>
+                    <div>Date Prévue</div>
+                    <div style={{ textAlign: 'center' }}>Action</div>
                   </div>
-                ))}
+
+                  {/* [ACTION C] Limit 'Retests' to 5 items on mobile */}
+                  {(isMobile && expandedSection !== 'retest' ? stats.retests.slice(0, 5) : stats.retests).map((item) => (
+                    <div key={item.worker.id} className="hybrid-row" style={{ gridTemplateColumns: gridDashboard }}>
+                      <div className="hybrid-cell" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ background: 'var(--primary-light)', padding: '6px', borderRadius: '50%', display: 'flex' }}>
+                          <FaMicroscope size={10} color="var(--primary)" />
+                        </div>
+                        <span style={{ fontWeight: 700 }}>{item.worker.full_name}</span>
+                      </div>
+                      <div className="hybrid-cell">{logic.formatDateDisplay(item.date)}</div>
+                      <div className="hybrid-actions" style={{ justifyContent: 'center' }}>
+                        <button className="btn btn-sm btn-outline" onClick={() => onNavigateWorker(item.worker.id)}><FaEye /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+
+              {/* [ACTION C] The 'Show More' Button */}
+              {isMobile && stats.retests.length > 5 && (
+                <button
+                  onClick={() => toggleExpand('retest')}
+                  className="btn btn-sm btn-outline"
+                  style={{ width: '100%', marginTop: '0.5rem', border: '1px dashed var(--primary)', color: 'var(--primary)' }}
+                >
+                  {expandedSection === 'retest' ? 'Réduire ▲' : `Voir ${stats.retests.length - 5} autres ▼`}
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
