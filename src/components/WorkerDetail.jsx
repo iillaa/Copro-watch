@@ -452,7 +452,10 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
                 <div className="hybrid-cell">{renderStatusBadge(e.decision?.status)}</div>
 
                 {/* Col 6: Actions - Forced 9px gap */}
-                <div className="hybrid-actions" style={{ display: 'flex', gap: '9px', justifyContent: 'flex-end' }}>
+                <div
+                  className="hybrid-actions"
+                  style={{ display: 'flex', gap: '9px', justifyContent: 'flex-end' }}
+                >
                   <button
                     className="btn btn-outline btn-sm"
                     onClick={() => handleOpenExam(e)}

@@ -15,11 +15,12 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
 
   // [SURGICAL] Expansion State
   const [expandedSection, setExpandedSection] = useState(null); // 'due', 'retest', or null
-  const toggleExpand = (section) => setExpandedSection(expandedSection === section ? null : section);
+  const toggleExpand = (section) =>
+    setExpandedSection(expandedSection === section ? null : section);
 
   // [FIX] Detect Mobile if Width is small OR Height is small (Landscape Phone)
   const checkMobile = () => window.innerWidth < 1024 || window.innerHeight < 600;
-  
+
   const [isMobile, setIsMobile] = useState(checkMobile());
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  
+
   // [GRID CONFIG] Name(1.5) | Date(1) | Action(80)
   const gridDashboard = '1.5fr 1fr 80px';
 
@@ -467,12 +468,26 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
                   ))}
 
                   {/* [ACTION B] Limit 'Due Soon' to 5 items on mobile unless expanded */}
-                  {(isMobile && expandedSection !== 'due' ? stats.dueSoon.slice(0, 5) : stats.dueSoon).map((w) => (
-                    <div key={w.id} className="hybrid-row" style={{ gridTemplateColumns: gridDashboard }}>
-                      <div className="hybrid-cell" style={{ fontWeight: 600 }}>{w.full_name}</div>
+                  {(isMobile && expandedSection !== 'due'
+                    ? stats.dueSoon.slice(0, 5)
+                    : stats.dueSoon
+                  ).map((w) => (
+                    <div
+                      key={w.id}
+                      className="hybrid-row"
+                      style={{ gridTemplateColumns: gridDashboard }}
+                    >
+                      <div className="hybrid-cell" style={{ fontWeight: 600 }}>
+                        {w.full_name}
+                      </div>
                       <div className="hybrid-cell">{logic.formatDateDisplay(w.next_exam_due)}</div>
                       <div className="hybrid-actions" style={{ justifyContent: 'center' }}>
-                        <button className="btn btn-sm btn-outline" onClick={() => onNavigateWorker(w.id)}><FaEye /></button>
+                        <button
+                          className="btn btn-sm btn-outline"
+                          onClick={() => onNavigateWorker(w.id)}
+                        >
+                          <FaEye />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -484,9 +499,16 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
                 <button
                   onClick={() => toggleExpand('due')}
                   className="btn btn-sm btn-outline"
-                  style={{ width: '100%', marginTop: '0.5rem', border: '1px dashed var(--primary)', color: 'var(--primary)' }}
+                  style={{
+                    width: '100%',
+                    marginTop: '0.5rem',
+                    border: '1px dashed var(--primary)',
+                    color: 'var(--primary)',
+                  }}
                 >
-                  {expandedSection === 'due' ? 'Réduire ▲' : `Voir ${stats.dueSoon.length - 5} autres ▼`}
+                  {expandedSection === 'due'
+                    ? 'Réduire ▲'
+                    : `Voir ${stats.dueSoon.length - 5} autres ▼`}
                 </button>
               )}
             </>
@@ -545,17 +567,39 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
                   </div>
 
                   {/* [ACTION C] Limit 'Retests' to 5 items on mobile */}
-                  {(isMobile && expandedSection !== 'retest' ? stats.retests.slice(0, 5) : stats.retests).map((item) => (
-                    <div key={item.worker.id} className="hybrid-row" style={{ gridTemplateColumns: gridDashboard }}>
-                      <div className="hybrid-cell" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div style={{ background: 'var(--primary-light)', padding: '6px', borderRadius: '50%', display: 'flex' }}>
+                  {(isMobile && expandedSection !== 'retest'
+                    ? stats.retests.slice(0, 5)
+                    : stats.retests
+                  ).map((item) => (
+                    <div
+                      key={item.worker.id}
+                      className="hybrid-row"
+                      style={{ gridTemplateColumns: gridDashboard }}
+                    >
+                      <div
+                        className="hybrid-cell"
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                      >
+                        <div
+                          style={{
+                            background: 'var(--primary-light)',
+                            padding: '6px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                          }}
+                        >
                           <FaMicroscope size={10} color="var(--primary)" />
                         </div>
                         <span style={{ fontWeight: 700 }}>{item.worker.full_name}</span>
                       </div>
                       <div className="hybrid-cell">{logic.formatDateDisplay(item.date)}</div>
                       <div className="hybrid-actions" style={{ justifyContent: 'center' }}>
-                        <button className="btn btn-sm btn-outline" onClick={() => onNavigateWorker(item.worker.id)}><FaEye /></button>
+                        <button
+                          className="btn btn-sm btn-outline"
+                          onClick={() => onNavigateWorker(item.worker.id)}
+                        >
+                          <FaEye />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -567,9 +611,16 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
                 <button
                   onClick={() => toggleExpand('retest')}
                   className="btn btn-sm btn-outline"
-                  style={{ width: '100%', marginTop: '0.5rem', border: '1px dashed var(--primary)', color: 'var(--primary)' }}
+                  style={{
+                    width: '100%',
+                    marginTop: '0.5rem',
+                    border: '1px dashed var(--primary)',
+                    color: 'var(--primary)',
+                  }}
                 >
-                  {expandedSection === 'retest' ? 'Réduire ▲' : `Voir ${stats.retests.length - 5} autres ▼`}
+                  {expandedSection === 'retest'
+                    ? 'Réduire ▲'
+                    : `Voir ${stats.retests.length - 5} autres ▼`}
                 </button>
               )}
             </>
