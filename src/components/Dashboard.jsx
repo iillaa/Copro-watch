@@ -13,15 +13,17 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // [INJECT THIS] --- MOBILE DETECTOR ---
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  // [FIX] Detect Mobile if Width is small OR Height is small (Landscape Phone)
+  const checkMobile = () => window.innerWidth < 1024 || window.innerHeight < 600;
+  
+  const [isMobile, setIsMobile] = useState(checkMobile());
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(checkMobile());
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  // [END INJECTION]
+  
   // [GRID CONFIG] Name(1.5) | Date(1) | Action(80)
   const gridDashboard = '1.5fr 1fr 80px';
 
