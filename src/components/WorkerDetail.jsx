@@ -295,7 +295,8 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {/* Increased header button gap to 9px */}
+          <div style={{ display: 'flex', gap: '9px', flexWrap: 'wrap' }}>
             {/* [NEW] TOGGLE SELECTION MODE (Icon Only) */}
             <button
               className={`btn ${isSelectionMode ? 'btn-primary' : 'btn-outline'}`}
@@ -307,7 +308,7 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
 
             {/* Bouton Nouvel Examen */}
             <button className="btn btn-primary" onClick={handleNewExam} disabled={worker.archived}>
-              <FaFileMedical /> Nouvel Examen
+              <FaFileMedical /> <span className="hide-mobile">Nouvel Examen</span>
             </button>
 
             {/* NOUVEAU BOUTON ARCHIVER / REACTIVER */}
@@ -326,11 +327,11 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
             >
               {worker.archived ? (
                 <>
-                  <FaBoxOpen /> Réactiver
+                  <FaBoxOpen /> <span className="hide-mobile">Réactiver</span>
                 </>
               ) : (
                 <>
-                  <FaArchive /> Archiver
+                  <FaArchive /> <span className="hide-mobile">Archiver</span>
                 </>
               )}
             </button>
@@ -340,7 +341,7 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
               onClick={() => setShowPrintModal(true)}
               title="Imprimer documents (Convocation, Aptitude...)"
             >
-              <FaPrint /> Docs
+              <FaPrint /> <span className="hide-mobile">Docs</span>
             </button>
             {/* Bouton Supprimer (Rouge) */}
             <button
@@ -450,8 +451,8 @@ export default function WorkerDetail({ workerId, onBack, compactMode }) {
                 {/* Col 5: Statut */}
                 <div className="hybrid-cell">{renderStatusBadge(e.decision?.status)}</div>
 
-                {/* Col 6: Actions */}
-                <div className="hybrid-actions">
+                {/* Col 6: Actions - Forced 9px gap */}
+                <div className="hybrid-actions" style={{ display: 'flex', gap: '9px', justifyContent: 'flex-end' }}>
                   <button
                     className="btn btn-outline btn-sm"
                     onClick={() => handleOpenExam(e)}

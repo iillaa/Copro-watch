@@ -592,6 +592,11 @@ tr:nth-child(even) td {
     padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important;
     margin-left: 0 !important;
   }
+
+  /* UTILITY: Hide text on small screens */
+  .hide-mobile {
+    display: none !important;
+  }
 }
 
 /* Grid Stability */
@@ -638,10 +643,13 @@ tr:nth-child(even) td {
   margin-bottom: 0.6rem;
   border-radius: 12px;
   border: 1.5px solid var(--row-border);
-  box-shadow: 2px 2px 0px var(--row-shadow);
+  box-shadow: 1px 1px 0px var(--row-shadow);
   align-items: center;
   transition: all 0.15s ease;
   cursor: pointer;
+  /* [PERFORMANCE FIX] Only render what is on screen */
+  content-visibility: auto; 
+  contain-intrinsic-size: 60px; /* Tells browser the row is approx 60px tall */
 }
 @media (hover: hover) {
   .hybrid-row:hover {

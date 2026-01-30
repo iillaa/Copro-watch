@@ -14,10 +14,10 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
   const [loading, setLoading] = useState(true);
 
   // [INJECT THIS] --- MOBILE DETECTOR ---
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -414,11 +414,11 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
                 <div className="hybrid-header" style={{ gridTemplateColumns: gridDashboard }}>
                   <div>Nom</div>
                   <div style={{ whiteSpace: 'nowrap' }}>Date Prévue</div>
-                  <div style={{ textAlign: 'right' }}>Action</div>
+                  <div style={{ textAlign: 'center' }}>Action</div>
                 </div>
 
                 {/* 1. OVERDUE ROWS (Red) */}
-                {stats.overdue.map((w) => (
+                {(isMobile ? stats.overdue.slice(0, 5) : stats.overdue).map((w) => (
                   <div
                     key={w.id}
                     className="hybrid-row overdue-worker-row"
@@ -460,7 +460,7 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
                 ))}
 
                 {/* 2. UPCOMING ROWS (Normal) */}
-                {stats.dueSoon.map((w) => (
+                {(isMobile ? stats.dueSoon.slice(0, 5) : stats.dueSoon).map((w) => (
                   <div
                     key={w.id}
                     className="hybrid-row"
@@ -533,11 +533,11 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
                 <div className="hybrid-header" style={{ gridTemplateColumns: gridDashboard }}>
                   <div>Patient (Suivi)</div>
                   <div>Date Prévue</div>
-                  <div style={{ textAlign: 'right' }}>Action</div>
+                  <div style={{ textAlign: 'center' }}>Action</div>
                 </div>
 
                 {/* ROWS */}
-                {stats.retests.map((item) => (
+                {(isMobile ? stats.retests.slice(0, 5) : stats.retests).map((item) => (
                   <div
                     key={item.worker.id}
                     className="hybrid-row"

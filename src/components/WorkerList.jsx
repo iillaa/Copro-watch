@@ -724,7 +724,7 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
               setShowForm(true);
             }}
           >
-            <FaPlus /> Nouveau
+            <FaPlus /> <span className="hide-mobile">Nouveau</span>
           </button>
         </div>
       </div>
@@ -955,8 +955,8 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
                       )}
                     </div>
 
-                    {/* Actions */}
-                    <div className="hybrid-actions">
+                    {/* Actions - Forced 9px gap for better touch separation */}
+                    <div className="hybrid-actions" style={{ display: 'flex', gap: '9px', justifyContent: 'flex-end' }}>
                       <button
                         className="btn btn-outline btn-sm"
                         onClick={(e) => handleEdit(e, w)}
