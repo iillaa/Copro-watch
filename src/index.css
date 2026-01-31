@@ -597,14 +597,11 @@ tr:nth-child(even) td {
   margin: 0 !important; /* Remove any legacy margins */
 }
 
-  /* 5. MAGIC SCALING (Replaces Zoom) */
+ /* 5. MAGIC SCALING (Replaces Transform to fix Sticky Header) */
   .hybrid-container {
-  /* Use transform instead of zoom for better Android support */
-  transform: scale(0.85) !important;
-  transform-origin: top left !important;
-  width: 117.6% !important; /* Compensate for 0.85 scale */
-  margin-bottom: -15% !important; /* Pull up whitespace */
-}
+    zoom: 0.80; 
+    width: 100%;
+  }
 
   /* 6. 6-COLUMN GRID (Forces layout over Inline Styles) */
   .hybrid-header,
@@ -615,15 +612,23 @@ tr:nth-child(even) td {
     padding: 0.5rem 0.1rem !important;
   }
 
-  /* FORCE TEXT & CHEVRON SIDE-BY-SIDE */
+  /* [SECTION 2] HEADER ALIGNMENT */
 .hybrid-header > div {
   display: flex !important;
   flex-direction: row !important;
-  align-items: center !important; /* Center vertically */
-  justify-content: flex-start !important;
+  align-items: center !important; 
+  justify-content: flex-start !important; /* Default: Left Align (Name, etc) */
   white-space: nowrap !important;
-  overflow: visible !important;
+  overflow: hidden !important;
   gap: 4px !important;
+  height: 100%; 
+}
+
+/* [FIX] RIGHT ALIGN DATE HEADERS (Dernier & Prochain) */
+.hybrid-header > div:nth-child(5),
+.hybrid-header > div:nth-child(6) {
+  justify-content: flex-end !important; /* Push Header Text to Right */
+  padding-right: 4px !important;      /* Add small spacing from edge */
 }
 
 /* Ensure Sort Icons/Chevrons stay inline */
@@ -632,10 +637,13 @@ tr:nth-child(even) td {
   margin-top: 0 !important;
 }
 
-  /* Unhide columns we want (Matricule & Last Exam) */
-  .hybrid-header > div:nth-child(4),
-  .hybrid-row > div:nth-child(4) {
-    display: none !important; /* Keep Service Hidden only */
+  /* [FIX] RIGHT ALIGN DATE ROWS */
+  .hybrid-row > div:nth-child(5), /* Last Exam */
+  .hybrid-row > div:nth-child(6) { /* Next Exam */
+    text-align: right !important;
+    justify-content: flex-end !important; /* If they behave as flex */
+    font-size: 0.75rem !important;
+    padding-right: 4px !important; /* Match Header Padding */
   }
 
   /* Fix Modal/Keyboard */

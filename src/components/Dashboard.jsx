@@ -18,12 +18,15 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
   const toggleExpand = (section) =>
     setExpandedSection(expandedSection === section ? null : section);
 
-  // [FIX] Broader detection for High-DPI phones (Poco F6, etc.)
+  // [FIX] Robust Mobile Detection for High-DPI Screens (Poco F6)
   const checkMobile = () => {
-    // Increased to 900px to ensure high-density screens trigger mobile view
-    const isPortraitPhone = window.matchMedia("(max-width: 900px)").matches;
+    if (typeof window === 'undefined') return false;
     
-    // Landscape Phone check
+    // Check 1: Direct Width (Simple & Effective)
+    if (window.innerWidth <= 900) return true;
+
+    // Check 2: Media Query (For orientation/density specifics)
+    const isPortraitPhone = window.matchMedia("(max-width: 900px)").matches;
     const isLandscapePhone = window.matchMedia("(max-height: 600px) and (orientation: landscape)").matches;
 
     return isPortraitPhone || isLandscapePhone;
