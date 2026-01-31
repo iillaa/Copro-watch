@@ -18,18 +18,12 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
   const toggleExpand = (section) =>
     setExpandedSection(expandedSection === section ? null : section);
 
-  // [FIX] NUCLEAR MOBILE DETECTION
+  // [FIX] ULTRA-AGGRESSIVE MOBILE DETECTION
   const checkMobile = () => {
     if (typeof window === 'undefined') return false;
-    
-    // 1. Force Mobile on any Android/iOS device (Ignores screen width quirks)
-    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-    if (/android|iPad|iPhone|iPod/i.test(userAgent)) {
-      return true;
-    }
-
-    // 2. Fallback width check
-    return window.innerWidth <= 1000;
+    // Just force EVERYTHING under 1200px to be mobile. 
+    // This covers your Poco F6 (approx 393px - 450px logical width) safely.
+    return window.innerWidth <= 1200; 
   };
 
   const [isMobile, setIsMobile] = useState(checkMobile());

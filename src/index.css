@@ -576,7 +576,6 @@ tr:nth-child(even) td {
 }
 
 
-
   /* 4. NAVIGATION ICONS */
   .nav-item {
   display: flex !important;
@@ -597,19 +596,33 @@ tr:nth-child(even) td {
   margin: 0 !important; /* Remove any legacy margins */
 }
 
- /* 5. MAGIC SCALING (Replaces Transform to fix Sticky Header) */
+  /* 5. NATIVE SCALING (Removes Zoom to restore Sticky Header) */
   .hybrid-container {
-    zoom: 0.85; 
+    /* NO ZOOM - We shrink elements manually below */
     width: 100%;
   }
 
-  /* 6. 6-COLUMN GRID (Forces layout over Inline Styles) */
+  /* 6. MINI GRID (Simulates 85% zoom natively) */
   .hybrid-header,
   .hybrid-row {
-    /* Check(25) | Name(Auto) | Mat(45) | Last(60) | Next(60) | Actions(85) */
-    grid-template-columns: 25px 1fr 45px 60px 60px 85px !important;
-    gap: 2px;
-    padding: 0.5rem 0.1rem !important;
+    /* Shrinking columns by ~15% to fit Poco F6 */
+    /* Check(22) | Name(Auto) | Mat(38) | Last(50) | Next(50) | Actions(75) */
+    grid-template-columns: 22px 1fr 38px 50px 50px 75px !important;
+    gap: 1px;
+    padding: 0.4rem 0rem !important;
+  }
+  
+  /* Shrink Fonts to match the "Zoomed" look */
+  .hybrid-cell, .hybrid-header {
+    font-size: 0.7rem !important; /* Smaller text */
+  }
+  
+  /* FIX STICKY HEADER */
+  .hybrid-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important;
+    margin-top: 0 !important; /* Remove gap */
   }
 
 /* [FIX] HEADER ALIGNMENT */
@@ -624,11 +637,21 @@ tr:nth-child(even) td {
   height: 100%; 
 }
 
-/* [FIX] FORCE RIGHT ALIGNMENT FOR DATE HEADERS */
-.hybrid-header > div:nth-child(5),
-.hybrid-header > div:nth-child(6) {
-  justify-content: flex-end !important; /* Push text to right */
-  padding-right: 4px !important;
+/* [FIX] FORCE RIGHT ALIGNMENT (Headers) */
+.hybrid-header > div:nth-child(5), /* Last Exam */
+.hybrid-header > div:nth-child(6) { /* Next Exam */
+  justify-content: flex-end !important;
+  text-align: right !important;
+  padding-right: 2px !important;
+}
+
+/* [FIX] FORCE RIGHT ALIGNMENT (Rows) */
+.hybrid-row > div:nth-child(5),
+.hybrid-row > div:nth-child(6) {
+  justify-content: flex-end !important;
+  text-align: right !important;
+  padding-right: 2px !important;
+  display: flex !important; /* Ensure flex behavior */
 }
 
 /* Ensure Sort Icons/Chevrons stay inline */
@@ -637,14 +660,7 @@ tr:nth-child(even) td {
   margin-top: 0 !important;
 }
 
-  /* [FIX] RIGHT ALIGN DATE ROWS */
-  .hybrid-row > div:nth-child(5), /* Last Exam */
-  .hybrid-row > div:nth-child(6) { /* Next Exam */
-    text-align: right !important;
-    justify-content: flex-end !important; /* If they behave as flex */
-    font-size: 0.75rem !important;
-    padding-right: 4px !important; /* Match Header Padding */
-  }
+
 
   /* Fix Modal/Keyboard */
   .modal { margin-bottom: 50vh !important; }
