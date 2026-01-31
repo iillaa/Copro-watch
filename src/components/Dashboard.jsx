@@ -18,43 +18,27 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
   const toggleExpand = (section) =>
     setExpandedSection(expandedSection === section ? null : section);
 
-  // [FIX] MOBILE DETECTION - Now matches CSS @media (max-width: 768px)
+  // [FIX] NUCLEAR MOBILE DETECTION
   const checkMobile = () => {
     if (typeof window === 'undefined') return false;
-    const width = window.innerWidth;
-    const isMobileResult = width <= 768; // Fixed: was 1200 (too aggressive)
-    // [DEBUG] Log mobile detection for bug diagnosis
-    console.log('[DEBUG] Mobile Detection:', {
-      innerWidth: width,
-      isMobile: isMobileResult,
-      timestamp: new Date().toISOString()
-    });
-    return isMobileResult;
+    
+    // 1. Force Mobile on any Android/iOS device (Ignores screen width quirks)
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    if (/android|iPad|iPhone|iPod/i.test(userAgent)) {
+      return true;
+    }
+
+    // 2. Fallback width check
+    return window.innerWidth <= 1000;
   };
 
   const [isMobile, setIsMobile] = useState(checkMobile());
 
-  // [DEBUG] Log when mobile state changes
   useEffect(() => {
-    console.log('[DEBUG] Mobile State Changed:', {
-      isMobile,
-      windowWidth: typeof window !== 'undefined' ? window.innerWidth : 'N/A',
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'
-    });
-  }, [isMobile]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      const wasMobile = isMobile;
-      setIsMobile(checkMobile());
-      if (isMobile !== wasMobile) {
-        console.log('[DEBUG] Layout Switch Triggered:', { fromMobile: wasMobile, toMobile: isMobile });
-      }
-    };
+    const handleResize = () => setIsMobile(checkMobile());
     window.addEventListener('resize', handleResize);
-    console.log('[DEBUG] Resize listener attached');
     return () => window.removeEventListener('resize', handleResize);
-  }, [isMobile]);
+  }, []);
 
   // [GRID CONFIG] Name(1.5) | Date(1) | Action(80)
   const gridDashboard = '1.5fr 1fr 80px';

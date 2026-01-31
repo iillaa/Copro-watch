@@ -543,7 +543,7 @@ tr:nth-child(even) td {
     height: auto !important;
     min-height: 100dvh;
     overflow: visible !important;
-    display: flex !important; /* Fixed: was 'block' which conflicts with flex-direction */
+    display: block; 
     flex-direction: column;
   }
 
@@ -576,6 +576,7 @@ tr:nth-child(even) td {
 }
 
 
+
   /* 4. NAVIGATION ICONS */
   .nav-item {
   display: flex !important;
@@ -596,102 +597,53 @@ tr:nth-child(even) td {
   margin: 0 !important; /* Remove any legacy margins */
 }
 
-  /* 5. NATIVE SCALING (Removes Zoom to restore Sticky Header) */
+ /* 5. MAGIC SCALING (Replaces Transform to fix Sticky Header) */
   .hybrid-container {
-    /* NO ZOOM - We shrink elements manually below */
+    zoom: 0.85; 
     width: 100%;
   }
 
-  /* 6. MINI GRID (Simulates 85% zoom natively) */
+  /* 6. 6-COLUMN GRID (Forces layout over Inline Styles) */
   .hybrid-header,
   .hybrid-row {
-    /* Shrinking columns by ~15% to fit Poco F6 */
-    /* Check(22) | Name(Auto) | Mat(38) | Last(50) | Next(50) | Actions(75) */
-    grid-template-columns: 22px 1fr 38px 50px 50px 75px !important;
-    gap: 1px;
-    padding: 0.4rem 0rem !important;
-  }
-  
-  /* Shrink Fonts to match the "Zoomed" look */
-  .hybrid-cell, .hybrid-header {
-    font-size: 0.7rem !important; /* Smaller text */
-  }
-  
-  /* FIX STICKY HEADER */
-  .hybrid-header {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 1000 !important;
-    margin-top: 0 !important; /* Remove gap */
+    /* Check(25) | Name(Auto) | Mat(45) | Last(60) | Next(60) | Actions(85) */
+    grid-template-columns: 25px 1fr 45px 60px 60px 85px !important;
+    gap: 2px;
+    padding: 0.5rem 0.1rem !important;
   }
 
 /* [FIX] HEADER ALIGNMENT */
-.hybrid-header > div,
-.header-content {
-  display: flex;
-  align-items: center;
-  gap: 4px; /* space between text and chevron */
-  white-space: nowrap;
-  overflow: hidden;
+.hybrid-header > div {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important; 
+  justify-content: flex-start !important; /* Default Left */
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  gap: 4px !important;
+  height: 100%; 
 }
 
-.hybrid-header .header-text,
-.header-text {
-  margin: 0; /* remove default margins */
-  padding: 0;
-  line-height: 1.2;
+/* [FIX] FORCE RIGHT ALIGNMENT FOR DATE HEADERS */
+.hybrid-header > div:nth-child(5),
+.hybrid-header > div:nth-child(6) {
+  justify-content: flex-end !important; /* Push text to right */
+  padding-right: 4px !important;
 }
 
-.hybrid-header .chevron-icon,
-.chevron-icon {
-  width: 12px; /* adjust size as needed */
-  height: 12px;
-  vertical-align: middle;
-  flex-shrink: 0;
-  margin: 0;
-  padding: 0;
+/* Ensure Sort Icons/Chevrons stay inline */
+.hybrid-header svg {
+  flex-shrink: 0 !important;
+  margin-top: 0 !important;
 }
 
-/* Ensure sortable headers have proper cursor */
-.hybrid-header > div[role="button"],
-.hybrid-header .header-content[role="button"] {
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.hybrid-header > div[role="button"]:hover,
-.hybrid-header .header-content[role="button"]:hover {
-  color: var(--primary-dark, #4f46e5);
-}
-
-  /* 7. RESPONSIVE ADJUSTMENTS FOR MOBILE */
-  .hybrid-header > div,
-  .header-content {
-    /* maintain horizontal alignment on small screens */
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 0.65rem;
-  }
-
-  .hybrid-header .chevron-icon,
-  .chevron-icon {
-    width: 10px;
-    height: 10px;
-  }
-
-  /* 8. EXTRA RESPONSIVE FOR VERY SMALL SCREENS */
-  @media (max-width: 600px) {
-    .hybrid-header > div,
-    .header-content {
-      gap: 3px;
-    }
-
-    .hybrid-header .chevron-icon,
-    .chevron-icon {
-      width: 10px;
-      height: 10px;
-    }
+  /* [FIX] RIGHT ALIGN DATE ROWS */
+  .hybrid-row > div:nth-child(5), /* Last Exam */
+  .hybrid-row > div:nth-child(6) { /* Next Exam */
+    text-align: right !important;
+    justify-content: flex-end !important; /* If they behave as flex */
+    font-size: 0.75rem !important;
+    padding-right: 4px !important; /* Match Header Padding */
   }
 
   /* Fix Modal/Keyboard */
@@ -735,46 +687,6 @@ tr:nth-child(even) td {
   margin-bottom: 0.75rem;
   margin-top: 0.25rem;
 }
-
-/* Updated header content alignment */
-.hybrid-header > div,
-.header-content {
-  display: flex;
-  align-items: center;
-  gap: 4px; /* space between text and chevron */
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.hybrid-header .header-text,
-.header-text {
-  margin: 0; /* remove default margins */
-  padding: 0;
-  line-height: 1.2;
-}
-
-.hybrid-header .chevron-icon,
-.chevron-icon {
-  width: 12px; /* adjust size as needed */
-  height: 12px;
-  vertical-align: middle;
-  flex-shrink: 0;
-  margin: 0;
-  padding: 0;
-}
-
-/* Ensure sortable headers have proper cursor */
-.hybrid-header > div[role="button"],
-.hybrid-header .header-content[role="button"] {
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.hybrid-header > div[role="button"]:hover,
-.hybrid-header .header-content[role="button"]:hover {
-  color: var(--primary-dark, #4f46e5);
-}
-
 .hybrid-row {
   display: grid;
   background: var(--bg-card);
