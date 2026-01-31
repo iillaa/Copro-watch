@@ -1018,13 +1018,22 @@ html {
     display: none !important;
   }
   
-  /* [NEW] Force Header Text & Icon to be Side-by-Side */
+  /* [FIX] Force Header Alignment - Target ALL children of the header cell */
   .hybrid-header > div {
     display: flex !important;
-    align-items: center !important;
-    white-space: nowrap !important; /* Prevents text from wrapping */
+    flex-direction: row !important; /* Force Horizontal */
+    align-items: flex-end !important; /* Align to bottom text baseline */
+    justify-content: flex-start !important;
+    white-space: nowrap !important;
     overflow: hidden !important;
-    gap: 2px; /* Small gap between text and icon */
+    height: 100% !important;
+  }
+
+  /* Force the SVG icon to stay inline */
+  .hybrid-header > div > svg {
+    display: inline-block !important;
+    margin-left: 2px !important;
+    min-width: 12px !important; /* Prevent icon shrinking */
   }
 
   /* 2. FIX GRID: Give 'Nom' more space (Auto) */
