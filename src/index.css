@@ -533,24 +533,21 @@ tr:nth-child(even) td {
 
 /* MOBILE LAYOUT (Phone Only - Sidebar Bottom) */
 @media (max-width: 768px) {
-  /* 1. FORCE NATIVE SCROLL (Fixes stuck scrolling) */
-  html,
-  body {
+  /* 1. RESET LAYOUT & SCROLL */
+  html, body {
     overflow-y: auto !important;
     height: auto !important;
     min-height: 100dvh;
   }
-
-  /* 2. UNLOCK LAYOUT */
-  #root,
-  .app-shell {
+  #root, .app-shell {
     height: auto !important;
     min-height: 100dvh;
     overflow: visible !important;
-    display: block; /* Stack everything vertically */
+    display: block; 
     flex-direction: column;
   }
 
+  /* 2. SIDEBAR FIXED BOTTOM */
   .sidebar {
     position: fixed;
     bottom: 0;
@@ -561,71 +558,77 @@ tr:nth-child(even) td {
     justify-content: space-around;
     padding: 0.5rem;
     padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
-    border-right: none;
     border-top: 3px solid var(--border-color);
     z-index: 9999;
     background: var(--bg-app);
-    backdrop-filter: blur(10px);
   }
-  .brand,
-  .sidebar > div:last-child,
-  .toggle-sidebar,
-  .credit,
-  .nav-text {
+  /* Hide Desktop Elements */
+  .brand, .toggle-sidebar, .nav-text, .credit, .credit-version, .hide-mobile {
     display: none !important;
   }
-  /* [POLISH] Centered, Square Icons for Mobile Navigation */
+
+  /* 3. MAIN CONTENT PADDING (Clear the Sidebar) */
+  .main-content {
+    width: 100%;
+    padding: 0.25rem !important; /* Gain Width */
+    padding-top: 0.5rem !important;
+    /* CRITICAL: 140px bottom padding to stop overlap */
+    padding-bottom: calc(140px + env(safe-area-inset-bottom)) !important; 
+    margin-left: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* 4. NAVIGATION ICONS */
   .nav-item {
-    display: flex;
-    justify-content: center; /* Centers icon Horizontally */
-    align-items: center;     /* Centers icon Vertically */
-    width: 48px !important;  /* Fixed Touch Target Size */
+    justify-content: center;
+    width: 48px !important;
     height: 48px !important;
     padding: 0 !important;
     border: none;
-    background: transparent;
-    box-shadow: none;
     border-radius: 12px;
-    margin: 0 auto;          /* Safety centering */
   }
-  
-  /* Active State Polish */
-  .nav-item.active {
-    background: var(--primary-light);
-    color: var(--primary);
-    box-shadow: none;
-    transform: none;
-  }
-  
-  /* Make icons bigger inside the button */
-  .nav-icon {
-    font-size: 1.5rem !important;
-    margin: 0 !important;
-  }
-  .nav-item.active {
-    background: var(--primary-light);
-    color: var(--primary);
-    border: none;
-    box-shadow: none;
-    transform: none;
+  .nav-icon { font-size: 1.5rem !important; margin: 0 !important; }
+
+  /* 5. MAGIC SCALING (Replaces Zoom) */
+  .hybrid-container {
+    /* Scale down to 85% to fit more columns */
+    transform: scale(0.85);
+    transform-origin: top left;
+    /* Increase width to compensate for scale (100 / 0.85 = 117.6%) */
+    width: 117.6% !important; 
+    margin-bottom: -15%; /* Remove empty whitespace created by scale */
   }
 
-  .main-content {
-    flex: none;
-    width: 100%;
-    height: auto;
-    overflow: visible !important;
-    /* FIX: Reduce padding to 0.25rem to gain screen width */
-    padding: 0.25rem !important; 
-    padding-top: 0.5rem !important;
-    padding-bottom: calc(140px + env(safe-area-inset-bottom)) !important; 
-    margin-left: 0 !important;
+  /* 6. 6-COLUMN GRID (Forces layout over Inline Styles) */
+  .hybrid-header,
+  .hybrid-row {
+    /* Check(25) | Name(Auto) | Mat(45) | Last(60) | Next(60) | Actions(85) */
+    grid-template-columns: 25px 1fr 45px 60px 60px 85px !important;
+    gap: 2px;
+    padding: 0.5rem 0.1rem !important;
   }
 
-  /* UTILITY: Hide text on small screens */
-  .hide-mobile {
-    display: none !important;
+  /* 7. CELL STYLING */
+  .hybrid-header > div {
+    display: flex !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
   }
+  .hybrid-row > div:nth-child(5), /* Last Exam */
+  .hybrid-row > div:nth-child(6) { /* Next Exam */
+    text-align: right !important;
+    font-size: 0.75rem !important;
+  }
+  
+  /* Unhide columns we want (Matricule & Last Exam) */
+  .hybrid-header > div:nth-child(4),
+  .hybrid-row > div:nth-child(4) {
+    display: none !important; /* Keep Service Hidden only */
+  }
+
+  /* Fix Modal/Keyboard */
+  .modal { margin-bottom: 50vh !important; }
 }
 
 /* Grid Stability */
@@ -979,98 +982,4 @@ html {
   outline: 3px dashed var(--text-main);
   outline-offset: 4px;
   border-radius: 4px;
-}
-/* =========================================
-   MOBILE POLISH: FIX SQUISHED HEADERS & BUTTONS
-   ========================================= */
-@media (max-width: 768px) {
-  /* Water Dashboard Mobile */
-  .water-dashboard-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    height: auto;
-  }
-  .water-panel-scroll {
-    overflow-y: visible;
-    height: auto;
-  }
-
-  /* Android Mobile Keyboard Fix */
-  .modal-overlay {
-    align-items: flex-start !important;
-    padding-top: 20px !important;
-    overflow-y: auto !important;
-  }
-  .modal {
-    margin-bottom: max(300px, 40vh) !important; /* Push up so keyboard doesn't hide input */
-    margin-top: 20px !important;
-    position: relative !important;
-    max-height: calc(100vh - 100px) !important;
-  }
-
-/* 1. HIDE COLUMNS: Only hide 'Service' (Col 4). Show Mat & Last Exam. */
-  .hybrid-header > div:nth-child(4),
-  .hybrid-row > div:nth-child(4) {
-    display: none !important;
-  }
-  
-  /* Reset Header Alignment (Revert Flex Hacks) */
-  .hybrid-header > div {
-    display: block !important;
-    white-space: nowrap !important;
-  }
- /* [FIX] ZOOM CONTAINER: Mimic the 80% browser zoom */
-  .hybrid-container {
-    zoom: 0.85; /* Scales the table down to fit */
-    width: 100%;
-  }
-
-  /* 2. FIX GRID: Ultra-Compact 6 Columns */
-  .hybrid-header,
-  .hybrid-row {
-    /* Check(22) | Name(Auto) | Mat(40) | Last(55) | Next(55) | Actions(80) */
-    grid-template-columns: 22px 1fr 40px 55px 55px 80px !important;
-    gap: 1px; /* Minimal gap */
-    padding: 0.5rem 0 !important; /* Minimal padding */
-  }
-
-  /* Compact Text */
-  .hybrid-cell {
-    font-size: 0.75rem !important;
-    padding: 0 1px !important;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-  
-  /* Header Font Sizing */
-  .hybrid-header {
-    font-size: 0.65rem !important;
-  }
-  
-  /* Align Date Columns to Right for cleaner look */
-  .hybrid-row > div:nth-child(5), /* Last */
-  .hybrid-row > div:nth-child(6) { /* Next */
-    text-align: right !important;
-    font-size: 0.7rem !important;
-  }
-
-  /* SMALLER TEXT: Helps "Prochain Dû" fit next to the icon */
-  .hybrid-header {
-    font-size: 0.6rem !important; 
-    line-height: 1.2;
-    letter-spacing: 0;
-  }
-
-  /* 3. BIGGER BUTTONS: Make them square and easy to tap */
-  .hybrid-actions .btn-sm {
-    width: 38px !important;
-    height: 38px !important;
-    padding: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-size: 1.1rem !important; /* Bigger Icon */
-  }
 }
