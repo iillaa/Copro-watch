@@ -1008,12 +1008,23 @@ html {
     max-height: calc(100vh - 100px) !important;
   }
 
-  /* 1. HIDE COLUMNS: Hide 'Matricule' and 'Service' so 'Nom' has space */
+  /* 1. HIDE COLUMNS: Hide 'Matricule', 'Service', and 'Dernier Exam' */
   .hybrid-header > div:nth-child(3),
   .hybrid-header > div:nth-child(4),
+  .hybrid-header > div:nth-child(5), /* [NEW] Hide Last Exam */
   .hybrid-row > div:nth-child(3),
-  .hybrid-row > div:nth-child(4) {
+  .hybrid-row > div:nth-child(4),
+  .hybrid-row > div:nth-child(5) {   /* [NEW] Hide Last Exam */
     display: none !important;
+  }
+  
+  /* [NEW] Force Header Text & Icon to be Side-by-Side */
+  .hybrid-header > div {
+    display: flex !important;
+    align-items: center !important;
+    white-space: nowrap !important; /* Prevents text from wrapping */
+    overflow: hidden !important;
+    gap: 2px; /* Small gap between text and icon */
   }
 
   /* 2. FIX GRID: Give 'Nom' more space (Auto) */

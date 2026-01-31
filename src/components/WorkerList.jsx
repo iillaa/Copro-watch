@@ -16,6 +16,7 @@ import {
   FaSearch,
   FaFileDownload,
   FaFileUpload,
+  FaFileExcel, // [NEW]
   FaEdit,
   FaTrash,
   FaSort,
@@ -694,11 +695,11 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
           {/* [NEW] EXCEL BUTTON (For Administration) */}
           <button
             className="btn btn-outline"
-            onClick={handleExcelExport}
+           onClick={handleExcelExport}
             title="Générer un rapport Excel officiel"
-            style={{ borderColor: '#4F46E5', color: '#4F46E5' }}
+            style={{ borderColor: '#107C41', color: '#107C41' }} /* [FIX] Excel Green */
           >
-            <FaFileDownload /> <span className="hide-mobile">Excel</span>
+            <FaFileExcel /> <span className="hide-mobile">Excel</span>
           </button>
 
           {/* [UPDATED] BACKUP BUTTON (For Safety - JSON) */}
