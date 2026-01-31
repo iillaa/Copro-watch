@@ -20,12 +20,9 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
 
   // [FIX] Strict "Phone Only" Detection
   const checkMobile = () => {
-    // 1. Portrait Phone: Width must be LESS than 768px (Excludes iPad/Tablets)
-    const isPortraitPhone = window.matchMedia("(max-width: 767px)").matches;
-    
-    // 2. Landscape Phone: Height must be LESS than 600px (Excludes Tablets)
+    // Increased to 900px to catch high-DPI phones like Poco F6
+    const isPortraitPhone = window.matchMedia("(max-width: 900px)").matches;
     const isLandscapePhone = window.matchMedia("(max-height: 600px) and (orientation: landscape)").matches;
-
     return isPortraitPhone || isLandscapePhone;
   };
 
@@ -37,8 +34,8 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // [GRID CONFIG] Name(1.5) | Date(1) | Action(80)
-  const gridDashboard = '1.5fr 1fr 80px';
+  // [GRID CONFIG] Mobile: Name | Date | Action (Tight)
+  const gridDashboard = isMobile ? '1fr 75px 40px' : '1.5fr 1fr 80px';
 
   const loadStats = async () => {
     try {
@@ -462,10 +459,21 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
                       >
                         {logic.formatDateDisplay(w.next_exam_due)}
                       </div>
-                      {/* Action */}
-                      <div className="hybrid-actions">
+                      {/* Action - Solid Red for Overdue urgency */}
+                      <div className="hybrid-actions" style={{ justifyContent: 'center' }}>
                         <button
-                          className="btn btn-sm btn-outline"
+                          className="btn btn-sm"
+                          style={{
+                            background: 'var(--danger)',
+                            color: 'white',
+                            border: 'none',
+                            width: '32px',
+                            height: '32px',
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
                           onClick={() => onNavigateWorker(w.id)}
                           title="Voir Dossier"
                         >
@@ -490,8 +498,20 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
                       </div>
                       <div className="hybrid-cell">{logic.formatDateDisplay(w.next_exam_due)}</div>
                       <div className="hybrid-actions" style={{ justifyContent: 'center' }}>
+                        {/* FIX: Solid Blue Button for Clarity */}
                         <button
-                          className="btn btn-sm btn-outline"
+                          className="btn btn-sm"
+                          style={{
+                            background: 'var(--primary)',
+                            color: 'white',
+                            border: 'none',
+                            width: '32px',
+                            height: '32px',
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
                           onClick={() => onNavigateWorker(w.id)}
                         >
                           <FaEye />
