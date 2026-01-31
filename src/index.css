@@ -1008,13 +1008,9 @@ html {
     max-height: calc(100vh - 100px) !important;
   }
 
-/* 1. HIDE COLUMNS: Hide Mat, Svc, AND Last Exam (Col 5) for perfect 4-col grid */
-  .hybrid-header > div:nth-child(3),
+/* 1. HIDE COLUMNS: Only hide 'Service' (Col 4). Show Mat & Last Exam. */
   .hybrid-header > div:nth-child(4),
-  .hybrid-header > div:nth-child(5), /* Hide Last Exam */
-  .hybrid-row > div:nth-child(3),
-  .hybrid-row > div:nth-child(4),
-  .hybrid-row > div:nth-child(5) {   /* Hide Last Exam */
+  .hybrid-row > div:nth-child(4) {
     display: none !important;
   }
   
@@ -1023,13 +1019,26 @@ html {
     display: block !important;
     white-space: nowrap !important;
   }
-  /* 2. FIX GRID: Adjusted for Poco F6 */
+ /* 2. FIX GRID: 6 Columns (Check | Nom | Mat | Last | Next | Actions) */
   .hybrid-header,
   .hybrid-row {
-    /* Checkbox(30) | Nom(Auto) | Date(80) | Actions(90) */
-    grid-template-columns: 30px 1fr 80px 90px !important;
-    gap: 4px;
-    padding: 0.75rem 0.25rem !important;
+    /* 25px Check | Auto Nom | 45px Mat | 60px Last | 60px Next | 85px Actions */
+    grid-template-columns: 25px 1fr 45px 60px 60px 85px !important;
+    gap: 2px;
+    padding: 0.75rem 0.1rem !important;
+  }
+
+  /* Compact Text for dense columns */
+  .hybrid-cell {
+    font-size: 0.75rem !important;
+    padding: 0 2px !important;
+  }
+  
+  /* Align Date Columns to Right for cleaner look */
+  .hybrid-row > div:nth-child(5), /* Last */
+  .hybrid-row > div:nth-child(6) { /* Next */
+    text-align: right !important;
+    font-size: 0.7rem !important;
   }
 
   /* SMALLER TEXT: Helps "Prochain Dû" fit next to the icon */
