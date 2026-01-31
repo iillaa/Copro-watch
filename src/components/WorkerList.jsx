@@ -955,47 +955,33 @@ export default function WorkerList({ onNavigateWorker, compactMode }) {
                       )}
                     </div>
 
-                    {/* Actions - Distinct Colors for Mobile */}
+                    {/* Actions - Forced 9px gap for better touch separation */}
                     <div
                       className="hybrid-actions"
-                      style={{ display: 'flex', gap: '5px', justifyContent: 'flex-end' }}
+                      style={{ display: 'flex', gap: '9px', justifyContent: 'flex-end' }}
                     >
-                      {/* EDIT: Orange Outline */}
                       <button
-                        className="btn btn-sm"
-                        style={{
-                           borderColor: '#f59e0b',
-                           color: '#f59e0b',
-                           background: 'white',
-                           padding: 0,
-                           width: '35px',
-                           height: '35px'
-                        }}
+                        className="btn btn-outline btn-sm"
                         onClick={(e) => handleEdit(e, w)}
                         title="Modifier"
                       >
                         <FaEdit />
                       </button>
-
-                      {/* DELETE: Red Background (Safety) */}
                       <button
-                        className="btn btn-sm"
+                        className="btn btn-outline btn-sm"
                         onClick={(e) => handleDelete(e, w)}
                         disabled={deletingId === w.id}
                         style={{
-                          color: 'white',
-                          border: 'none',
-                          backgroundColor: '#ef4444', // Solid Red
-                          padding: 0,
-                          width: '35px',
-                          height: '35px'
+                          color: 'var(--danger)',
+                          borderColor: 'var(--danger)',
+                          backgroundColor: '#fff1f2',
                         }}
                         title="Supprimer"
                       >
                         {deletingId === w.id ? (
                           <div
                             className="loading-spinner"
-                            style={{ width: '12px', height: '12px', borderWidth: '2px', borderColor: 'white', borderTopColor: 'transparent' }}
+                            style={{ width: '12px', height: '12px', borderWidth: '2px' }}
                           ></div>
                         ) : (
                           <FaTrash />

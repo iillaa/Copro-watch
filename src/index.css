@@ -617,15 +617,8 @@ tr:nth-child(even) td {
     overflow: visible !important;
     padding: 1rem !important;
     padding-top: 0.5rem !important;
-    /* FIX: Increased padding so last item is not hidden behind sidebar */
-    padding-bottom: calc(140px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important;
     margin-left: 0 !important;
-  }
-
-  /* FIX: Hide Credits to save space */
-  .sidebar .credit,
-  .sidebar .credit-version {
-    display: none !important;
   }
 
   /* UTILITY: Hide text on small screens */
@@ -1026,16 +1019,9 @@ html {
   /* 2. FIX GRID: Give 'Nom' more space (Auto) */
   .hybrid-header,
   .hybrid-row {
-    /* Checkbox(30) | Nom(Auto) | Date(75) | Actions(50) - Tight layout */
-    grid-template-columns: 30px 1fr 75px 50px !important;
-    gap: 4px;
-    padding: 0.75rem 0.25rem !important; /* Reduce side padding */
-  }
-
-  /* Fix Header Text Size */
-  .hybrid-header {
-    font-size: 0.7rem !important;
-    letter-spacing: 0;
+    /* Checkbox(40) | Nom(Auto) | Date(90) | Actions(90) */
+    grid-template-columns: 40px 1fr 90px 90px !important;
+    gap: 8px;
   }
 
   /* 3. BIGGER BUTTONS: Make them square and easy to tap */
