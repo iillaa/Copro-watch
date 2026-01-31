@@ -615,9 +615,10 @@ tr:nth-child(even) td {
     width: 100%;
     height: auto;
     overflow: visible !important;
-    padding: 1rem !important;
+    /* FIX: Reduce padding to 0.25rem to gain screen width */
+    padding: 0.25rem !important; 
     padding-top: 0.5rem !important;
-    padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(140px + env(safe-area-inset-bottom)) !important; 
     margin-left: 0 !important;
   }
 
@@ -1019,19 +1020,33 @@ html {
     display: block !important;
     white-space: nowrap !important;
   }
- /* 2. FIX GRID: 6 Columns (Check | Nom | Mat | Last | Next | Actions) */
-  .hybrid-header,
-  .hybrid-row {
-    /* 25px Check | Auto Nom | 45px Mat | 60px Last | 60px Next | 85px Actions */
-    grid-template-columns: 25px 1fr 45px 60px 60px 85px !important;
-    gap: 2px;
-    padding: 0.75rem 0.1rem !important;
+ /* [FIX] ZOOM CONTAINER: Mimic the 80% browser zoom */
+  .hybrid-container {
+    zoom: 0.85; /* Scales the table down to fit */
+    width: 100%;
   }
 
-  /* Compact Text for dense columns */
+  /* 2. FIX GRID: Ultra-Compact 6 Columns */
+  .hybrid-header,
+  .hybrid-row {
+    /* Check(22) | Name(Auto) | Mat(40) | Last(55) | Next(55) | Actions(80) */
+    grid-template-columns: 22px 1fr 40px 55px 55px 80px !important;
+    gap: 1px; /* Minimal gap */
+    padding: 0.5rem 0 !important; /* Minimal padding */
+  }
+
+  /* Compact Text */
   .hybrid-cell {
     font-size: 0.75rem !important;
-    padding: 0 2px !important;
+    padding: 0 1px !important;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  
+  /* Header Font Sizing */
+  .hybrid-header {
+    font-size: 0.65rem !important;
   }
   
   /* Align Date Columns to Right for cleaner look */
