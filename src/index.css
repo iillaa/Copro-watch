@@ -569,35 +569,42 @@ tr:nth-child(even) td {
 
   /* 3. MAIN CONTENT PADDING (Clear the Sidebar) */
   .main-content {
-    width: 100%;
-    padding: 0.25rem !important; /* Gain Width */
-    padding-top: 0.5rem !important;
-    /* CRITICAL: 140px bottom padding to stop overlap */
-    padding-bottom: calc(140px + env(safe-area-inset-bottom)) !important; 
-    margin-left: 0 !important;
-    overflow: visible !important;
-  }
+  width: 100% !important;
+  padding: 0.25rem !important;
+  padding-bottom: calc(140px + env(safe-area-inset-bottom)) !important;
+  overflow-x: hidden !important;
+}
+
+
 
   /* 4. NAVIGATION ICONS */
   .nav-item {
-    justify-content: center;
-    width: 48px !important;
-    height: 48px !important;
-    padding: 0 !important;
-    border: none;
-    border-radius: 12px;
-  }
-  .nav-icon { font-size: 1.5rem !important; margin: 0 !important; }
+  display: flex !important;
+  justify-content: center !important; /* Center left-to-right */
+  align-items: center !important;     /* Center top-to-bottom */
+  width: 48px !important; 
+  height: 48px !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.nav-icon {
+  font-size: 1.5rem !important;
+  margin: 0 !important; /* Remove any legacy margins */
+}
 
   /* 5. MAGIC SCALING (Replaces Zoom) */
   .hybrid-container {
-    /* Scale down to 85% to fit more columns */
-    transform: scale(0.85);
-    transform-origin: top left;
-    /* Increase width to compensate for scale (100 / 0.85 = 117.6%) */
-    width: 117.6% !important; 
-    margin-bottom: -15%; /* Remove empty whitespace created by scale */
-  }
+  /* Use transform instead of zoom for better Android support */
+  transform: scale(0.85) !important;
+  transform-origin: top left !important;
+  width: 117.6% !important; /* Compensate for 0.85 scale */
+  margin-bottom: -15% !important; /* Pull up whitespace */
+}
 
   /* 6. 6-COLUMN GRID (Forces layout over Inline Styles) */
   .hybrid-header,
@@ -608,19 +615,23 @@ tr:nth-child(even) td {
     padding: 0.5rem 0.1rem !important;
   }
 
-  /* 7. CELL STYLING */
-  .hybrid-header > div {
-    display: flex !important;
-    align-items: center !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-  }
-  .hybrid-row > div:nth-child(5), /* Last Exam */
-  .hybrid-row > div:nth-child(6) { /* Next Exam */
-    text-align: right !important;
-    font-size: 0.75rem !important;
-  }
-  
+  /* FORCE TEXT & CHEVRON SIDE-BY-SIDE */
+.hybrid-header > div {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important; /* Center vertically */
+  justify-content: flex-start !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  gap: 4px !important;
+}
+
+/* Ensure Sort Icons/Chevrons stay inline */
+.hybrid-header svg {
+  flex-shrink: 0 !important;
+  margin-top: 0 !important;
+}
+
   /* Unhide columns we want (Matricule & Last Exam) */
   .hybrid-header > div:nth-child(4),
   .hybrid-row > div:nth-child(4) {
