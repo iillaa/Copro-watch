@@ -599,7 +599,7 @@ tr:nth-child(even) td {
 
  /* 5. MAGIC SCALING (Replaces Transform to fix Sticky Header) */
   .hybrid-container {
-    zoom: 0.80; 
+    zoom: 0.85; 
     width: 100%;
   }
 
@@ -612,23 +612,23 @@ tr:nth-child(even) td {
     padding: 0.5rem 0.1rem !important;
   }
 
-  /* [SECTION 2] HEADER ALIGNMENT */
+/* [FIX] HEADER ALIGNMENT */
 .hybrid-header > div {
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important; 
-  justify-content: flex-start !important; /* Default: Left Align (Name, etc) */
+  justify-content: flex-start !important; /* Default Left */
   white-space: nowrap !important;
   overflow: hidden !important;
   gap: 4px !important;
   height: 100%; 
 }
 
-/* [FIX] RIGHT ALIGN DATE HEADERS (Dernier & Prochain) */
+/* [FIX] FORCE RIGHT ALIGNMENT FOR DATE HEADERS */
 .hybrid-header > div:nth-child(5),
 .hybrid-header > div:nth-child(6) {
-  justify-content: flex-end !important; /* Push Header Text to Right */
-  padding-right: 4px !important;      /* Add small spacing from edge */
+  justify-content: flex-end !important; /* Push text to right */
+  padding-right: 4px !important;
 }
 
 /* Ensure Sort Icons/Chevrons stay inline */

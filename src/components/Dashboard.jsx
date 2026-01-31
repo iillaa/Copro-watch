@@ -18,18 +18,18 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
   const toggleExpand = (section) =>
     setExpandedSection(expandedSection === section ? null : section);
 
-  // [FIX] Robust Mobile Detection for High-DPI Screens (Poco F6)
+  // [FIX] NUCLEAR MOBILE DETECTION
   const checkMobile = () => {
     if (typeof window === 'undefined') return false;
     
-    // Check 1: Direct Width (Simple & Effective)
-    if (window.innerWidth <= 900) return true;
+    // 1. Force Mobile on any Android/iOS device (Ignores screen width quirks)
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    if (/android|iPad|iPhone|iPod/i.test(userAgent)) {
+      return true;
+    }
 
-    // Check 2: Media Query (For orientation/density specifics)
-    const isPortraitPhone = window.matchMedia("(max-width: 900px)").matches;
-    const isLandscapePhone = window.matchMedia("(max-height: 600px) and (orientation: landscape)").matches;
-
-    return isPortraitPhone || isLandscapePhone;
+    // 2. Fallback width check
+    return window.innerWidth <= 1000;
   };
 
   const [isMobile, setIsMobile] = useState(checkMobile());
