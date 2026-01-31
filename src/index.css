@@ -1008,40 +1008,35 @@ html {
     max-height: calc(100vh - 100px) !important;
   }
 
-  /* 1. HIDE COLUMNS: Hide 'Matricule', 'Service', and 'Dernier Exam' */
+/* 1. HIDE COLUMNS: Hide Mat, Svc, AND Last Exam (Col 5) for perfect 4-col grid */
   .hybrid-header > div:nth-child(3),
   .hybrid-header > div:nth-child(4),
-  .hybrid-header > div:nth-child(5), /* [NEW] Hide Last Exam */
+  .hybrid-header > div:nth-child(5), /* Hide Last Exam */
   .hybrid-row > div:nth-child(3),
   .hybrid-row > div:nth-child(4),
-  .hybrid-row > div:nth-child(5) {   /* [NEW] Hide Last Exam */
+  .hybrid-row > div:nth-child(5) {   /* Hide Last Exam */
     display: none !important;
   }
   
-  /* [FIX] Force Header Alignment - Target ALL children of the header cell */
+  /* Reset Header Alignment (Revert Flex Hacks) */
   .hybrid-header > div {
-    display: flex !important;
-    flex-direction: row !important; /* Force Horizontal */
-    align-items: flex-end !important; /* Align to bottom text baseline */
-    justify-content: flex-start !important;
+    display: block !important;
     white-space: nowrap !important;
-    overflow: hidden !important;
-    height: 100% !important;
   }
-
-  /* Force the SVG icon to stay inline */
-  .hybrid-header > div > svg {
-    display: inline-block !important;
-    margin-left: 2px !important;
-    min-width: 12px !important; /* Prevent icon shrinking */
-  }
-
-  /* 2. FIX GRID: Give 'Nom' more space (Auto) */
+  /* 2. FIX GRID: Adjusted for Poco F6 */
   .hybrid-header,
   .hybrid-row {
-    /* Checkbox(40) | Nom(Auto) | Date(90) | Actions(90) */
-    grid-template-columns: 40px 1fr 90px 90px !important;
-    gap: 8px;
+    /* Checkbox(30) | Nom(Auto) | Date(80) | Actions(90) */
+    grid-template-columns: 30px 1fr 80px 90px !important;
+    gap: 4px;
+    padding: 0.75rem 0.25rem !important;
+  }
+
+  /* SMALLER TEXT: Helps "Prochain Dû" fit next to the icon */
+  .hybrid-header {
+    font-size: 0.6rem !important; 
+    line-height: 1.2;
+    letter-spacing: 0;
   }
 
   /* 3. BIGGER BUTTONS: Make them square and easy to tap */
