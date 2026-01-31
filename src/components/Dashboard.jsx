@@ -18,21 +18,43 @@ export default function Dashboard({ onNavigateWorker, compactMode }) {
   const toggleExpand = (section) =>
     setExpandedSection(expandedSection === section ? null : section);
 
-  // [FIX] ULTRA-AGGRESSIVE MOBILE DETECTION
+  // [FIX] MOBILE DETECTION - Now matches CSS @media (max-width: 768px)
   const checkMobile = () => {
     if (typeof window === 'undefined') return false;
-    // Just force EVERYTHING under 1200px to be mobile. 
-    // This covers your Poco F6 (approx 393px - 450px logical width) safely.
-    return window.innerWidth <= 1200; 
+    const width = window.innerWidth;
+    const isMobileResult = width <= 768; // Fixed: was 1200 (too aggressive)
+    // [DEBUG] Log mobile detection for bug diagnosis
+    console.log('[DEBUG] Mobile Detection:', {
+      innerWidth: width,
+      isMobile: isMobileResult,
+      timestamp: new Date().toISOString()
+    });
+    return isMobileResult;
   };
 
   const [isMobile, setIsMobile] = useState(checkMobile());
 
+  // [DEBUG] Log when mobile state changes
   useEffect(() => {
-    const handleResize = () => setIsMobile(checkMobile());
+    console.log('[DEBUG] Mobile State Changed:', {
+      isMobile,
+      windowWidth: typeof window !== 'undefined' ? window.innerWidth : 'N/A',
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'
+    });
+  }, [isMobile]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const wasMobile = isMobile;
+      setIsMobile(checkMobile());
+      if (isMobile !== wasMobile) {
+        console.log('[DEBUG] Layout Switch Triggered:', { fromMobile: wasMobile, toMobile: isMobile });
+      }
+    };
     window.addEventListener('resize', handleResize);
+    console.log('[DEBUG] Resize listener attached');
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [isMobile]);
 
   // [GRID CONFIG] Name(1.5) | Date(1) | Action(80)
   const gridDashboard = '1.5fr 1fr 80px';

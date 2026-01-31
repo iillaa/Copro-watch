@@ -543,7 +543,7 @@ tr:nth-child(even) td {
     height: auto !important;
     min-height: 100dvh;
     overflow: visible !important;
-    display: block; 
+    display: flex !important; /* Fixed: was 'block' which conflicts with flex-direction */
     flex-direction: column;
   }
 
@@ -626,41 +626,73 @@ tr:nth-child(even) td {
   }
 
 /* [FIX] HEADER ALIGNMENT */
-.hybrid-header > div {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important; 
-  justify-content: flex-start !important; /* Default Left */
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  gap: 4px !important;
-  height: 100%; 
+.hybrid-header > div,
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* space between text and chevron */
+  white-space: nowrap;
+  overflow: hidden;
 }
 
-/* [FIX] FORCE RIGHT ALIGNMENT (Headers) */
-.hybrid-header > div:nth-child(5), /* Last Exam */
-.hybrid-header > div:nth-child(6) { /* Next Exam */
-  justify-content: flex-end !important;
-  text-align: right !important;
-  padding-right: 2px !important;
+.hybrid-header .header-text,
+.header-text {
+  margin: 0; /* remove default margins */
+  padding: 0;
+  line-height: 1.2;
 }
 
-/* [FIX] FORCE RIGHT ALIGNMENT (Rows) */
-.hybrid-row > div:nth-child(5),
-.hybrid-row > div:nth-child(6) {
-  justify-content: flex-end !important;
-  text-align: right !important;
-  padding-right: 2px !important;
-  display: flex !important; /* Ensure flex behavior */
+.hybrid-header .chevron-icon,
+.chevron-icon {
+  width: 12px; /* adjust size as needed */
+  height: 12px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
 }
 
-/* Ensure Sort Icons/Chevrons stay inline */
-.hybrid-header svg {
-  flex-shrink: 0 !important;
-  margin-top: 0 !important;
+/* Ensure sortable headers have proper cursor */
+.hybrid-header > div[role="button"],
+.hybrid-header .header-content[role="button"] {
+  cursor: pointer;
+  transition: color 0.2s ease;
 }
 
+.hybrid-header > div[role="button"]:hover,
+.hybrid-header .header-content[role="button"]:hover {
+  color: var(--primary-dark, #4f46e5);
+}
 
+  /* 7. RESPONSIVE ADJUSTMENTS FOR MOBILE */
+  .hybrid-header > div,
+  .header-content {
+    /* maintain horizontal alignment on small screens */
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.65rem;
+  }
+
+  .hybrid-header .chevron-icon,
+  .chevron-icon {
+    width: 10px;
+    height: 10px;
+  }
+
+  /* 8. EXTRA RESPONSIVE FOR VERY SMALL SCREENS */
+  @media (max-width: 600px) {
+    .hybrid-header > div,
+    .header-content {
+      gap: 3px;
+    }
+
+    .hybrid-header .chevron-icon,
+    .chevron-icon {
+      width: 10px;
+      height: 10px;
+    }
+  }
 
   /* Fix Modal/Keyboard */
   .modal { margin-bottom: 50vh !important; }
@@ -703,6 +735,46 @@ tr:nth-child(even) td {
   margin-bottom: 0.75rem;
   margin-top: 0.25rem;
 }
+
+/* Updated header content alignment */
+.hybrid-header > div,
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* space between text and chevron */
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.hybrid-header .header-text,
+.header-text {
+  margin: 0; /* remove default margins */
+  padding: 0;
+  line-height: 1.2;
+}
+
+.hybrid-header .chevron-icon,
+.chevron-icon {
+  width: 12px; /* adjust size as needed */
+  height: 12px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure sortable headers have proper cursor */
+.hybrid-header > div[role="button"],
+.hybrid-header .header-content[role="button"] {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.hybrid-header > div[role="button"]:hover,
+.hybrid-header .header-content[role="button"]:hover {
+  color: var(--primary-dark, #4f46e5);
+}
+
 .hybrid-row {
   display: grid;
   background: var(--bg-card);
